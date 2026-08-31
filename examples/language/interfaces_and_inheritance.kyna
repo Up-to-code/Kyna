@@ -1,0 +1,26 @@
+# Structural interfaces, construction, inheritance, override, self, and super.
+intf Named {
+    name: str;
+}
+
+class Animal implements Named {
+    public name: str;
+
+    public init(name: str) {
+        self.name = name;
+    }
+
+    public func speak(): str {
+        return "animal " + self.name;
+    }
+}
+
+class Dog extends Animal {
+    public override func speak(): str {
+        return super.speak() + " says woof";
+    }
+}
+
+set dog = new Dog("Rex");
+print("interface", dog.name);
+print("override", dog.speak());

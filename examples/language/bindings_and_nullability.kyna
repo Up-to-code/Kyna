@@ -1,0 +1,13 @@
+# Immutable set bindings, mutable let bindings, equality, and nullable values.
+set answer: int = 42;
+let counter: int = 0;
+counter = counter + 1;
+counter = counter + 1;
+
+let nickname: str? = null;
+set missing = nickname == null;
+nickname = "Kyna";
+
+print("bindings", answer, counter);
+print("nullable", missing, nickname == "Kyna");
+print("equality", answer == 42, answer != 41);

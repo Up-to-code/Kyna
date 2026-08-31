@@ -188,6 +188,11 @@ if(KYNA_BUILD_TESTS)
            COMMAND "${Python3_EXECUTABLE}"
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_cli_color.py"
                    "$<TARGET_FILE:kyna>")
+  add_test(NAME kyna_language_examples
+           COMMAND "${Python3_EXECUTABLE}"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_language_examples.py"
+                   "$<TARGET_FILE:kyna>"
+                   "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 include(GNUInstallDirs)

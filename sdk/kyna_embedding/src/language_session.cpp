@@ -30,7 +30,23 @@ struct BytecodeAttempt {
 };
 
 HirLoweringOptions standardLibraryHirOptions() {
-  return {bytecodeStandardLibraryFunctionNames()};
+  return {
+      bytecodeStandardLibraryFunctionNames(),
+      {{"console.log", "log"},
+       {"process.json", "jsonParse"},
+       {"process.stringify", "jsonStringify"},
+       {"process.run", "processRun"},
+       {"process.env", "processEnv"},
+       {"fs.read", "readFile"},
+       {"fs.write", "writeFile"},
+       {"fs.readJson", "readJsonFile"},
+       {"fs.writeJson", "writeJsonFile"},
+       {"fs.createDirectory", "createDirectory"},
+       {"fs.exists", "fileExists"},
+       {"fs.remove", "removePath"},
+       {"fs.list", "listDirectory"},
+       {"collections.unique", "unique"},
+       {"collections.sort", "sort"}}};
 }
 
 BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree,

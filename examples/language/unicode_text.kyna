@@ -1,0 +1,11 @@
+# Unicode-aware text length, slicing, searching, replacement, and case conversion.
+set greeting = "  Héllo 世界  ";
+set pieces = textSplit("one::two::three", "::");
+
+print("length", len(greeting));
+print("slice", textSlice(greeting, 2, 7));
+print("find", textFind(greeting, "世界"));
+print("contains", textContains(greeting, "éll"));
+print("replace", textReplace(textTrim(greeting), "世界", "Kyna"));
+print("case", textLower("ÄBC"), textUpper("kyna"));
+print("split", len(pieces), pieces[1]);

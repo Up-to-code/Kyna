@@ -67,6 +67,20 @@ int main() {
   assert(firstClassListing.find("function @f0") != std::string::npos);
   assert(firstClassListing.find("call.indirect") != std::string::npos);
 
+  const auto nativeMemberSource = sources.add(
+      "hir-native-members",
+      "set metadata = process.json(\"{\\\"ready\\\":true}\"); console.log(metadata.ready);");
+  auto nativeMemberLexed = kyna::tokenize(*sources.find(nativeMemberSource));
+  auto nativeMemberParsed =
+      kyna::parseModule(*sources.find(nativeMemberSource), std::move(nativeMemberLexed.tokens));
+  auto nativeMemberHir = kyna::lowerSyntaxToHir(
+      "hir-native-members", nativeMemberParsed.tree,
+      kyna::HirLoweringOptions{{}, {{"process.json", "jsonParse"}, {"console.log", "log"}}});
+  assert(nativeMemberHir.ok());
+  const auto nativeMemberListing = kyna::renderHir(*nativeMemberHir.program);
+  assert(nativeMemberListing.find("call.native jsonParse") != std::string::npos);
+  assert(nativeMemberListing.find("call.native log") != std::string::npos);
+
   const auto exceptionSource = sources.add(
       "hir-exceptions",
       "try { throw \"boom\"; } catch (failure) { set recovered = true; } "

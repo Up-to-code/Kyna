@@ -422,6 +422,16 @@ private:
                                           std::move(arguments)},
                   expression->location);
             }
+            if (member && member->object) {
+              if (const auto *namespaceName = std::get_if<Variable>(&member->object->node)) {
+                const auto qualifiedName = namespaceName->name + "." + member->name;
+                if (const auto native = options.nativeMemberFunctions.find(qualifiedName);
+                    native != options.nativeMemberFunctions.end())
+                  return addExpression(
+                      HirNativeCallExpression{native->second, std::move(arguments)},
+                      expression->location);
+              }
+            }
             if (callee && !findLocal(callee->name) && !functions.contains(callee->name) &&
                 std::find(options.nativeFunctions.begin(), options.nativeFunctions.end(),
                           callee->name) != options.nativeFunctions.end())

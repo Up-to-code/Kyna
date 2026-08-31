@@ -488,7 +488,7 @@ int main() {
   auto nativeParsed =
       kyna::parseModule(*sources.find(nativeSource), std::move(nativeLexed.tokens));
   auto nativeHir = kyna::lowerSyntaxToHir(
-      "native-call", nativeParsed.tree, kyna::HirLoweringOptions{{"nativeAdd"}});
+      "native-call", nativeParsed.tree, kyna::HirLoweringOptions{{"nativeAdd"}, {}});
   assert(nativeHir.ok());
   assert(kyna::renderHir(*nativeHir.program).find("call.native nativeAdd") !=
          std::string::npos);

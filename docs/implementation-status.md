@@ -16,14 +16,14 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | CLI11 command grammar | run/check/repl/tokens/ast/hir/mir/bytecode implemented |
 | FTXUI terminal diagnostics | implemented for interactive terminals |
 | Managed heap | iterative tracing, temporary roots, heap-owned VM closures/capture cells, VM allocation safepoints, cycle reclamation, and per-execution statistics implemented; generational collection remains open |
-| Text, JSON, collections, filesystem, process | Unicode code-point length/slice/search/case operations, JSON parse/stringify, collection literals/indexing/mutation/default sort/unique/push/pop/keys, filesystem primitives, JSON files, process execution/environment, and clocks execute through VM adapters; callback collection algorithms remain open |
+| Text, JSON, collections, filesystem, process | Unicode code-point length/slice/search/case operations, JSON parse/stringify, collection literals/indexing/mutation/default sort/unique/push/pop/keys, filesystem primitives, JSON files, process execution/environment, and clocks execute through VM adapters; namespace calls such as `process.json`, `console.log`, and `fs.readJson` lower to their canonical VM natives; callback collection algorithms remain open |
 | HTTP/HTTPS | linked libcurl adapter, TLS verification, timeouts, bounded retry, typed failure phases, and VM-native `fetch` responses with status/headers/JSON/text |
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
 | Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
 | HTTP server, sockets, DAP, LSP | not implemented |
 | Formatter, package manager, documentation generator | not implemented |
-| VS Code extension | 1.0.2: `.kyna`, comments, completion, imports, symbols, definitions, hover, CodeLens, live diagnostics, direct-process Run/Check terminals, compiler inspection, purple assets |
+| VS Code extension | 1.0.4: `.kyna`, comments, completion, imports, symbols, definitions, hover, CodeLens, live diagnostics, replaceable task-backed Run/Check terminals with color policy, compiler inspection, purple assets |
 | Cross-platform archives | CI matrix and CPack archives configured; signed native installers remain a release gate |
 
 Kyna 1.0 must not be tagged until every mandatory gate in [ROADMAP.md](../ROADMAP.md) and [release-policy.md](release-policy.md) is complete.

@@ -4,6 +4,7 @@
 #include "kyna/hir/hir_program.hpp"
 #include "kyna/syntax/syntax_tree.hpp"
 #include <optional>
+#include <unordered_map>
 
 namespace kyna {
 
@@ -15,6 +16,7 @@ struct HirLoweringResult {
 
 struct HirLoweringOptions {
   std::vector<std::string> nativeFunctions;
+  std::unordered_map<std::string, std::string> nativeMemberFunctions;
 };
 
 [[nodiscard]] HirLoweringResult lowerSyntaxToHir(const std::string &moduleName,
