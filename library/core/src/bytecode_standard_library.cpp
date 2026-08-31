@@ -2,6 +2,7 @@
 #include "kyna/text/unicode_text.hpp"
 #include "json_value_codec.hpp"
 #include <algorithm>
+#include <cctype>
 #include <ostream>
 
 namespace kyna {
@@ -249,6 +250,88 @@ public:
                        arguments[0]);
       return {RuntimeValue(std::move(response->body)), std::nullopt};
     }
+    if (name == "fetch") {
+      if (arguments.empty() || arguments.size() > 2 ||
+          !std::holds_alternative<std::string>(arguments[0].data) ||
+          (arguments.size() == 2 && !std::holds_alternative<ObjectPtr>(arguments[1].data)))
+        return failure("KNET1001", "fetch expects a URL and optional request-options object");
+      NetworkRequest request;
+      request.url = std::get<std::string>(arguments[0].data);
+      if (arguments.size() == 2) {
+        const auto *options = std::get<ObjectPtr>(arguments[1].data);
+        if (const auto found = options->fields.find("method"); found != options->fields.end()) {
+          if (!std::holds_alternative<std::string>(found->second.data))
+            return failure("KNET1002", "fetch option 'method' must be a string", found->second);
+          request.method = std::get<std::string>(found->second.data);
+          std::transform(request.method.begin(), request.method.end(), request.method.begin(),
+                         [](unsigned char character) { return std::toupper(character); });
+        }
+        if (const auto found = options->fields.find("body"); found != options->fields.end()) {
+          if (!std::holds_alternative<std::string>(found->second.data))
+            return failure("KNET1002", "fetch option 'body' must be a string", found->second);
+          request.body = std::get<std::string>(found->second.data);
+        }
+        if (const auto found = options->fields.find("timeout"); found != options->fields.end()) {
+          if (!std::holds_alternative<std::int64_t>(found->second.data) ||
+              std::get<std::int64_t>(found->second.data) <= 0)
+            return failure("KNET1002", "fetch option 'timeout' must be a positive integer",
+                           found->second);
+          request.timeout =
+              std::chrono::milliseconds(std::get<std::int64_t>(found->second.data));
+        }
+        if (const auto found = options->fields.find("headers"); found != options->fields.end()) {
+          if (!std::holds_alternative<ObjectPtr>(found->second.data))
+            return failure("KNET1003", "fetch option 'headers' must be an object", found->second);
+          for (const auto &[header, value] : std::get<ObjectPtr>(found->second.data)->fields) {
+            if (!std::holds_alternative<std::string>(value.data))
+              return failure("KNET1003", "fetch header '" + header + "' must be a string",
+                             value);
+            request.headers.insert_or_assign(header, std::get<std::string>(value.data));
+          }
+        }
+      }
+      NetworkFailure networkFailure;
+      auto response = capabilities.network->send(request, networkFailure);
+      if (!response)
+        return failure("KNET2001", request.method + " request failed during " +
+                                       std::string(networkFailurePhaseName(networkFailure.phase)) +
+                                       ": " + networkFailure.message,
+                       arguments[0]);
+      auto *result = heap.allocate();
+      result->fields["ok"] = RuntimeValue(response->ok());
+      result->fields["status"] = RuntimeValue(static_cast<std::int64_t>(response->status));
+      result->fields["url"] = RuntimeValue(response->effectiveUrl.empty()
+                                                ? request.url
+                                                : std::move(response->effectiveUrl));
+      result->fields["method"] = RuntimeValue(request.method);
+      result->fields["__kynaResponse"] = RuntimeValue(true);
+      result->fields["__kynaResponseBody"] = RuntimeValue(std::move(response->body));
+      auto *headers = heap.allocate();
+      for (auto &[header, value] : response->headers)
+        headers->fields.insert_or_assign(std::move(header), RuntimeValue(std::move(value)));
+      result->fields["headers"] = RuntimeValue(headers);
+      return {RuntimeValue(result), std::nullopt};
+    }
+    if (name == "responseText" || name == "responseJson") {
+      if (arguments.size() != 1 || !std::holds_alternative<ObjectPtr>(arguments[0].data))
+        return failure("KNET2100", std::string(name) + " requires a fetch response");
+      const auto *response = std::get<ObjectPtr>(arguments[0].data);
+      const auto marker = response->fields.find("__kynaResponse");
+      const auto body = response->fields.find("__kynaResponseBody");
+      if (marker == response->fields.end() || !std::holds_alternative<bool>(marker->second.data) ||
+          !std::get<bool>(marker->second.data) || body == response->fields.end() ||
+          !std::holds_alternative<std::string>(body->second.data))
+        return failure("KNET2100", std::string(name) + " requires a fetch response",
+                       arguments[0]);
+      if (name == "responseText")
+        return {body->second, std::nullopt};
+      try {
+        return {parseJsonValue(std::get<std::string>(body->second.data), heap), std::nullopt};
+      } catch (const KynaError &error) {
+        return failure(error.diagnostic.code.empty() ? "K5100" : error.diagnostic.code,
+                       "response JSON is invalid: " + error.diagnostic.message, arguments[0]);
+      }
+    }
     if (name == "jsonParse") {
       if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
         return failure("K5100", "jsonParse expects exactly one JSON string");
@@ -347,7 +430,8 @@ const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
       "print", "log", "typeOf", "len", "error", "readFile", "writeFile", "fileExists",
       "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
-      "processEnv", "processRun", "build", "sleep", "wait", "httpGet", "jsonParse",
+      "processEnv", "processRun", "build", "sleep", "wait", "httpGet", "fetch",
+      "responseJson", "responseText", "jsonParse",
       "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort",
       "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
       "textLower", "textUpper"};

@@ -17,10 +17,10 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | FTXUI terminal diagnostics | implemented for interactive terminals |
 | Managed heap | iterative tracing, temporary roots, heap-owned VM closures/capture cells, VM allocation safepoints, cycle reclamation, and per-execution statistics implemented; generational collection remains open |
 | Text, JSON, collections, filesystem, process | Unicode code-point length/slice/search/case operations, JSON parse/stringify, collection literals/indexing/mutation/default sort/unique/push/pop/keys, filesystem primitives, JSON files, process execution/environment, and clocks execute through VM adapters; callback collection algorithms remain open |
-| HTTP/HTTPS | linked libcurl adapter, TLS verification, timeouts, bounded retry, typed failure phases |
+| HTTP/HTTPS | linked libcurl adapter, TLS verification, timeouts, bounded retry, typed failure phases, and VM-native `fetch` responses with status/headers/JSON/text |
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
-| Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, and direct production natives are implemented; classes, modules, callback collection algorithms, fetch response methods, and async operations remain open |
+| Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
 | HTTP server, sockets, DAP, LSP | not implemented |
 | Formatter, package manager, documentation generator | not implemented |
 | VS Code extension | `.kyna`, comments, completion, imports, live diagnostics, Run/Check, purple assets |

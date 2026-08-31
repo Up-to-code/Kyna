@@ -241,6 +241,24 @@ int main() {
   assert(files->directories == bytecodeDirectories + 1);
   assert(network->requests == bytecodeRequests + 1);
   assert(clock->sleeps == bytecodeSleeps + 1);
+  const auto bytecodeFetchRequests = network->requests;
+  const auto bytecodeFetch = deterministicSession.runSource(
+      "bytecode-fetch.kyna",
+      "try { "
+      "set response = fetch(\"https://example.test/products\", "
+      "{ method: \"POST\", body: \"{\\\"title\\\":\\\"created\\\"}\", "
+      "timeout: 1200, headers: { Authorization: \"Bearer bytecode\" } }); "
+      "set product = response.json(); "
+      "if (!response.ok || response.status != 201 || product.id != 31 || "
+      "response.text() != \"{\\\"id\\\":31,\\\"title\\\":\\\"created\\\"}\" || "
+      "response.headers[\"content-type\"] != \"application/json\") { "
+      "error(\"fetch response\"); } "
+      "} catch (failure) { throw failure; }");
+  assert(bytecodeFetch.ok());
+  assert(network->requests == bytecodeFetchRequests + 1);
+  assert(network->lastMethod == "POST");
+  assert(network->lastBody == "{\"title\":\"created\"}");
+  assert(network->lastHeaders.at("Authorization") == "Bearer bytecode");
   const auto bytecodeJson = deterministicSession.runSource(
       "bytecode-json.kyna",
       "set decoded = jsonParse(\"{\\\"items\\\":[20,22],\\\"ready\\\":true}\"); "

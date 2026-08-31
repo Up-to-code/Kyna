@@ -85,6 +85,7 @@ private:
   std::unordered_map<std::string, HirFunctionId> functions;
   std::vector<std::string> loopLabels;
   std::vector<std::optional<HirFunctionId>> localOwners;
+  std::vector<bool> responseLocals;
   std::optional<HirFunctionId> currentFunction;
   std::unordered_map<const Stmt *, std::pair<HirFunctionId, HirLocalId>> nestedFunctions;
 
@@ -112,6 +113,7 @@ private:
     const auto id = HirLocalId{static_cast<std::uint32_t>(program.locals.size())};
     program.locals.push_back({declaration.name, declaration.mutableBinding, span});
     localOwners.push_back(currentFunction);
+    responseLocals.push_back(false);
     scopes.back().insert_or_assign(declaration.name, id);
     return id;
   }
@@ -120,6 +122,7 @@ private:
     const auto id = HirLocalId{static_cast<std::uint32_t>(program.locals.size())};
     program.locals.push_back({parameter.name, false, span});
     localOwners.push_back(currentFunction);
+    responseLocals.push_back(false);
     scopes.back().insert_or_assign(parameter.name, id);
     return id;
   }
@@ -128,6 +131,7 @@ private:
     const auto id = HirLocalId{static_cast<std::uint32_t>(program.locals.size())};
     program.locals.push_back({name, mutableBinding, span});
     localOwners.push_back(currentFunction);
+    responseLocals.push_back(false);
     scopes.back().insert_or_assign(name, id);
     return id;
   }
@@ -173,6 +177,20 @@ private:
       if (const auto found = scope->find(name); found != scope->end())
         return found->second;
     return std::nullopt;
+  }
+
+  bool isFetchCall(const ExprPtr &expression) const {
+    const auto *call = expression ? std::get_if<Call>(&expression->node) : nullptr;
+    const auto *callee = call && call->callee ? std::get_if<Variable>(&call->callee->node) : nullptr;
+    return callee && callee->name == "fetch";
+  }
+
+  bool isResponseExpression(const ExprPtr &expression) const {
+    if (isFetchCall(expression))
+      return true;
+    const auto *variable = expression ? std::get_if<Variable>(&expression->node) : nullptr;
+    const auto local = variable ? findLocal(variable->name) : std::nullopt;
+    return local && local->value < responseLocals.size() && responseLocals[local->value];
   }
 
   void predeclareNestedFunctions(const BlockStmt &block) {
@@ -300,6 +318,7 @@ private:
                 expression->location);
           } else if constexpr (std::is_same_v<T, Call>) {
             const auto *callee = node.callee ? std::get_if<Variable>(&node.callee->node) : nullptr;
+            const auto *member = node.callee ? std::get_if<Member>(&node.callee->node) : nullptr;
             std::vector<HirExpressionId> arguments;
             arguments.reserve(node.args.size());
             for (const auto &argument : node.args) {
@@ -307,6 +326,18 @@ private:
               if (!lowered)
                 return std::nullopt;
               arguments.push_back(*lowered);
+            }
+            if (member && (member->name == "json" || member->name == "text") &&
+                isResponseExpression(member->object)) {
+              const auto receiver = lowerExpression(member->object);
+              if (!receiver)
+                return std::nullopt;
+              arguments.insert(arguments.begin(), *receiver);
+              return addExpression(
+                  HirNativeCallExpression{member->name == "json" ? "responseJson"
+                                                                  : "responseText",
+                                          std::move(arguments)},
+                  expression->location);
             }
             if (callee && !findLocal(callee->name) && !functions.contains(callee->name) &&
                 std::find(options.nativeFunctions.begin(), options.nativeFunctions.end(),
@@ -445,8 +476,9 @@ private:
             const auto initializer = lowerExpression(node.initializer);
             if (!initializer)
               return std::nullopt;
-            return addStatement(HirBindLocalStatement{addLocal(node, statement->location),
-                                                       *initializer},
+            const auto local = addLocal(node, statement->location);
+            responseLocals[local.value] = isFetchCall(node.initializer);
+            return addStatement(HirBindLocalStatement{local, *initializer},
                                 statement->location);
           } else if constexpr (std::is_same_v<T, ExprStmt>) {
             const auto expression = lowerExpression(node.expression);
