@@ -14,7 +14,7 @@ The semantic best-practice pass currently reports:
 - `K2606`: `fetch` relies on the default timeout instead of selecting a backend-specific timeout.
 - `K2610`: SQL text is dynamic instead of using constant SQL and bound parameters.
 
-Runtime families include `KNET2001` for phase-specific network failures, `KDB2001` for PostgreSQL failures with SQLSTATE/native causes, `KRT2001`–`KRT2004` for member access, `KRT2101`–`KRT2105` for array/object indexing, and `KRT2200`–`KRT2203` for tree-walk numeric operations. The bytecode VM reports division by zero as `KVM2003`, excessive call depth as `KVM2004`, checked integer overflow as `KVM2005`, non-integer remainder operands as `KVM2006`, and remainder by zero as `KVM2007`. These diagnostics include source mappings and VM call frames.
+Runtime families include `KNET2001` for phase-specific network failures, `KDB2001` for PostgreSQL failures with SQLSTATE/native causes, `KRT2001`–`KRT2004` for member access, `KRT2101`–`KRT2105` for array/object indexing, and `KRT2200`–`KRT2204` for numeric operations. These codes are stable across the tree-walk compatibility engine and bytecode VM: `KRT2201` covers division/remainder by zero, `KRT2202` covers non-integer remainder operands, and `KRT2204` covers checked integer overflow. VM-only defects and invalid bytecode retain `KVM`/`KBC` codes. Runtime diagnostics include source mappings and VM call frames.
 
 Semantic declaration and call validation uses `KSEM1101`–`KSEM1104` for duplicate declarations, bindings, declaration conflicts, and parameters. `KSEM1201` reports an argument-count mismatch and `KSEM1202` points at the exact argument whose type is incompatible. Semantic null and index misuse uses `KSEM2401`–`KSEM2403` before execution when the type is known.
 

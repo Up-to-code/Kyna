@@ -10,7 +10,9 @@
 #include "kyna/mir/mir_renderer.hpp"
 #include "kyna/parsing/module_parser.hpp"
 #include "kyna/stdlib/standard_library_catalog.hpp"
+#include "kyna/stdlib/bytecode_standard_library.hpp"
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
@@ -27,8 +29,13 @@ struct BytecodeAttempt {
   std::vector<Diagnostic> diagnostics;
 };
 
-BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree) {
-  auto hir = lowerSyntaxToHir(name, tree);
+HirLoweringOptions standardLibraryHirOptions() {
+  return {bytecodeStandardLibraryFunctionNames()};
+}
+
+BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree,
+                                      RuntimeCapabilities capabilities) {
+  auto hir = lowerSyntaxToHir(name, tree, standardLibraryHirOptions());
   if (!hir.program) {
     const bool onlyUnsupported =
         !hir.diagnostics.empty() &&
@@ -43,7 +50,8 @@ BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree 
   auto bytecode = compileMirToBytecode(*mir.program);
   if (!bytecode.module)
     return {true, std::move(bytecode.diagnostics)};
-  auto execution = BytecodeVirtualMachine().execute(*bytecode.module);
+  auto nativeLibrary = createBytecodeStandardLibrary(std::move(capabilities), std::cout);
+  auto execution = BytecodeVirtualMachine().execute(*bytecode.module, nativeLibrary.get());
   return {true, std::move(execution.diagnostics)};
 }
 
@@ -167,7 +175,8 @@ LanguageResult LanguageSession::run(const std::filesystem::path &entry) {
   if (analysis.program->modules.modules.size() == 1) {
     const auto module = analysis.program->modules.modules.find(analysis.program->modules.entry);
     if (module != analysis.program->modules.modules.end() && module->second.dependencies.empty()) {
-      auto attempt = executeBytecodeSubset(entry.string(), module->second.syntax);
+      auto attempt = executeBytecodeSubset(entry.string(), module->second.syntax,
+                                           options.capabilities);
       if (attempt.supported) {
         diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());
         const bool executed = !hasErrors(diagnostics);
@@ -225,7 +234,7 @@ LanguageResult LanguageSession::runSource(std::string name, std::string source, 
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (hasErrors(diagnostics))
     return {std::move(diagnostics), false};
-  auto attempt = executeBytecodeSubset(name, parsed.tree);
+  auto attempt = executeBytecodeSubset(name, parsed.tree, options.capabilities);
   if (attempt.supported) {
     diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());
     const bool executed = !hasErrors(diagnostics);
@@ -311,7 +320,7 @@ InspectionResult LanguageSession::inspectBytecode(std::string name, std::string 
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto hir = lowerSyntaxToHir(name, parsed.tree);
+  auto hir = lowerSyntaxToHir(name, parsed.tree, standardLibraryHirOptions());
   diagnostics.insert(diagnostics.end(), hir.diagnostics.begin(), hir.diagnostics.end());
   if (!hir.program)
     return {{}, std::move(diagnostics)};
@@ -344,7 +353,7 @@ InspectionResult LanguageSession::inspectHir(std::string name, std::string sourc
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto lowered = lowerSyntaxToHir(name, parsed.tree);
+  auto lowered = lowerSyntaxToHir(name, parsed.tree, standardLibraryHirOptions());
   diagnostics.insert(diagnostics.end(), lowered.diagnostics.begin(), lowered.diagnostics.end());
   if (!lowered.program)
     return {{}, std::move(diagnostics)};
@@ -369,7 +378,7 @@ InspectionResult LanguageSession::inspectMir(std::string name, std::string sourc
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto hir = lowerSyntaxToHir(name, parsed.tree);
+  auto hir = lowerSyntaxToHir(name, parsed.tree, standardLibraryHirOptions());
   diagnostics.insert(diagnostics.end(), hir.diagnostics.begin(), hir.diagnostics.end());
   if (!hir.program)
     return {{}, std::move(diagnostics)};

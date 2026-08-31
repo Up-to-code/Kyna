@@ -87,7 +87,7 @@ int main() {
   assert(failingModule.ok());
   const auto failingResult = kyna::BytecodeVirtualMachine().execute(*failingModule.module);
   assert(!failingResult.ok());
-  assert(failingResult.diagnostics.front().code == "KVM2003");
+  assert(failingResult.diagnostics.front().code == "KRT2201");
   assert(failingResult.diagnostics.front().callFrames.size() == 2);
   assert(failingResult.diagnostics.front().callFrames.front().function == "divide");
 
@@ -104,7 +104,7 @@ int main() {
   assert(overflowModule.ok());
   const auto overflowResult = kyna::BytecodeVirtualMachine().execute(*overflowModule.module);
   assert(!overflowResult.ok());
-  assert(overflowResult.diagnostics.front().code == "KVM2005");
+  assert(overflowResult.diagnostics.front().code == "KRT2204");
 
   const auto stringSource = sources.add("string-add", "return 42 + \" answers\";");
   auto stringLexed = kyna::tokenize(*sources.find(stringSource));
@@ -148,7 +148,7 @@ int main() {
   assert(remainderModule.ok());
   const auto remainderResult = kyna::BytecodeVirtualMachine().execute(*remainderModule.module);
   assert(!remainderResult.ok());
-  assert(remainderResult.diagnostics.front().code == "KVM2007");
+  assert(remainderResult.diagnostics.front().code == "KRT2201");
 
   const auto shortCircuitSource = sources.add(
       "short-circuit",
@@ -431,7 +431,7 @@ int main() {
       kyna::BytecodeVirtualMachine().execute(*inspectedErrorModule.module);
   assert(inspectedErrorResult.ok());
   assert(std::get<std::string>(inspectedErrorResult.value.data) ==
-         "KVM2003::division by zero");
+         "KRT2201::division by zero");
 
   const auto nativeSource = sources.add(
       "native-call", "return nativeAdd(20, 22);");

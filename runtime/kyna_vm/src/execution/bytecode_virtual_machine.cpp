@@ -221,7 +221,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       if (const auto integer =
               std::get_if<std::int64_t>(&readRegister(frame, instruction.first).data)) {
         if (*integer == std::numeric_limits<std::int64_t>::min()) {
-          if (auto failure = raise("KVM2005", "integer overflow while negating value",
+          if (auto failure = raise("KRT2204", "integer overflow while negating value",
                                    instruction.span))
             return *std::move(failure);
           continue;
@@ -231,7 +231,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
                      std::get_if<double>(&readRegister(frame, instruction.first).data))
         writeRegister(frame, instruction.destination, RuntimeValue(-*floating));
       else {
-        if (auto failure = raise("KVM2002", "negate requires a numeric operand",
+        if (auto failure = raise("KRT2200", "negate requires a numeric operand",
                                  instruction.span))
           return *std::move(failure);
         continue;
@@ -270,25 +270,25 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       bool rightInteger = false;
       if (!number(readRegister(frame, instruction.first), left, leftInteger) ||
           !number(readRegister(frame, instruction.second), right, rightInteger)) {
-        if (auto failure = raise("KVM2002", std::string(opcodeName(instruction.opcode)) +
+        if (auto failure = raise("KRT2200", std::string(opcodeName(instruction.opcode)) +
                                                " requires numeric operands",
                                  instruction.span))
           return *std::move(failure);
         continue;
       }
       if (instruction.opcode == OpCode::Divide && right == 0.0) {
-        if (auto failure = raise("KVM2003", "division by zero", instruction.span))
+        if (auto failure = raise("KRT2201", "division by zero", instruction.span))
           return *std::move(failure);
         continue;
       }
       if (instruction.opcode == OpCode::Remainder && (!leftInteger || !rightInteger)) {
-        if (auto failure = raise("KVM2006", "remainder requires integer operands",
+        if (auto failure = raise("KRT2202", "remainder requires integer operands",
                                  instruction.span))
           return *std::move(failure);
         continue;
       }
       if (instruction.opcode == OpCode::Remainder && right == 0.0) {
-        if (auto failure = raise("KVM2007", "remainder by zero", instruction.span))
+        if (auto failure = raise("KRT2201", "remainder by zero", instruction.span))
           return *std::move(failure);
         continue;
       }
@@ -305,7 +305,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
           if (!checkedIntegerArithmetic(instruction.opcode, integerLeft, integerRight,
                                         integerResult)) {
             if (auto failure = raise(
-                    "KVM2005", "integer overflow while evaluating '" +
+                    "KRT2204", "integer overflow while evaluating '" +
                                    std::string(opcodeName(instruction.opcode)) + "'",
                     instruction.span))
               return *std::move(failure);
