@@ -28,3 +28,6 @@ if (factorialSix == 720) {
 } else {
     set invalidFactorial = 1 / 0;
 }
+
+print("factorial(6)", factorialSix);
+print("fibonacci(10)", fibonacciTen);

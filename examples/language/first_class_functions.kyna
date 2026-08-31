@@ -21,3 +21,6 @@ if (sum == 42 && product == 42) {
 } else {
     set invalidFirstClassCall = 1 / 0;
 }
+
+print("sum", sum);
+print("product", product);

@@ -1,26 +1,30 @@
-# Typed Error values, catch, rethrow, and guaranteed cleanup.
-let trace = "";
+# Typed Error values, catch, closure mutation, and guaranteed cleanup.
+func demonstrateExceptions(): void {
+    let trace = "";
 
-func guarded(): str {
-    try {
-        throw "boom";
-    } catch (failure) {
-        trace = trace + failure.code + ":" + failure.message + ":" + failure.cause;
-        return "recovered";
-    } finally {
-        trace = trace + ":cleanup-first";
-        trace = trace + ":cleanup-second";
+    func guarded(): str {
+        try {
+            throw "boom";
+        } catch (failure) {
+            trace = trace + failure.code + ":" + failure.message + ":" + failure.cause;
+            return "recovered";
+        } finally {
+            trace = trace + ":cleanup-first";
+            trace = trace + ":cleanup-second";
+        }
     }
+
+    func returnThroughFinally(): str {
+        try {
+            return "returned";
+        } finally {
+            trace = trace + ":return-cleanup";
+        }
+    }
+
+    set result = guarded();
+    set returned = returnThroughFinally();
+    print(result, returned, trace);
 }
 
-func returnThroughFinally(): str {
-    try {
-        return "returned";
-    } finally {
-        trace = trace + ":return-cleanup";
-    }
-}
-
-set result = guarded();
-set returned = returnThroughFinally();
-console.log(result, returned, trace);
+demonstrateExceptions();

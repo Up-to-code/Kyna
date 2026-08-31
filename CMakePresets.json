@@ -9,13 +9,11 @@
     {
       "name": "developer-base",
       "hidden": true,
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-${presetName}",
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "23",
         "KYNA_BUILD_TESTS": "ON",
-        "KYNA_FETCH_DEPENDENCIES": "OFF",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        "KYNA_FETCH_DEPENDENCIES": "ON"
       }
     },
     {

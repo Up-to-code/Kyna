@@ -137,6 +137,8 @@ if(KYNA_BUILD_TESTS)
            COMMAND kyna run
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/recursive_functions.kyna"
                    --no-color)
+  set_tests_properties(kyna_vm_recursive_functions PROPERTIES
+    PASS_REGULAR_EXPRESSION "factorial\\(6\\) 720.*fibonacci\\(10\\) 55")
   add_test(NAME kyna_cli_recursive_bytecode
            COMMAND kyna bytecode
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/recursive_functions.kyna"
@@ -145,6 +147,8 @@ if(KYNA_BUILD_TESTS)
            COMMAND kyna run
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/advanced_control_flow.kyna"
                    --no-color)
+  set_tests_properties(kyna_vm_advanced_control_flow PROPERTIES
+    PASS_REGULAR_EXPRESSION "visits 12.*shortCircuit false true")
   add_test(NAME kyna_cli_advanced_control_flow_mir
            COMMAND kyna mir
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/advanced_control_flow.kyna"
@@ -153,6 +157,8 @@ if(KYNA_BUILD_TESTS)
            COMMAND kyna run
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/first_class_functions.kyna"
                    --no-color)
+  set_tests_properties(kyna_vm_first_class_functions PROPERTIES
+    PASS_REGULAR_EXPRESSION "sum 42.*product 42")
   add_test(NAME kyna_cli_first_class_bytecode
            COMMAND kyna bytecode
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/first_class_functions.kyna"
@@ -167,6 +173,16 @@ if(KYNA_BUILD_TESTS)
   add_test(NAME kyna_cli_closure_bytecode
            COMMAND kyna bytecode
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/closures.kyna"
+                   --no-color)
+  add_test(NAME kyna_vm_exceptions
+           COMMAND kyna run
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/exceptions.kyna"
+                   --no-color)
+  set_tests_properties(kyna_vm_exceptions PROPERTIES
+    PASS_REGULAR_EXPRESSION "recovered returned .*cleanup-first.*cleanup-second.*return-cleanup")
+  add_test(NAME kyna_cli_exception_bytecode
+           COMMAND kyna bytecode
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/exceptions.kyna"
                    --no-color)
 endif()
 

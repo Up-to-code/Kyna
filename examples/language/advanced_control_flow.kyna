@@ -23,3 +23,6 @@ if (visits == 12 && !shortCircuitAnd && shortCircuitOr) {
 } else {
     set invalidControlFlow = 1 / 0;
 }
+
+print("visits", visits);
+print("shortCircuit", shortCircuitAnd, shortCircuitOr);

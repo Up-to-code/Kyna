@@ -30,20 +30,22 @@ The bytecode path supports first-class functions and lexical closures with indep
 Requirements: CMake 3.25 or newer, a C++23 compiler, Git, and libcurl development headers. Missing CLI11 sources are fetched at their pinned release; the complete pinned dependency set is available through `vcpkg.json`.
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
 ```
+
+The checked-in VS Code workspace settings select the same `debug` configure, build, and test presets automatically. CMake uses an available platform generator and fetches the pinned development dependencies, so Ninja and a separately configured `VCPKG_ROOT` are optional.
 
 Run a program:
 
 ```sh
-./build/bin/kyna run examples/hello.kyna --no-color
-./build/bin/kyna check examples/hello.kyna --no-color
-./build/bin/kyna run examples/language/recursive_functions.kyna --no-color
-./build/bin/kyna run examples/language/advanced_control_flow.kyna --no-color
-./build/bin/kyna run examples/language/first_class_functions.kyna --no-color
-./build/bin/kyna repl
+./build-debug/bin/kyna run examples/hello.kyna --no-color
+./build-debug/bin/kyna check examples/hello.kyna --no-color
+./build-debug/bin/kyna run examples/language/recursive_functions.kyna --no-color
+./build-debug/bin/kyna run examples/language/advanced_control_flow.kyna --no-color
+./build-debug/bin/kyna run examples/language/first_class_functions.kyna --no-color
+./build-debug/bin/kyna repl
 ```
 
 The CLI also supports `tokens`, `ast`, resolved `hir`, verified `mir`, validated `bytecode` disassembly, repeated `--module-path`, `--diagnostic-format text|json`, and `kyna file.kyna` as a `run` alias. Global options work before or after the input path. See [distribution.md](docs/distribution.md) for Linux, Windows, and macOS archives.
