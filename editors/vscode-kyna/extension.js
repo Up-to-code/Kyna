@@ -52,7 +52,8 @@ const wordCompletions = [
     'collectGarbage', 'gcStats',
     'log', 'logColor', 'console', 'error', 'filter', 'sort', 'bubbleSort', 'map', 'reduce',
     'find', 'any', 'all', 'unique', 'call', 'jsonParse',
-    'jsonStringify', 'process', 'createApiStore']
+    'jsonStringify', 'process', 'createApiStore', 'textContains', 'textFind', 'textSlice',
+    'textReplace', 'textSplit', 'textTrim', 'textLower', 'textUpper']
     .map(word => [word, vscode.CompletionItemKind.Function, 'Kyna standard-library function']),
   ['fs', vscode.CompletionItemKind.Module, 'Kyna filesystem namespace'],
   ['db', vscode.CompletionItemKind.Module, 'Kyna parameterized SQL namespace'],

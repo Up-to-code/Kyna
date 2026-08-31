@@ -1,4 +1,5 @@
 #include "kyna/stdlib/bytecode_standard_library.hpp"
+#include "kyna/text/unicode_text.hpp"
 #include "json_value_codec.hpp"
 #include <algorithm>
 #include <ostream>
@@ -8,6 +9,10 @@ namespace {
 
 NativeCallResult failure(std::string code, std::string message, RuntimeValue cause = {}) {
   return {{}, NativeCallFailure{std::move(code), std::move(message), std::move(cause)}};
+}
+
+NativeCallResult textFailure(const UnicodeTextError &error, const RuntimeValue &cause) {
+  return failure(error.code, error.message, cause);
 }
 
 class StandardLibraryBytecodeAdapter final : public BytecodeNativeAdapter {
@@ -35,13 +40,83 @@ public:
       if (arguments.size() != 1)
         return failure("KSTD2002", "len expects exactly one argument");
       const auto &value = arguments.front();
-      if (const auto text = std::get_if<std::string>(&value.data))
-        return {RuntimeValue(static_cast<std::int64_t>(text->size())), std::nullopt};
+      if (const auto text = std::get_if<std::string>(&value.data)) {
+        auto length = unicodeLength(*text);
+        return length ? NativeCallResult{RuntimeValue(*length), std::nullopt}
+                      : textFailure(length.error(), value);
+      }
       if (const auto array = std::get_if<ArrayPtr>(&value.data); array && *array)
         return {RuntimeValue(static_cast<std::int64_t>((*array)->elements.size())), std::nullopt};
       if (const auto object = std::get_if<ObjectPtr>(&value.data); object && *object)
         return {RuntimeValue(static_cast<std::int64_t>((*object)->fields.size())), std::nullopt};
       return failure("KSTD2003", "len requires a string, array, or object", value);
+    }
+    if (name == "textContains") {
+      if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data) ||
+          !std::holds_alternative<std::string>(arguments[1].data))
+        return failure("KTEXT2010", "textContains expects a string and a string needle");
+      auto found = unicodeFind(std::get<std::string>(arguments[0].data),
+                               std::get<std::string>(arguments[1].data));
+      return found ? NativeCallResult{RuntimeValue(found->has_value()), std::nullopt}
+                   : textFailure(found.error(), arguments[0]);
+    }
+    if (name == "textFind") {
+      if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data) ||
+          !std::holds_alternative<std::string>(arguments[1].data))
+        return failure("KTEXT2011", "textFind expects a string and a string needle");
+      auto found = unicodeFind(std::get<std::string>(arguments[0].data),
+                               std::get<std::string>(arguments[1].data));
+      if (!found)
+        return textFailure(found.error(), arguments[0]);
+      return {found->has_value() ? RuntimeValue(**found) : RuntimeValue(), std::nullopt};
+    }
+    if (name == "textSlice") {
+      if ((arguments.size() != 2 && arguments.size() != 3) ||
+          !std::holds_alternative<std::string>(arguments[0].data) ||
+          !std::holds_alternative<std::int64_t>(arguments[1].data) ||
+          (arguments.size() == 3 && !std::holds_alternative<std::int64_t>(arguments[2].data)))
+        return failure("KTEXT2012", "textSlice expects text, start, and optional end integers");
+      const auto end = arguments.size() == 3
+                           ? std::optional{std::get<std::int64_t>(arguments[2].data)}
+                           : std::nullopt;
+      auto sliced = unicodeSlice(std::get<std::string>(arguments[0].data),
+                                 std::get<std::int64_t>(arguments[1].data), end);
+      return sliced ? NativeCallResult{RuntimeValue(std::move(*sliced)), std::nullopt}
+                    : textFailure(sliced.error(), arguments[0]);
+    }
+    if (name == "textReplace") {
+      if (arguments.size() != 3 || !std::holds_alternative<std::string>(arguments[0].data) ||
+          !std::holds_alternative<std::string>(arguments[1].data) ||
+          !std::holds_alternative<std::string>(arguments[2].data))
+        return failure("KTEXT2013", "textReplace expects text, needle, and replacement strings");
+      auto replaced = unicodeReplace(std::get<std::string>(arguments[0].data),
+                                     std::get<std::string>(arguments[1].data),
+                                     std::get<std::string>(arguments[2].data));
+      return replaced ? NativeCallResult{RuntimeValue(std::move(*replaced)), std::nullopt}
+                      : textFailure(replaced.error(), arguments[0]);
+    }
+    if (name == "textSplit") {
+      if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data) ||
+          !std::holds_alternative<std::string>(arguments[1].data))
+        return failure("KTEXT2014", "textSplit expects text and separator strings");
+      auto pieces = unicodeSplit(std::get<std::string>(arguments[0].data),
+                                 std::get<std::string>(arguments[1].data));
+      if (!pieces)
+        return textFailure(pieces.error(), arguments[0]);
+      auto *result = heap.allocateArray();
+      for (auto &piece : *pieces)
+        result->elements.emplace_back(std::move(piece));
+      return {RuntimeValue(result), std::nullopt};
+    }
+    if (name == "textTrim" || name == "textLower" || name == "textUpper") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KTEXT2015", std::string(name) + " expects exactly one string");
+      UnicodeTextResult<std::string> transformed =
+          name == "textTrim"    ? unicodeTrim(std::get<std::string>(arguments[0].data))
+          : name == "textLower" ? unicodeLower(std::get<std::string>(arguments[0].data))
+                                : unicodeUpper(std::get<std::string>(arguments[0].data));
+      return transformed ? NativeCallResult{RuntimeValue(std::move(*transformed)), std::nullopt}
+                         : textFailure(transformed.error(), arguments[0]);
     }
     if (name == "error") {
       if (arguments.size() != 1)
@@ -273,7 +348,9 @@ const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
       "print", "log", "typeOf", "len", "error", "readFile", "writeFile", "fileExists",
       "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
       "processEnv", "processRun", "build", "sleep", "wait", "httpGet", "jsonParse",
-      "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort"};
+      "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort",
+      "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
+      "textLower", "textUpper"};
   return names;
 }
 

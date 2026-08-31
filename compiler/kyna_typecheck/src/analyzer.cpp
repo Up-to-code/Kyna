@@ -48,7 +48,9 @@ bool Analyzer::defined(const std::string &n) const {
          n == "error" || n == "filter" || n == "sort" || n == "bubbleSort" || n == "call" ||
          n == "jsonParse" || n == "jsonStringify" || n == "process" || n == "createApiStore" ||
          n == "db" || n == "map" || n == "reduce" || n == "find" || n == "any" || n == "all" ||
-         n == "unique" || n == "collections";
+         n == "unique" || n == "collections" || n == "textContains" || n == "textFind" ||
+         n == "textSlice" || n == "textReplace" || n == "textSplit" || n == "textTrim" ||
+         n == "textLower" || n == "textUpper";
 }
 bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
   if (e.name == "any" || a.name == "any")

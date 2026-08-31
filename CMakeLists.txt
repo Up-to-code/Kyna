@@ -12,6 +12,7 @@ option(KYNA_FETCH_DEPENDENCIES "Fetch missing pinned development dependencies" O
 
 find_package(CLI11 CONFIG QUIET)
 find_package(CURL REQUIRED)
+find_package(utf8proc 2.9 CONFIG QUIET)
 if(APPLE AND NOT PostgreSQL_ROOT)
   foreach(KYNA_POSTGRESQL_HINT "/opt/homebrew/opt/libpq" "/usr/local/opt/libpq")
     if(EXISTS "${KYNA_POSTGRESQL_HINT}/include/libpq-fe.h")
@@ -49,6 +50,22 @@ if(NOT TARGET ftxui::screen)
   message(FATAL_ERROR "FTXUI is required. Use vcpkg or configure with dependency fetching enabled.")
 endif()
 
+if(NOT TARGET utf8proc::utf8proc AND KYNA_FETCH_DEPENDENCIES)
+  include(FetchContent)
+  set(UTF8PROC_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(utf8proc
+    GIT_REPOSITORY https://github.com/JuliaStrings/utf8proc.git
+    GIT_TAG v2.11.3
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(utf8proc)
+endif()
+if(TARGET utf8proc AND NOT TARGET utf8proc::utf8proc)
+  add_library(utf8proc::utf8proc ALIAS utf8proc)
+endif()
+if(NOT TARGET utf8proc::utf8proc)
+  message(FATAL_ERROR "utf8proc is required. Use vcpkg or configure with dependency fetching enabled.")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(KynaModule)
 
@@ -68,6 +85,7 @@ add_subdirectory(runtime/kyna_host)
 add_subdirectory(runtime/kyna_vm)
 add_subdirectory(library/collections)
 add_subdirectory(library/database)
+add_subdirectory(library/text)
 add_subdirectory(library/core)
 add_subdirectory(sdk/kyna_embedding)
 add_subdirectory(tools/kyna_cli)

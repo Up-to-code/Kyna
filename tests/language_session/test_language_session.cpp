@@ -262,6 +262,22 @@ int main() {
       "if (ordered[0] != 1 || ordered[3] != 3 || len(distinct) != 3 || "
       "names[0] != \"alpha\" || names[1] != \"beta\") { error(\"collections\"); }");
   assert(bytecodeCollections.ok());
+  const auto bytecodeText = deterministicSession.runSource(
+      "bytecode-text.kyna",
+      "set greeting = \"  Héllo 世界  \"; "
+      "if (len(\"世界\") != 2 || textFind(greeting, \"世界\") != 8 || "
+      "textSlice(greeting, 2, 7) != \"Héllo\" || !textContains(greeting, \"éll\") || "
+      "textReplace(\"a世界a\", \"世界\", \"Kyna\") != \"aKynaa\" || "
+      "textTrim(greeting) != \"Héllo 世界\" || textLower(\"ÄBC\") != \"äbc\" || "
+      "textUpper(\"kyna\") != \"KYNA\") { error(\"unicode text\"); } "
+      "set pieces = textSplit(\"one::two::three\", \"::\"); "
+      "if (len(pieces) != 3 || pieces[1] != \"two\") { error(\"text split\"); }");
+  assert(bytecodeText.ok());
+  const auto caughtTextFailure = deterministicSession.runSource(
+      "bytecode-text-failure.kyna",
+      "try { textSlice(\"Kyna\", 0, 9); } catch (failure) { "
+      "if (failure.code != \"KTEXT2002\") { throw failure; } }");
+  assert(caughtTextFailure.ok());
   const auto bytecodeJsonFileWrites = files->writes;
   const auto bytecodeJsonFileReads = files->reads;
   const auto bytecodeRemovals = files->removals;

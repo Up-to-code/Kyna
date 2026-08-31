@@ -4,6 +4,7 @@ The Kyna runtime exposes standard-library functions through the global environme
 
 - `print(value, ...)`, `log(value, ...)`, `console.log(value, ...)`, `logColor(color, message)`, and `typeOf(value)`
 - `len`, `push`, `pop`, and `keys` for arrays, strings, and closed objects
+- `textContains`, `textFind`, `textSlice`, `textReplace`, `textSplit`, `textTrim`, `textLower`, and `textUpper` for UTF-8 text; indices and `len(string)` count Unicode code points rather than bytes
 - `readFile(path)`, `writeFile(path, content)`, `readJsonFile(path)`, and `writeJsonFile(path, value)`
 - `createDirectory(path)`, `fileExists(path)`, `removePath(path)`, and `listDirectory(path)`
 - `fs.read`, `fs.write`, `fs.readJson`, `fs.writeJson`, `fs.createDirectory`, `fs.exists`, `fs.remove`, and `fs.list`
