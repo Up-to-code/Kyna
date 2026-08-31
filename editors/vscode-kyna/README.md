@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <code>v1.0.10</code>&nbsp;&nbsp;
+  <code>v1.0.12</code>&nbsp;&nbsp;
   <code>VS Code 1.85+</code>&nbsp;&nbsp;
   <code>.kyna</code>&nbsp;&nbsp;
   <code>MIT</code>
@@ -84,7 +84,7 @@ You can also package and install the VSIX manually:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.10.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.12.vsix --force
 ```
 
 ### Start coding
@@ -111,6 +111,8 @@ console.log(greet("Kyna"), audience);
 The editor immediately enables Kyna highlighting, comments, snippets, completion, symbols, hovers, definitions, CodeLens actions, and live compiler diagnostics.
 
 Open `kyna.toml` to use the project toolbar, or select the purple Kyna activity-bar icon. The Project panel shows the active project and provides one-click Run, Dev, dependency installation, route generation, backend configuration, and manifest navigation.
+
+The Routes panel groups endpoints by method. Generate static, homepage, `:slug`, or nested multi-parameter routes; click the file icon to edit the handler or the globe icon to open the live endpoint. Route generation saves pending editors before updating the registry, preventing an older unsaved `index.kyna` from hiding a new route.
 
 Formatting is provided by the same local CLI used for diagnostics. Run **Format Document** normally or enable it on save:
 
@@ -160,7 +162,10 @@ Run **Kyna: Generate Route** or use the CLI to create and register a route witho
 ```sh
 ky generate route users
 ky generate route users --method post --path /api/users
+ky generate route user-detail --path /teams/:team/users/:user
 ```
+
+The Kyna sidebar separates project information from a native **Routes** view. Routes are grouped by HTTP method, use method-specific colors, show their handler file and named parameters, and open the handler on click. The route wizard offers static, single-parameter, nested-parameter, and custom path shapes. Generated handlers expose `request.params` and `request.query`.
 
 ### ⚡ Live diagnostics
 
@@ -188,11 +193,12 @@ Both commands launch Kyna directly through a managed VS Code task. Output remain
 | Command | Action |
 | --- | --- |
 | `Kyna: Run Project` | Run the nearest `kyna.toml` entry point. |
-| `Kyna: Start Development Server` | Watch, check, and restart the backend. |
-| `Kyna: Install Dependencies` | Resolve Git and local dependencies. |
+| `Kyna: Watch & Restart Development Server` | Watch, check, and restart the backend. |
+| `Kyna: Install Project Dependencies` | Resolve Git and local dependencies. |
 | `Kyna: Generate Route` | Create a route module and register it in `routes/index.kyna`. |
 | `Kyna: Configure Backend` | Set the manifest host and port with validated prompts. |
 | `Kyna: Open Project Manifest` | Open the nearest `kyna.toml`. |
+| `Kyna: Open Routes Folder` | Reveal the project route modules in Explorer. |
 
 ### Inspect the compiler pipeline
 

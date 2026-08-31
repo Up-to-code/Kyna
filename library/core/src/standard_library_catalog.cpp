@@ -40,6 +40,34 @@ struct ServerRoute {
   FunctionPtr handler;
 };
 
+std::string decodeUrlComponent(std::string_view value, bool plusAsSpace = false) {
+  const auto hex = [](char character) -> int {
+    if (character >= '0' && character <= '9') return character - '0';
+    if (character >= 'a' && character <= 'f') return character - 'a' + 10;
+    if (character >= 'A' && character <= 'F') return character - 'A' + 10;
+    return -1;
+  };
+  std::string decoded;
+  decoded.reserve(value.size());
+  for (std::size_t index = 0; index < value.size(); ++index) {
+    if (plusAsSpace && value[index] == '+') {
+      decoded.push_back(' ');
+    } else if (value[index] == '%' && index + 2 < value.size()) {
+      const auto high = hex(value[index + 1]);
+      const auto low = hex(value[index + 2]);
+      if (high < 0 || low < 0) {
+        decoded.push_back(value[index]);
+      } else {
+        decoded.push_back(static_cast<char>((high << 4) | low));
+        index += 2;
+      }
+    } else {
+      decoded.push_back(value[index]);
+    }
+  }
+  return decoded;
+}
+
 std::optional<std::map<std::string, std::string>> matchRoute(std::string_view pattern,
                                                              std::string_view path) {
   std::map<std::string, std::string> parameters;
@@ -51,7 +79,8 @@ std::optional<std::map<std::string, std::string>> matchRoute(std::string_view pa
     const bool hasActual = static_cast<bool>(std::getline(paths, actual, '/'));
     if (hasExpected != hasActual) return std::nullopt;
     if (!hasExpected) break;
-    if (!expected.empty() && expected.front() == ':') parameters.emplace(expected.substr(1), actual);
+    if (!expected.empty() && expected.front() == ':')
+      parameters.emplace(expected.substr(1), decodeUrlComponent(actual));
     else if (expected != actual) return std::nullopt;
   }
   return parameters;
@@ -809,7 +838,14 @@ void installStandardLibrary(Interpreter &interpreter) {
         std::map<std::string, std::string> query;
         if (queryStart != std::string::npos) {
           std::istringstream pairs(incoming.target.substr(queryStart + 1)); std::string pair;
-          while (std::getline(pairs, pair, '&')) { const auto split = pair.find('='); query[pair.substr(0, split)] = split == std::string::npos ? "" : pair.substr(split + 1); }
+          while (std::getline(pairs, pair, '&')) {
+            const auto split = pair.find('=');
+            const auto name = decodeUrlComponent(pair.substr(0, split), true);
+            const auto value = split == std::string::npos
+                                   ? std::string{}
+                                   : decodeUrlComponent(pair.substr(split + 1), true);
+            query[name] = value;
+          }
         }
         auto request = interpreter.heap().allocate(); request->fields["method"] = Value(incoming.method); request->fields["path"] = Value(path);
         request->fields["query"] = Value(mapObject(interpreter, query)); request->fields["headers"] = Value(mapObject(interpreter, incoming.headers)); request->fields["body"] = Value(incoming.body);

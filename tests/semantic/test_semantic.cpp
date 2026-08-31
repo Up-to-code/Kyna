@@ -84,4 +84,35 @@ int main() {
       "return failure.code + failure.message; } finally { print(\"cleanup\"); } }"))
                         .parse();
   assert(kyna::validate(typedError).empty());
+
+  // Interface inheritance with generic substitution.
+  auto intfExtends = kyna::Parser(kyna::lex(
+                              "intf Base<T> { value: T; } "
+                              "intf Child extends Base<int> { extra?: str; } "
+                              "func f(): int { return 1; }"))
+                         .parse();
+  assert(kyna::validate(intfExtends).empty());
+
+  // Generic interface instantiation via implements.
+  auto genericImplements =
+      kyna::Parser(kyna::lex("intf Container<T> { put(item: T): void; } "
+                             "class Box implements Container<int> { "
+                             "public func put(item: int): void { } }"))
+          .parse();
+  assert(kyna::validate(genericImplements).empty());
+
+  // Optional property is not required of implements.
+  auto optionalImplements = kyna::Parser(kyna::lex(
+                                "intf WithOptional { required: int; optional?: str; } "
+                                "class Slim implements WithOptional { required: int = 0; }"))
+                                .parse();
+  assert(kyna::validate(optionalImplements).empty());
+
+  // Named/default/namespace import declarations parse and validate cleanly.
+  auto jsImports = kyna::Parser(kyna::lex(
+                         "import { a, b } from \"./m.kyna\"; "
+                         "import d from \"./m.kyna\"; "
+                         "import * as ns from \"./m.kyna\";"))
+                       .parse();
+  assert(kyna::validate(jsImports).empty());
 }

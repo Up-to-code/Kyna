@@ -113,6 +113,16 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
             }
             return f.hasReturnType ? f.returnType : t("any");
           }
+          // JavaScript-style imported module function: `add(...)` where the
+          // callee name resolves inside the bound module namespace. Checked
+          // before standard-library symbols so an import shadows a builtin.
+          if (auto imported = std::get_if<Variable>(&n.callee->node);
+              imported && c.name.starts_with("module:")) {
+            const auto alias = c.name.substr(std::string_view("module:").size());
+            const auto module = moduleExports.find(alias);
+            if (module != moduleExports.end() && module->second.contains(imported->name))
+              return module->second.at(imported->name);
+          }
           if (auto variable = std::get_if<Variable>(&n.callee->node)) {
             if (const auto *builtin = findStandardLibrarySymbol(variable->name);
                 builtin && builtin->callable) {
@@ -228,16 +238,22 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
             return field ? field->type : (method->hasReturnType ? method->returnType : t("any"));
           }
           if (const auto *contract = interfaces.find(className)) {
+            std::vector<std::string> stack;
+            const auto effective = effectiveContract(*contract, stack);
+            // Substitute generic arguments when accessing through an
+            // instantiated interface (`repo.findById` on `Repository<User>`
+            // yields `User?`, not the raw `T?`).
+            const TypeRef contractRef{className, objectType.nullable, objectType.typeArgs};
             const auto field =
-                std::find_if(contract->fields.begin(), contract->fields.end(),
+                std::find_if(effective.fields.begin(), effective.fields.end(),
                              [&](const auto &candidate) { return candidate.name == n.name; });
-            if (field != contract->fields.end())
-              return field->type;
+            if (field != effective.fields.end())
+              return substitute(field->type, *contract, contractRef);
             const auto method =
-                std::find_if(contract->methods.begin(), contract->methods.end(),
+                std::find_if(effective.methods.begin(), effective.methods.end(),
                              [&](const auto &candidate) { return candidate.name == n.name; });
-            if (method != contract->methods.end())
-              return method->returnType;
+            if (method != effective.methods.end())
+              return substitute(method->returnType, *contract, contractRef);
           }
           error("member access requires a class, interface, object, or module", e->location);
           return t("any");

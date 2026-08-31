@@ -117,6 +117,15 @@ StmtPtr Parser::declaration() {
     return importDeclaration();
   }
   seenNonImport = true;
+  if (exported) {
+    // export { a, b };  re-export list
+    if (check(TokenKind::LeftBrace))
+      return exportListDeclaration();
+    // export default <declaration>;
+    const bool defaultExport = match(TokenKind::Default);
+    if (defaultExport)
+      return defaultExportDeclaration();
+  }
   auto mods = modifiers();
   StmtPtr parsed;
   if (match(TokenKind::Func))
@@ -147,13 +156,115 @@ StmtPtr Parser::declaration() {
 }
 StmtPtr Parser::importDeclaration() {
   const Token start = consume(TokenKind::Import, "expected 'import'");
-  const Token path = consume(TokenKind::String, "expected a quoted module path");
-  consume(TokenKind::As, "expected 'as' after module path");
-  const Token alias = consume(TokenKind::Identifier, "expected module alias");
+  // Legacy form: import "path" as alias;
+  if (check(TokenKind::String)) {
+    const Token path = consume(TokenKind::String, "expected a quoted module path");
+    consume(TokenKind::As, "expected 'as' after module path");
+    const Token alias = consume(TokenKind::Identifier, "expected module alias");
+    consume(TokenKind::Semicolon, "expected ';' after import");
+    auto value =
+        path.lexeme.size() >= 2 ? path.lexeme.substr(1, path.lexeme.size() - 2) : path.lexeme;
+    return make(ImportDecl{std::move(value), alias.lexeme}, start.location);
+  }
+  // JavaScript-style import clause.
+  ImportDecl declaration;
+  if (check(TokenKind::LeftBrace)) {
+    ++current; // '{'
+    while (!check(TokenKind::RightBrace)) {
+      const Token imported = consume(TokenKind::Identifier, "expected an import name");
+      std::string local = imported.lexeme;
+      if (match(TokenKind::As)) {
+        const Token l = consume(TokenKind::Identifier, "expected an import alias");
+        local = l.lexeme;
+      }
+      declaration.named.push_back({imported.lexeme, local});
+      if (!match(TokenKind::Comma))
+        break;
+    }
+    consume(TokenKind::RightBrace, "expected '}' after named imports");
+  } else if (match(TokenKind::Star)) {
+    consume(TokenKind::As, "expected 'as' after '*'");
+    declaration.namespaceAlias =
+        consume(TokenKind::Identifier, "expected a namespace import alias").lexeme;
+  } else {
+    declaration.defaultName =
+        consume(TokenKind::Identifier, "expected a default import name").lexeme;
+    // import Name, { a, b } from "...";
+    if (match(TokenKind::Comma)) {
+      consume(TokenKind::LeftBrace, "expected '{' after ','");
+      while (!check(TokenKind::RightBrace)) {
+        const Token imported = consume(TokenKind::Identifier, "expected an import name");
+        std::string local = imported.lexeme;
+        if (match(TokenKind::As)) {
+          const Token l = consume(TokenKind::Identifier, "expected an import alias");
+          local = l.lexeme;
+        }
+        declaration.named.push_back({imported.lexeme, local});
+        if (!match(TokenKind::Comma))
+          break;
+      }
+      consume(TokenKind::RightBrace, "expected '}' after named imports");
+    }
+  }
+  consume(TokenKind::From, "expected 'from' before module path");
+  const Token pathTok = consume(TokenKind::String, "expected a quoted module path");
   consume(TokenKind::Semicolon, "expected ';' after import");
-  auto value =
-      path.lexeme.size() >= 2 ? path.lexeme.substr(1, path.lexeme.size() - 2) : path.lexeme;
-  return make(ImportDecl{std::move(value), alias.lexeme}, start.location);
+  declaration.path =
+      pathTok.lexeme.size() >= 2 ? pathTok.lexeme.substr(1, pathTok.lexeme.size() - 2)
+                                 : pathTok.lexeme;
+  // If only a named/namespace import is present, the loader aliases the whole
+  // module by the first exported symbol to keep module-resolution simple.
+  if (!declaration.named.empty())
+    declaration.alias = declaration.named.front().local;
+  else if (!declaration.namespaceAlias.empty())
+    declaration.alias = declaration.namespaceAlias;
+  else
+    declaration.alias = declaration.defaultName;
+  return make(std::move(declaration), start.location);
+}
+StmtPtr Parser::exportListDeclaration() {
+  const Token start = consume(TokenKind::LeftBrace, "expected '{' after 'export'");
+  ExportDecl declaration;
+  while (!check(TokenKind::RightBrace)) {
+    declaration.names.push_back(
+        consume(TokenKind::Identifier, "expected an export name").lexeme);
+    if (!match(TokenKind::Comma))
+      break;
+  }
+  consume(TokenKind::RightBrace, "expected '}' after export list");
+  consume(TokenKind::Semicolon, "expected ';' after export list");
+  return make(std::move(declaration), start.location);
+}
+StmtPtr Parser::defaultExportDeclaration() {
+  auto mods = modifiers();
+  StmtPtr parsed;
+  if (match(TokenKind::Func))
+    parsed = functionDeclaration(std::move(mods));
+  else if (match(TokenKind::Class))
+    parsed = classDeclaration(std::move(mods));
+  else if (match(TokenKind::Intf))
+    parsed = interfaceDeclaration();
+  else if (match(TokenKind::Let)) {
+    --current;
+    parsed = varDeclaration();
+  } else if (match(TokenKind::Set)) {
+    --current;
+    parsed = varDeclaration();
+  }
+  if (!parsed)
+    throw KynaError(
+        {"'export default' must precede a named declaration", previous().location, false,
+         "K2013"});
+  markExported(parsed);
+  std::visit(
+      [](auto &node) {
+        using T = std::decay_t<decltype(node)>;
+        if constexpr (std::is_same_v<T, VarDecl> || std::is_same_v<T, FunctionDecl> ||
+                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl>)
+          node.isDefault = true;
+      },
+      parsed->node);
+  return parsed;
 }
 void Parser::markExported(const StmtPtr &parsed) {
   std::visit(
@@ -174,6 +285,19 @@ TypeRef Parser::typeRef() {
     throw KynaError({"expected a type", peek().location, false});
   ++current;
   TypeRef r{t.lexeme, false, {}};
+  // Generic instantiation: Name<T, U, ...>. Also supports nested types.
+  while (match(TokenKind::Less)) {
+    TypeRef arg;
+    do {
+      arg.typeArgs.push_back(typeRef());
+    } while (match(TokenKind::Comma));
+    consume(TokenKind::Greater, "expected '>' after type arguments");
+    TypeRef specialized;
+    specialized.name = r.name;
+    specialized.typeArgs = std::move(arg.typeArgs);
+    specialized.nullable = r.nullable;
+    r = std::move(specialized);
+  }
   if (match(TokenKind::Question))
     r.nullable = true;
   while (match(TokenKind::Pipe)) {
@@ -232,10 +356,10 @@ StmtPtr Parser::classDeclaration(std::vector<std::string> mods) {
   std::string parent;
   if (match(TokenKind::Extends))
     parent = consume(TokenKind::Identifier, "expected parent class name").lexeme;
-  std::vector<std::string> interfaces;
+  std::vector<TypeRef> interfaces;
   if (match(TokenKind::Implements)) {
     do {
-      interfaces.push_back(consume(TokenKind::Identifier, "expected interface name").lexeme);
+      interfaces.push_back(typeRef());
     } while (match(TokenKind::Comma));
   }
   consume(TokenKind::LeftBrace, "expected '{' after class header");
@@ -285,13 +409,88 @@ StmtPtr Parser::classDeclaration(std::vector<std::string> mods) {
 }
 StmtPtr Parser::interfaceDeclaration() {
   Token n = consume(TokenKind::Identifier, "expected interface name");
+  InterfaceDecl i;
+  i.name = n.lexeme;
+  // Optional type parameters: intf Box<T, U> ...
+  if (match(TokenKind::Less)) {
+    do {
+      i.typeParams.push_back(
+          consume(TokenKind::Identifier, "expected a type parameter name").lexeme);
+    } while (match(TokenKind::Comma));
+    consume(TokenKind::Greater, "expected '>' after type parameters");
+  }
+  // Optional parent interfaces: intf B extends A, C<T> { ... }
+  if (match(TokenKind::Extends)) {
+    do {
+      i.parents.push_back(typeRef());
+    } while (match(TokenKind::Comma));
+  }
   consume(TokenKind::LeftBrace, "expected '{' after interface name");
-  InterfaceDecl i{n.lexeme, {}, {}};
   while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
+    // Index signature: [keyName: KeyType]: ValueType;
+    if (check(TokenKind::LeftBracket)) {
+      ++current; // '['
+      const Token keyName = consume(TokenKind::Identifier, "expected an index key name");
+      consume(TokenKind::Colon, "expected ':' after index key name");
+      auto keyType = typeRef();
+      consume(TokenKind::RightBracket, "expected ']' after index key type");
+      consume(TokenKind::Colon, "expected ':' before index value type");
+      auto valueType = typeRef();
+      consume(TokenKind::Semicolon, "expected ';' after index signature");
+      i.indexSignatures.push_back(
+          IndexSignature{keyName.lexeme, std::move(keyType), std::move(valueType)});
+      continue;
+    }
+    // Call signature: (a: A, b: B): R;
+    if (check(TokenKind::LeftParen)) {
+      ++current; // '('
+      CallSignature signature;
+      if (!check(TokenKind::RightParen)) {
+        do {
+          Token p = consume(TokenKind::Identifier, "expected parameter");
+          consume(TokenKind::Colon, "parameters require types");
+          signature.params.push_back({p.lexeme, typeRef()});
+        } while (match(TokenKind::Comma));
+      }
+      consume(TokenKind::RightParen, "expected ')'");
+      consume(TokenKind::Colon, "interface call signatures require return types");
+      signature.returnType = typeRef();
+      consume(TokenKind::Semicolon, "expected ';'");
+      i.callSignatures.push_back(std::move(signature));
+      continue;
+    }
+    // Method with explicit 'func' prefix: func get(): str;
+    if (match(TokenKind::Func)) {
+      Token f = consume(TokenKind::Identifier, "expected method name after 'func'");
+      consume(TokenKind::LeftParen, "expected '(' after method name");
+      std::vector<Param> ps;
+      if (!check(TokenKind::RightParen)) {
+        do {
+          Token p = consume(TokenKind::Identifier, "expected parameter");
+          consume(TokenKind::Colon, "parameters require types");
+          ps.push_back({p.lexeme, typeRef()});
+        } while (match(TokenKind::Comma));
+      }
+      consume(TokenKind::RightParen, "expected ')'");
+      consume(TokenKind::Colon, "interface methods require return types");
+      auto rt = typeRef();
+      consume(TokenKind::Semicolon, "expected ';' after method");
+      i.methods.push_back({f.lexeme, std::move(ps), std::move(rt), true, nullptr, {}});
+      continue;
+    }
+    // Field or method.
     Token x = consume(TokenKind::Identifier, "expected interface member");
     if (match(TokenKind::Colon)) {
-      i.fields.push_back({x.lexeme, typeRef(), nullptr, {}});
-      consume(TokenKind::Semicolon, "expected ';'");
+      auto ty = typeRef();
+      i.fields.push_back({x.lexeme, std::move(ty), nullptr, {}});
+      consume(TokenKind::Semicolon, "expected ';' after field");
+    } else if (match(TokenKind::Question)) {
+      // Optional property: name?: Type;
+      consume(TokenKind::Colon, "expected ':' after optional property name");
+      auto ty = typeRef();
+      i.fields.push_back({x.lexeme, std::move(ty), nullptr, {}});
+      i.optionalFields.insert(x.lexeme);
+      consume(TokenKind::Semicolon, "expected ';' after optional property");
     } else {
       consume(TokenKind::LeftParen, "expected '(' after method name");
       std::vector<Param> ps;
@@ -305,7 +504,7 @@ StmtPtr Parser::interfaceDeclaration() {
       consume(TokenKind::RightParen, "expected ')'");
       consume(TokenKind::Colon, "interface methods require return types");
       auto rt = typeRef();
-      consume(TokenKind::Semicolon, "expected ';'");
+      consume(TokenKind::Semicolon, "expected ';' after method");
       i.methods.push_back({x.lexeme, std::move(ps), std::move(rt), true, nullptr, {}});
     }
   }

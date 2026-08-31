@@ -35,6 +35,30 @@ std::map<std::string, TypeRef> exportedTypes(const ModuleRecord &module) {
 
 } // namespace
 
+// Gather ambient interface declarations from a type-definition module. All
+// top-level interfaces in an ambient file are globally visible to importers,
+// mirroring how `.d.ts`/`.d.ky` declaration files provide ambient contracts.
+std::vector<InterfaceDecl> ambientInterfaces(const ModuleRecord &module) {
+  std::vector<InterfaceDecl> result;
+  if (!module.isDeclaration)
+    return result;
+  result.reserve(module.syntax.module.declarations.size());
+  for (const auto &statement : module.syntax.module.declarations)
+    if (const auto *iface = std::get_if<InterfaceDecl>(&statement->node))
+      result.push_back(*iface);
+  return result;
+}
+
+// Gather exported classes from an imported module so implementations can
+// construct and type-check imported classes (`new User`, `item: User`).
+std::vector<ClassDecl> exportedClasses(const ModuleRecord &module) {
+  std::vector<ClassDecl> result;
+  for (const auto &statement : module.syntax.module.declarations)
+    if (const auto *klass = std::get_if<ClassDecl>(&statement->node); klass && klass->exported)
+      result.push_back(*klass);
+  return result;
+}
+
 bool AnalysisResult::ok() const {
   return program.has_value() &&
          std::none_of(diagnostics.begin(), diagnostics.end(),
@@ -49,15 +73,38 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
       continue;
     std::map<std::string, TypeRef> imports;
     std::map<std::string, std::map<std::string, TypeRef>> moduleExports;
+    std::vector<InterfaceDecl> externalInterfaces;
+    std::vector<ClassDecl> externalClasses;
     for (const auto &dependency : found->second.dependencies) {
       imports[dependency.alias] = TypeRef{"module:" + dependency.alias, false, {}};
       if (const auto module = graph.modules.find(dependency.canonicalPath);
-          module != graph.modules.end())
+          module != graph.modules.end()) {
         moduleExports[dependency.alias] = exportedTypes(module->second);
+        auto ambient = ambientInterfaces(module->second);
+        externalInterfaces.insert(externalInterfaces.end(), ambient.begin(), ambient.end());
+        auto classes = exportedClasses(module->second);
+        externalClasses.insert(externalClasses.end(), classes.begin(), classes.end());
+      }
+    }
+    // JavaScript-style imports bind each imported name to the module's
+    // namespace so the checker can resolve calls and member access.
+    for (const auto &statement : found->second.syntax.module.declarations) {
+      const auto *importDecl = std::get_if<ImportDecl>(&statement->node);
+      if (!importDecl)
+        continue;
+      for (const auto &specifier : importDecl->named)
+        imports[specifier.local] = TypeRef{"module:" + importDecl->alias, false, {}};
+      if (!importDecl->defaultName.empty())
+        imports[importDecl->defaultName] = TypeRef{"module:" + importDecl->alias, false, {}};
+      if (!importDecl->namespaceAlias.empty())
+        imports[importDecl->namespaceAlias] =
+            TypeRef{"module:" + importDecl->alias, false, {}};
     }
     Analyzer analyzer;
     analyzer.setExternalBindings(std::move(imports));
     analyzer.setModuleExports(std::move(moduleExports));
+    analyzer.setExternalInterfaces(std::move(externalInterfaces));
+    analyzer.setExternalClasses(std::move(externalClasses));
     auto moduleDiagnostics = analyzer.analyze(found->second.syntax.module.declarations);
     diagnostics.insert(diagnostics.end(), moduleDiagnostics.begin(), moduleDiagnostics.end());
     auto practiceDiagnostics = checkBestPractices(found->second.syntax.module.declarations);

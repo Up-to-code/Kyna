@@ -32,8 +32,8 @@ def main() -> int:
     if language_ids != {"kyna", "kyna-manifest"}:
         failures.append("extension must register Kyna source and kyna.toml manifest languages")
     source_languages = [language for language in languages if language.get("id") == "kyna"]
-    if not source_languages or source_languages[0].get("extensions") != [".kyna"]:
-        failures.append("extension must register only the canonical .kyna suffix")
+    if not source_languages or source_languages[0].get("extensions") != [".kyna", ".ky", ".kyna.d", ".d.ky", ".ky.d"]:
+        failures.append("extension must register canonical .kyna and .ky suffixes plus declaration forms")
     manifest_languages = [language for language in languages if language.get("id") == "kyna-manifest"]
     if not manifest_languages or manifest_languages[0].get("filenames") != ["kyna.toml"]:
         failures.append("extension must register kyna.toml as the project manifest")
@@ -74,6 +74,9 @@ def main() -> int:
         "kyna.runProject", "kyna.devProject", "kyna.installDependencies",
         "kyna.generateRoute", "kyna.configureProject", "registerTreeDataProvider",
         "registerFileDecorationProvider", "manifestCompletionProvider",
+        "KynaRoutesProvider", "kyna.routes", "readRoutes", "routeMethodPresentation",
+        "validateRoutePath", "kyna.openRoutesFolder", "kyna.openRouteEndpoint",
+        "simpleBrowser.show", "vscode.workspace.saveAll(false)",
     ):
         if project_feature not in implementation:
             failures.append(f"missing project workflow support: {project_feature}")
@@ -118,6 +121,7 @@ def main() -> int:
                     "extension/assets/manifest-dark.svg",
                     "extension/assets/route-light.svg",
                     "extension/assets/route-dark.svg",
+                    "extension/assets/routes-view.svg",
                 }
                 for item in sorted(required - names):
                     failures.append(f"VSIX is missing required file: {item}")

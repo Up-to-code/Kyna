@@ -2,7 +2,7 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "1.0.10",
+  "version": "1.0.12",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
@@ -20,7 +20,7 @@
       {
         "id": "kyna",
         "aliases": ["Kyna", "kyna"],
-        "extensions": [".kyna"],
+        "extensions": [".kyna", ".ky", ".kyna.d", ".d.ky", ".ky.d"],
         "configuration": "./language-configuration.json",
         "icon": {
           "light": "./assets/kyna-file-light.svg",
@@ -120,6 +120,29 @@
         "command": "kyna.openManifest",
         "title": "Kyna: Open Project Manifest",
         "icon": { "light": "./assets/manifest-light.svg", "dark": "./assets/manifest-dark.svg" }
+      },
+      {
+        "command": "kyna.openProjectFile",
+        "title": "Kyna: Open Project File"
+      },
+      {
+        "command": "kyna.openRoute",
+        "title": "Kyna: Open Route"
+      },
+      {
+        "command": "kyna.openRouteEndpoint",
+        "title": "Kyna: Open Route Endpoint",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "kyna.openRoutesFolder",
+        "title": "Kyna: Open Routes Folder",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "kyna.refreshRoutes",
+        "title": "Kyna: Refresh Routes",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -138,14 +161,37 @@
         { "command": "kyna.installDependencies", "when": "resourceFilename == kyna.toml", "group": "kyna@3" },
         { "command": "kyna.generateRoute", "when": "resourceFilename == kyna.toml", "group": "kyna@4" },
         { "command": "kyna.configureProject", "when": "resourceFilename == kyna.toml", "group": "kyna@5" }
+      ],
+      "view/title": [
+        { "command": "kyna.runProject", "when": "view == kyna.project", "group": "navigation@1" },
+        { "command": "kyna.devProject", "when": "view == kyna.project", "group": "navigation@2" },
+        { "command": "kyna.installDependencies", "when": "view == kyna.project", "group": "kyna@1" },
+        { "command": "kyna.configureProject", "when": "view == kyna.project", "group": "kyna@2" },
+        { "command": "kyna.generateRoute", "when": "view == kyna.routes", "group": "navigation@1" },
+        { "command": "kyna.refreshRoutes", "when": "view == kyna.routes", "group": "navigation@2" },
+        { "command": "kyna.openRoutesFolder", "when": "view == kyna.routes", "group": "kyna@1" }
+      ],
+      "view/item/context": [
+        { "command": "kyna.openRoute", "when": "view == kyna.routes && viewItem =~ /kynaRoute/", "group": "inline@1" },
+        { "command": "kyna.openRouteEndpoint", "when": "view == kyna.routes && viewItem == kynaRouteGet", "group": "inline@2" },
+        { "command": "kyna.openRoutesFolder", "when": "view == kyna.routes", "group": "navigation@1" }
       ]
     },
     "viewsContainers": {
       "activitybar": [{ "id": "kyna", "title": "Kyna", "icon": "./assets/kyna-sidebar.svg" }]
     },
     "views": {
-      "kyna": [{ "id": "kyna.project", "name": "Project" }]
+      "kyna": [
+        { "id": "kyna.project", "name": "Project", "icon": "./assets/manifest-dark.svg" },
+        { "id": "kyna.routes", "name": "Routes", "icon": "./assets/routes-view.svg" }
+      ]
     },
+    "viewsWelcome": [
+      {
+        "view": "kyna.routes",
+        "contents": "No registered routes were found.\n[Generate Route](command:kyna.generateRoute)"
+      }
+    ],
     "configuration": {
       "title": "Kyna",
       "properties": {

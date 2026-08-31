@@ -21,7 +21,33 @@ ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
           diagnostic.code = "K5001";
           return {{}, {std::move(diagnostic)}};
         }
-        environment->define(dependency.alias, Value(imported->second), false);
+        const auto namespaceValue = Value(imported->second);
+        bool bound = false;
+        // JavaScript-style imports bind each imported name to the module
+        // namespace; the canonical alias is one of those names.
+        for (const auto &statement : found->second.syntax.module.declarations) {
+          const auto *import = std::get_if<ImportDecl>(&statement->node);
+          if (!import || import->alias != dependency.alias)
+            continue;
+          for (const auto &specifier : import->named) {
+            // Bind the specific exported value (class, function, or value) so
+            // `new User(...)`, `add(...)`, and member access work directly.
+            environment->define(
+                specifier.local,
+                imported->second->environment->get(specifier.imported).value, false);
+            bound = true;
+          }
+          if (!import->defaultName.empty()) {
+            environment->define(import->defaultName, namespaceValue, false);
+            bound = true;
+          }
+          if (!import->namespaceAlias.empty()) {
+            environment->define(import->namespaceAlias, namespaceValue, false);
+            bound = true;
+          }
+        }
+        if (!bound)
+          environment->define(dependency.alias, namespaceValue, false);
       }
       last = interpreter.executeIn(found->second.syntax.module.declarations, environment);
       auto module = std::make_shared<ModuleNamespace>();

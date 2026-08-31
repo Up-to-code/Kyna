@@ -38,10 +38,15 @@ src/
 
 `main.kyna` imports the application factory, `app.kyna` composes the official injected `http` runtime with middleware and routes, and `routes/index.kyna` registers individual route modules. The `[server]` section of `kyna.toml` is authoritative for `ky run`, `ky serve`, and `ky dev`; backend source does not duplicate the port. Generate another route and wire it into the registry automatically:
 
+Use `ky dev` for the save-and-restart workflow. `ky run dev` is accepted as a compatibility spelling. The watcher checks changed source before restarting and keeps the last good server running when a check fails.
+
 ```sh
 ky generate route users
 # `ky g route users` is the short form.
 ky generate route users --method post --path /api/users
+ky generate route user-detail --path /teams/:team/users/:user
 ```
+
+Named segments are available in `request.params`; query-string values are available separately in `request.query`. Generated route modules carry a `# ky:route` identity header so editor tooling can identify the method, path, and exported handler without guessing from the filename.
 
 `ky add` supports Git URLs pinned by `--rev` and local paths. `ky install` resolves exact Git commits into `kyna.lock`; `--locked` fails if the current manifest would produce different lock data. Git checkouts use the platform cache. Kyna never executes dependency-provided installation scripts.

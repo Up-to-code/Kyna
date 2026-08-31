@@ -16,6 +16,12 @@ public:
   void setModuleExports(std::map<std::string, std::map<std::string, TypeRef>> exports) {
     moduleExports = std::move(exports);
   }
+  void setExternalInterfaces(std::vector<InterfaceDecl> interfaces) {
+    externalInterfaces = std::move(interfaces);
+  }
+  void setExternalClasses(std::vector<ClassDecl> classes) {
+    externalClasses = std::move(classes);
+  }
 
 private:
   std::vector<Diagnostic> errors;
@@ -29,6 +35,8 @@ private:
   std::map<std::string, ClassDecl> classes;
   std::map<std::string, TypeRef> externalBindings;
   std::map<std::string, std::map<std::string, TypeRef>> moduleExports;
+  std::vector<InterfaceDecl> externalInterfaces;
+  std::vector<ClassDecl> externalClasses;
   InterfaceCatalog interfaces;
   std::string currentClass;
   bool interactive{false};
@@ -47,7 +55,10 @@ private:
   bool alwaysReturns(const StmtPtr &) const;
   const FieldDecl *findField(const ClassDecl &, const std::string &) const;
   const FunctionDecl *findMethod(const ClassDecl &, const std::string &) const;
-  bool classConforms(const ClassDecl &, const InterfaceDecl &, SourceLocation);
+  bool classConforms(const ClassDecl &, const InterfaceDecl &, const TypeRef &contractRef,
+                     SourceLocation);
   bool objectConforms(const ObjectExpr &, const InterfaceDecl &, SourceLocation);
+  InterfaceDecl effectiveContract(const InterfaceDecl &, std::vector<std::string> &stack) const;
+  TypeRef substitute(const TypeRef &, const InterfaceDecl &, const TypeRef &contractRef) const;
 };
 } // namespace kyna

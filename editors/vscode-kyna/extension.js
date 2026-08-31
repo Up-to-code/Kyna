@@ -15,9 +15,14 @@ const wordCompletions = [
   ['set', vscode.CompletionItemKind.Keyword, 'Immutable binding', 'set ${1:name} = ${0:value};'],
   ['func', vscode.CompletionItemKind.Keyword, 'Function declaration', 'func ${1:name}(${2:arg}: ${3:type}): ${4:void} {\n\t$0\n}'],
   ['class', vscode.CompletionItemKind.Class, 'Class declaration', 'class ${1:Name} {\n\t$0\n}'],
-  ['intf', vscode.CompletionItemKind.Interface, 'Structural interface declaration', 'intf ${1:Name} {\n\t$0\n}'],
-  ['import', vscode.CompletionItemKind.Keyword, 'Namespace import', 'import "${1:./module.kyna}" as ${2:module};'],
+  ['intf', vscode.CompletionItemKind.Interface, 'Interface declaration (extends/generics/optional props)', 'intf ${1:Name}${2:<T>}${3: extends ${4:Parent}} {\n\t${5:prop}: ${6:type};\n\t$0\n}'],
+  ['import', vscode.CompletionItemKind.Keyword, 'Namespace import', 'import * as ${2:module} from "${1:./module.kyna}";'],
+  ['import-named', vscode.CompletionItemKind.Keyword, 'Named import', 'import { ${2:a}, ${3:b} } from "${1:./module.kyna}";'],
+  ['import-default', vscode.CompletionItemKind.Keyword, 'Default import', 'import ${2:name} from "${1:./module.kyna}";'],
+  ['import-legacy', vscode.CompletionItemKind.Keyword, 'Legacy namespace import', 'import "${1:./module.kyna}" as ${2:module};'],
   ['export', vscode.CompletionItemKind.Keyword, 'Export a named declaration', 'export ${0}'],
+  ['export-default', vscode.CompletionItemKind.Keyword, 'Default export', 'export default ${0}'],
+  ['export-list', vscode.CompletionItemKind.Keyword, 'Export list', 'export { ${1:a}, ${2:b} };'],
   ['if', vscode.CompletionItemKind.Keyword, 'Conditional', 'if (${1:condition}) {\n\t$0\n}'],
   ['while', vscode.CompletionItemKind.Keyword, 'While loop', 'while (${1:condition}) {\n\t$0\n}'],
   ['else', vscode.CompletionItemKind.Keyword, 'Alternative branch'],
@@ -554,27 +559,100 @@ async function openManifest(resource) {
   await vscode.window.showTextDocument(vscode.Uri.file(path.join(root, 'kyna.toml')));
 }
 
+async function openProjectFile(fileName, line = 0) {
+  if (!fileName) return;
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.file(fileName));
+  const position = new vscode.Position(Math.max(0, Math.min(line, document.lineCount - 1)), 0);
+  await vscode.window.showTextDocument(document, { selection: new vscode.Range(position, position) });
+}
+
+function readServerAddress(root) {
+  let source = '';
+  try { source = fs.readFileSync(path.join(root, 'kyna.toml'), 'utf8'); } catch (_) { /* defaults */ }
+  const configuredHost = source.match(/^host\s*=\s*"([^"]+)"/m)?.[1] || '127.0.0.1';
+  const host = configuredHost === '0.0.0.0' || configuredHost === '::' ? '127.0.0.1' : configuredHost;
+  const port = source.match(/^port\s*=\s*(\d+)/m)?.[1] || '3000';
+  return { host, port };
+}
+
+async function openRouteEndpoint(routeOrResource) {
+  const route = routeOrResource?.path ? routeOrResource : { path: '/' };
+  const root = route.registryFile
+    ? path.dirname(path.dirname(path.dirname(route.registryFile)))
+    : await resolveProjectRoot(routeOrResource);
+  if (!root) return;
+  let endpointPath = route.path || '/';
+  for (const parameter of route.parameters || []) {
+    const value = await vscode.window.showInputBox({
+      title: `Open ${route.method?.toUpperCase() || 'GET'} ${route.path}`,
+      prompt: `Value for :${parameter}`,
+      placeHolder: parameter
+    });
+    if (value === undefined) return;
+    endpointPath = endpointPath.replace(`:${parameter}`, encodeURIComponent(value));
+  }
+  const { host, port } = readServerAddress(root);
+  await vscode.commands.executeCommand('simpleBrowser.show', `http://${host}:${port}${endpointPath}`);
+}
+
+function validateRoutePath(value) {
+  if (!value.startsWith('/')) return 'The URL path must begin with /.';
+  if (/[?#\s"]/.test(value)) return 'Do not include a query, fragment, whitespace, or quote.';
+  const parameters = new Set();
+  for (const segment of value.slice(1).split('/')) {
+    if (!segment) return value === '/' ? undefined : 'The path cannot contain empty segments.';
+    if (segment.startsWith(':')) {
+      const parameter = segment.slice(1);
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(parameter))
+        return 'Route parameters must look like :userId.';
+      if (parameters.has(parameter)) return `Duplicate route parameter :${parameter}.`;
+      parameters.add(parameter);
+    } else if (!/^[A-Za-z0-9._~-]+$/.test(segment)) {
+      return `Unsupported characters in “${segment}”.`;
+    }
+  }
+  return undefined;
+}
+
 async function generateRoute(resource) {
   const root = await resolveProjectRoot(resource);
   if (!root) return;
-  const method = await vscode.window.showQuickPick(
-    ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  const methodChoice = await vscode.window.showQuickPick(
+    [
+      { label: 'GET', description: 'Read a resource' },
+      { label: 'POST', description: 'Create a resource' },
+      { label: 'PUT', description: 'Replace a resource' },
+      { label: 'PATCH', description: 'Update part of a resource' },
+      { label: 'DELETE', description: 'Delete a resource' }
+    ],
     { title: 'Generate Kyna Route', placeHolder: 'Select the HTTP method' }
   );
-  if (!method) return;
+  if (!methodChoice) return;
+  const method = methodChoice.label;
   const name = await vscode.window.showInputBox({
     title: 'Generate Kyna Route',
-    prompt: 'Route name (creates GET /<name>)',
+    prompt: 'Module name (creates src/routes/<name>.kyna)',
     placeHolder: 'users',
     validateInput: value => /^[A-Za-z0-9_-]+$/.test(value)
       ? undefined : 'Use letters, numbers, hyphens, or underscores.'
   });
   if (!name) return;
+  const shape = await vscode.window.showQuickPick([
+    { label: '/', description: 'Homepage / root route' },
+    { label: `/${name}`, description: 'Static collection route' },
+    { label: `/${name}/:id`, description: 'One named path parameter' },
+    { label: `/${name}/:parentId/items/:itemId`, description: 'Nested route with multiple parameters' },
+    { label: 'Custom path…', description: 'Enter any static or :parameter segment layout' }
+  ], { title: 'Route Path', placeHolder: 'Choose a scalable route shape' });
+  if (!shape) return;
   const routePath = await vscode.window.showInputBox({
-    title: 'Route URL', value: `/${name}`,
-    validateInput: value => value.startsWith('/') ? undefined : 'The URL path must begin with /.'
+    title: `${method} Route Path`,
+    prompt: 'Named parameters become request.params; query strings arrive in request.query.',
+    value: shape.label === 'Custom path…' ? `/${name}` : shape.label,
+    validateInput: validateRoutePath
   });
   if (!routePath) return;
+  await vscode.workspace.saveAll(false);
   await vscode.window.withProgress({
     location: vscode.ProgressLocation.Notification,
     title: `Generating ${method} ${routePath}`,
@@ -589,8 +667,17 @@ async function generateRoute(resource) {
       });
   })).then(async () => {
     const uri = vscode.Uri.file(path.join(root, 'src', 'routes', `${name}.kyna`));
-    await vscode.window.showTextDocument(uri);
-    vscode.window.showInformationMessage(`Generated and registered ${method} ${routePath}.`);
+    await vscode.commands.executeCommand('kyna.routes.focus');
+    const actions = method === 'GET' ? ['Open endpoint', 'Open route file'] : ['Open route file'];
+    const action = await vscode.window.showInformationMessage(
+      `Generated and registered ${method} ${routePath}.`, ...actions);
+    if (action === 'Open endpoint') {
+      await openRouteEndpoint({ method: method.toLowerCase(), path: routePath,
+        parameters: [...routePath.matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map(match => match[1]),
+        registryFile: path.join(root, 'src', 'routes', 'index.kyna') });
+    } else {
+      await vscode.window.showTextDocument(uri);
+    }
   }, error => vscode.window.showErrorMessage(`Kyna route generation failed: ${error.message}`));
 }
 
@@ -643,33 +730,139 @@ const manifestCompletionProvider = {
   }
 };
 
+const routeMethodPresentation = {
+  get: { label: 'GET', icon: 'arrow-down', color: 'charts.green' },
+  post: { label: 'POST', icon: 'add', color: 'charts.blue' },
+  put: { label: 'PUT', icon: 'replace-all', color: 'charts.yellow' },
+  patch: { label: 'PATCH', icon: 'edit', color: 'charts.orange' },
+  delete: { label: 'DELETE', icon: 'trash', color: 'charts.red' }
+};
+
+function routeIcon(method) {
+  const presentation = routeMethodPresentation[method] ||
+    { icon: 'circle-filled', color: 'charts.purple' };
+  return new vscode.ThemeIcon(presentation.icon, new vscode.ThemeColor(presentation.color));
+}
+
+function readRoutes(root) {
+  const indexFile = path.join(root, 'src', 'routes', 'index.kyna');
+  let source;
+  try { source = fs.readFileSync(indexFile, 'utf8'); } catch (_) { return []; }
+  const imports = new Map();
+  for (const match of source.matchAll(/import\s+"([^"]+)"\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s*;/g))
+    imports.set(match[2], path.resolve(path.dirname(indexFile), match[1]));
+  const routes = [];
+  const routeExpression = /app\.(get|post|put|patch|delete)\(\s*"([^"]+)"\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;/g;
+  for (const match of source.matchAll(routeExpression)) {
+    const parameters = [...match[2].matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map(item => item[1]);
+    routes.push({
+      method: match[1], path: match[2], alias: match[3], handler: match[4],
+      file: imports.get(match[3]) || indexFile,
+      registryFile: indexFile,
+      registryLine: source.slice(0, match.index).split('\n').length - 1,
+      parameters
+    });
+  }
+  return routes;
+}
+
 class KynaProjectProvider {
   constructor() { this.changed = new vscode.EventEmitter(); this.onDidChangeTreeData = this.changed.event; }
   refresh() { this.changed.fire(); }
   getTreeItem(item) { return item; }
-  async getChildren() {
+  async getChildren(parent) {
+    if (parent?.kind !== 'project') return parent ? [] : this.projectRoot();
+    const root = parent.root;
+    const manifestFile = path.join(root, 'kyna.toml');
+    let source = '';
+    try { source = fs.readFileSync(manifestFile, 'utf8'); } catch (_) { return []; }
+    const host = source.match(/^host\s*=\s*"([^"]+)"/m)?.[1] || '127.0.0.1';
+    const port = source.match(/^port\s*=\s*(\d+)/m)?.[1] || '3000';
+    const entry = source.match(/^entry\s*=\s*"([^"]+)"/m)?.[1] || 'src/main.kyna';
+    const dependencyBlock = source.match(/\[dependencies\]([\s\S]*?)(?=\n\[|$)/)?.[1] || '';
+    const dependencyCount = dependencyBlock.split('\n').filter(line => /^\s*[A-Za-z0-9_-]+\s*=/.test(line)).length;
+    const detail = (label, description, icon, file = manifestFile) => {
+      const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+      item.description = description;
+      item.iconPath = new vscode.ThemeIcon(icon);
+      item.command = { command: 'kyna.openProjectFile', title: `Open ${label}`, arguments: [file] };
+      return item;
+    };
+    const routesItem = detail('Routes', `${readRoutes(root).length} registered`, 'type-hierarchy-sub');
+    routesItem.command = {
+      command: 'kyna.openRoutesFolder', title: 'Open Routes Folder',
+      arguments: [vscode.Uri.file(root)]
+    };
+    return [
+      (() => {
+        const item = detail('Backend', `http://${host}:${port}`, 'radio-tower');
+        item.command = { command: 'kyna.openRouteEndpoint', title: 'Open Backend',
+          arguments: [{ path: '/', parameters: [], registryFile: path.join(root, 'src', 'routes', 'index.kyna') }] };
+        return item;
+      })(),
+      detail('Entry point', entry, 'file-code', path.join(root, entry)),
+      routesItem,
+      detail('Dependencies', `${dependencyCount}`, 'package'),
+      detail('Manifest', 'kyna.toml', 'settings-gear')
+    ];
+  }
+  async projectRoot() {
     const root = await resolveProjectRoot(undefined, false);
     if (!root) return [];
     let source = '';
     try { source = fs.readFileSync(path.join(root, 'kyna.toml'), 'utf8'); } catch (_) { return []; }
     const name = source.match(/^name\s*=\s*"([^"]+)"/m)?.[1] || path.basename(root);
     const version = source.match(/^version\s*=\s*"([^"]+)"/m)?.[1] || '0.0.0';
-    const header = new vscode.TreeItem(`${name} · ${version}`, vscode.TreeItemCollapsibleState.None);
+    const header = new vscode.TreeItem(`${name} · ${version}`, vscode.TreeItemCollapsibleState.Expanded);
     header.description = source.match(/^template\s*=\s*"([^"]+)"/m)?.[1] || 'custom';
     header.iconPath = new vscode.ThemeIcon('package');
-    const action = (label, icon, command) => {
-      const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-      item.iconPath = new vscode.ThemeIcon(icon);
-      item.command = { command, title: label, arguments: [vscode.Uri.file(root)] };
+    header.kind = 'project';
+    header.root = root;
+    header.tooltip = `Kyna ${header.description} project\n${root}`;
+    return [header];
+  }
+}
+
+class KynaRoutesProvider {
+  constructor() { this.changed = new vscode.EventEmitter(); this.onDidChangeTreeData = this.changed.event; }
+  refresh() { this.changed.fire(); }
+  getTreeItem(item) { return item; }
+  async getChildren(parent) {
+    const root = parent?.root || await resolveProjectRoot(undefined, false);
+    if (!root) return [];
+    const routes = readRoutes(root);
+    if (parent?.kind === 'method') return this.routeItems(routes.filter(route => route.method === parent.method));
+    if (parent) return [];
+    return Object.keys(routeMethodPresentation).flatMap(method => {
+      const count = routes.filter(route => route.method === method).length;
+      if (!count) return [];
+      const presentation = routeMethodPresentation[method];
+      const item = new vscode.TreeItem(presentation.label, vscode.TreeItemCollapsibleState.Expanded);
+      item.kind = 'method'; item.method = method; item.root = root;
+      item.description = `${count} route${count === 1 ? '' : 's'}`;
+      item.iconPath = routeIcon(method);
+      item.contextValue = 'kynaRouteMethod';
+      return [item];
+    });
+  }
+  routeItems(routes) {
+    return routes.map(route => {
+      const presentation = routeMethodPresentation[route.method];
+      const item = new vscode.TreeItem(route.path, vscode.TreeItemCollapsibleState.None);
+      item.description = `${presentation.label} · ${path.basename(route.file)}`;
+      item.iconPath = routeIcon(route.method);
+      item.contextValue = route.method === 'get' ? 'kynaRouteGet' : 'kynaRoute';
+      item.command = { command: 'kyna.openRoute', title: `Open ${presentation.label} ${route.path}`, arguments: [route] };
+      item.accessibilityInformation = { label: `${presentation.label} route ${route.path}` };
+      const details = [
+        `**${presentation.label} ${route.path}**`, '',
+        `Handler: \`${route.alias}.${route.handler}\``,
+        `File: \`${path.relative(path.dirname(route.registryFile), route.file)}\``
+      ];
+      if (route.parameters.length) details.push(`Parameters: ${route.parameters.map(value => `\`:${value}\``).join(', ')}`);
+      item.tooltip = new vscode.MarkdownString(details.join('\n\n'));
       return item;
-    };
-    return [header,
-      action('Run project · uses kyna.toml port', 'run', 'kyna.runProject'),
-      action('Watch files · check & restart', 'sync', 'kyna.devProject'),
-      action('Install dependencies', 'cloud-download', 'kyna.installDependencies'),
-      action('Generate route', 'git-branch-create', 'kyna.generateRoute'),
-      action('Configure backend', 'settings-gear', 'kyna.configureProject'),
-      action('Open kyna.toml', 'settings', 'kyna.openManifest')];
+    });
   }
 }
 
@@ -691,7 +884,9 @@ function activate(context) {
   const projectStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
   projectStatus.command = 'kyna.openManifest';
   const projectProvider = new KynaProjectProvider();
+  const routesProvider = new KynaRoutesProvider();
   const manifestWatcher = vscode.workspace.createFileSystemWatcher('**/kyna.toml');
+  const routesWatcher = vscode.workspace.createFileSystemWatcher('**/src/routes/**/*.kyna');
 
   const updateButton = editor => {
     if (editor && editor.document.languageId === 'kyna') runButton.show();
@@ -715,7 +910,9 @@ function activate(context) {
     runButton,
     projectStatus,
     manifestWatcher,
+    routesWatcher,
     vscode.window.registerTreeDataProvider('kyna.project', projectProvider),
+    vscode.window.registerTreeDataProvider('kyna.routes', routesProvider),
     vscode.window.registerFileDecorationProvider(projectDecorations),
     vscode.commands.registerCommand('kyna.runFile', () => runActive('run')),
     vscode.commands.registerCommand('kyna.checkFile', () => runActive('check')),
@@ -727,9 +924,20 @@ function activate(context) {
     vscode.commands.registerCommand('kyna.runProject', resource => runProjectTask('run', resource)),
     vscode.commands.registerCommand('kyna.devProject', resource => runProjectTask('dev', resource)),
     vscode.commands.registerCommand('kyna.installDependencies', resource => runProjectTask('install', resource)),
-    vscode.commands.registerCommand('kyna.generateRoute', resource => generateRoute(resource).then(() => projectProvider.refresh())),
+    vscode.commands.registerCommand('kyna.generateRoute', resource => generateRoute(resource).then(() => {
+      projectProvider.refresh(); routesProvider.refresh();
+    })),
     vscode.commands.registerCommand('kyna.configureProject', resource => configureProject(resource).then(() => projectProvider.refresh())),
     vscode.commands.registerCommand('kyna.openManifest', resource => openManifest(resource)),
+    vscode.commands.registerCommand('kyna.openProjectFile', (file, line) => openProjectFile(file, line)),
+    vscode.commands.registerCommand('kyna.openRoute', route => openProjectFile(route?.file, 0)),
+    vscode.commands.registerCommand('kyna.openRouteEndpoint', route => openRouteEndpoint(route)),
+    vscode.commands.registerCommand('kyna.openRoutesFolder', async resource => {
+      const root = await resolveProjectRoot(resource);
+      if (root) await vscode.commands.executeCommand(
+        'revealInExplorer', vscode.Uri.file(path.join(root, 'src', 'routes')));
+    }),
+    vscode.commands.registerCommand('kyna.refreshRoutes', () => routesProvider.refresh()),
     vscode.languages.registerCompletionItemProvider(languageSelector, completionProvider, '.', '"', '/'),
     vscode.languages.registerCompletionItemProvider(manifestSelector, manifestCompletionProvider, '[', '=', ' '),
     vscode.languages.registerDefinitionProvider(languageSelector, definitionProvider),
@@ -743,6 +951,9 @@ function activate(context) {
     vscode.workspace.onDidSaveTextDocument(document => {
       validate(document, diagnostics);
       if (path.basename(document.fileName) === 'kyna.toml') projectProvider.refresh();
+      if (document.fileName.includes(`${path.sep}src${path.sep}routes${path.sep}`)) {
+        routesProvider.refresh(); projectProvider.refresh();
+      }
     }),
     vscode.workspace.onDidCloseTextDocument(document => {
       const key = document.uri.toString();
@@ -755,7 +966,10 @@ function activate(context) {
     vscode.window.onDidChangeActiveTextEditor(updateButton),
     manifestWatcher.onDidCreate(() => projectProvider.refresh()),
     manifestWatcher.onDidChange(() => projectProvider.refresh()),
-    manifestWatcher.onDidDelete(() => projectProvider.refresh())
+    manifestWatcher.onDidDelete(() => projectProvider.refresh()),
+    routesWatcher.onDidCreate(() => { routesProvider.refresh(); projectProvider.refresh(); }),
+    routesWatcher.onDidChange(() => { routesProvider.refresh(); projectProvider.refresh(); }),
+    routesWatcher.onDidDelete(() => { routesProvider.refresh(); projectProvider.refresh(); })
   );
   vscode.workspace.textDocuments.forEach(document => scheduleValidation(document, diagnostics));
   updateButton(vscode.window.activeTextEditor);

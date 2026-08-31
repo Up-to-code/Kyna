@@ -271,6 +271,22 @@ Value Interpreter::call(const Call &c, const ExprPtr &callee) {
   std::vector<Value> a;
   for (auto &e : c.args)
     a.push_back(eval(e));
+  if (auto module = std::get_if<ModulePtr>(&v.data)) {
+    if (!*module)
+      throw KynaError({"cannot call a null module", callee->location, false});
+    // `add(...)` where `add` is a JavaScript-style import bound to a module
+    // namespace: resolve the exported function of the same name.
+    if (const auto *name = std::get_if<Variable>(&callee->node)) {
+      const auto member = (*module)->environment->get(name->name);
+      if (std::holds_alternative<FunctionPtr>(member.value.data)) {
+        const auto function = std::get<FunctionPtr>(member.value.data);
+        return invoke(function, a, function->boundThis);
+      }
+    }
+    throw KynaError(
+        {"value of type '" + v.typeName() + "' is not callable as a function", callee->location,
+         false});
+  }
   if (!std::holds_alternative<FunctionPtr>(v.data))
     throw KynaError(
         {"value of type '" + v.typeName() + "' is not callable", callee->location, false});

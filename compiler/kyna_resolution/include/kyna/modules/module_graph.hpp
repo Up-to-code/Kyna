@@ -17,6 +17,9 @@ struct ModuleDependency {
 struct ModuleRecord {
   SyntaxTree syntax;
   std::vector<ModuleDependency> dependencies;
+  // True for ambient type-definition files (.kyna.d, .d.ky, .ky.d): their
+  // declarations contribute types only and never emit runtime code.
+  bool isDeclaration{false};
 };
 
 struct ParsedModuleGraph {

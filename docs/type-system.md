@@ -4,4 +4,32 @@ The analyzer uses nominal primitive names with explicit nullable and union compo
 
 Binding mutability is independent of type. The analyzer records `let`/`set` mutability and rejects assignments to `set`, while runtime cells repeat the check as a safety boundary. Members are similarly separate from bindings, allowing a mutable field through an immutable object reference.
 
-Function parameter types and explicit return contracts are checked. An omitted return annotation is currently inferred dynamically as a function result type at call sites; explicit annotations remain strict. `void` and `null` are distinct. The next checker milestone will add control-flow return-path analysis, member typing, structural interfaces, trait obligations, generic constraints, and complete override/final/access checks.
+Function parameter types and explicit return contracts are checked. An omitted return annotation is currently inferred dynamically as a function result type at call sites; explicit annotations remain strict. `void` and `null` are distinct.
+
+## Interfaces
+
+Interfaces (`intf`) are structural contracts checked at `implements` conformance and object-literal assignment:
+
+```kyna
+intf Shape {
+  area(): float;
+}
+intf Named<T> extends Shape {
+  name: str;
+  label?: str;
+  (): int;                 // call signature
+  [key: string]: int;      // index signature
+}
+class Circle implements Named<float> {
+  public name: str;
+  public func area(): float { return 3.14; }
+  public func _(): int { return 1; }
+}
+```
+
+- `extends` merges parent contracts (a base's members are inherited); a generic parent can be specialized, e.g. `extends Base<int>` binds the parent's type parameter.
+- Generic interface parameters (`intf Named<T>`) are instantiated at `implements`/`extends` sites, with type substitution applied to inherited fields, methods, call signatures, and index signatures.
+- Optional properties (`name?: T`) are not required of implementing classes or object literals.
+- `implements` requires compatible public fields and methods; method parameter and return types are checked after generic substitution.
+
+Type-definition files (`.kyna.d`, `.d.ky`, `.ky.d`) are ambient: they declare interfaces used only at compile time and never execute.

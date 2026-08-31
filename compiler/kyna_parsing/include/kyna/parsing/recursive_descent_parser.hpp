@@ -24,6 +24,8 @@ private:
   const Token &consume(TokenKind, const std::string &);
   StmtPtr declaration();
   StmtPtr importDeclaration();
+  StmtPtr exportListDeclaration();
+  StmtPtr defaultExportDeclaration();
   StmtPtr statement();
   StmtPtr block();
   StmtPtr varDeclaration();

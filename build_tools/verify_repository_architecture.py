@@ -19,7 +19,8 @@ SKIPPED_DIRECTORIES = {
 }
 SKIPPED_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".vsix", ".zip", ".gz"}
 AMBIGUOUS_STEMS = {"behavior", "functions", "helpers", "runtime", "types", "validation", "words"}
-LEGACY_PATTERN = re.compile(r"\b(?:Kyma|kyma)\b|\.ky\b")
+# .ky and .d.ky are supported alternative suffixes alongside .kyna/.kyna.d.
+LEGACY_PATTERN = re.compile(r"\b(?:Kyma|kyma)\b")
 
 
 def is_skipped(path: pathlib.Path) -> bool:

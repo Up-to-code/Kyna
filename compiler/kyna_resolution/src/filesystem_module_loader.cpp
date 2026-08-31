@@ -2,10 +2,21 @@
 #include "kyna/modules/module_loader.hpp"
 #include "kyna/parsing/module_parser.hpp"
 #include <algorithm>
+#include <cstring>
 #include <set>
 
 namespace kyna {
 namespace {
+
+// True for ambient type-definition filenames: foo.kyna.d, foo.d.ky, foo.ky.d.
+bool isDeclarationFilename(const std::filesystem::path &path) {
+  const auto name = path.filename().string();
+  const auto endsWith = [&](const char *suffix) {
+    const auto len = std::char_traits<char>::length(suffix);
+    return name.size() >= len && name.compare(name.size() - len, len, suffix) == 0;
+  };
+  return endsWith(".kyna.d") || endsWith(".d.ky") || endsWith(".ky.d");
+}
 
 class GraphLoader {
 public:
@@ -38,17 +49,40 @@ private:
     return error ? std::filesystem::absolute(path).lexically_normal() : value;
   }
 
-  std::filesystem::path resolve(const std::filesystem::path &importer,
-                                const std::string &requested) const {
-    const auto relative = canonical(importer.parent_path() / requested);
-    if (std::filesystem::exists(relative))
-      return relative;
-    for (const auto &root : options.modulePaths) {
-      const auto candidate = canonical(root / requested);
+  // Candidate file names for a requested module path, in resolution order.
+  // Supports extensionless imports (TypeScript style) and both declaration
+  // (.kyna.d / .d.ky / .ky.d) and implementation (.kyna / .ky) forms.
+  static std::vector<std::filesystem::path> candidates(
+      const std::filesystem::path &base, const std::filesystem::path &requested) {
+    std::vector<std::filesystem::path> result;
+    const auto add = [&](const std::filesystem::path &candidate) {
       if (std::filesystem::exists(candidate))
-        return candidate;
+        result.push_back(candidate);
+    };
+    if (requested.has_extension()) {
+      add(base / requested);
+    } else {
+      const auto stem = base / requested;
+      add(std::filesystem::path(stem.string() + ".kyna.d"));
+      add(std::filesystem::path(stem.string() + ".kyna"));
+      add(std::filesystem::path(stem.string() + ".d.ky"));
+      add(std::filesystem::path(stem.string() + ".ky.d"));
+      add(std::filesystem::path(stem.string() + ".ky"));
     }
-    return relative;
+    return result;
+  }
+
+  std::filesystem::path resolve(const std::filesystem::path &importer,
+                                const std::string &requestedPath) const {
+    const std::filesystem::path requested(requestedPath);
+    for (const auto &relative : candidates(importer.parent_path(), requested))
+      if (std::filesystem::exists(relative))
+        return canonical(relative);
+    for (const auto &root : options.modulePaths)
+      for (const auto &candidate : candidates(root, requested))
+        if (std::filesystem::exists(candidate))
+          return canonical(candidate);
+    return canonical(importer.parent_path() / requested);
   }
 
   void report(std::string message, SourceSpan span, std::string code) {
@@ -94,7 +128,9 @@ private:
 
     state[path] = 1;
     stack.push_back(path);
-    ModuleRecord record{std::move(parsed.tree), {}};
+    ModuleRecord record{std::move(parsed.tree),
+                        {},
+                        isDeclarationFilename(path)};
     std::set<std::string> aliases;
     for (const auto &statement : record.syntax.module.declarations) {
       const auto *import = std::get_if<ImportDecl>(&statement->node);

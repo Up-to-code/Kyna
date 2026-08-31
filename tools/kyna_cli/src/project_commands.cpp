@@ -190,11 +190,17 @@ bool scaffold(const fs::path &root, const std::string &kind, const Options &opti
                "export func show(request: any): any {\n"
                "    return http.json({ status: \"ok\" });\n"
                "}\n", error) ||
+        !write(root / "src/routes/home.kyna",
+               "export func show(request: any): any {\n"
+               "    return http.json({ name: \"" + name + "\", status: \"ready\" });\n"
+               "}\n", error) ||
         !write(root / "src/routes/index.kyna",
                "# ky:imports\n"
+               "import \"./home.kyna\" as homeRoute;\n"
                "import \"./health.kyna\" as healthRoute;\n\n"
                "export func register(app: any): void {\n"
                "    # ky:routes\n"
+               "    app.get(\"/\", homeRoute.show);\n"
                "    app.get(\"/health\", healthRoute.show);\n"
                "}\n", error) ||
         !write(root / "tests/health.kyna", "# Add backend checks here.\n", error) ||
@@ -264,6 +270,48 @@ int generateRoute(const Options &options, std::ostream &output, std::ostream &er
     errors << "ky generate route: --path must begin with '/'\n";
     return 2;
   }
+  if (routeUrl.find_first_of("?# \t\r\n\"") != std::string::npos) {
+    errors << "ky generate route: --path cannot contain a query, fragment, whitespace, or quote\n";
+    return 2;
+  }
+  std::set<std::string> parameterNames;
+  std::istringstream segments(routeUrl);
+  std::string segment;
+  (void)std::getline(segments, segment, '/');
+  while (std::getline(segments, segment, '/')) {
+    if (segment.empty()) {
+      errors << "ky generate route: --path cannot contain empty segments\n";
+      return 2;
+    }
+    if (segment.front() == ':') {
+      const auto parameter = segment.substr(1);
+      if (parameter.empty() ||
+          !(std::isalpha(static_cast<unsigned char>(parameter.front())) ||
+            parameter.front() == '_') ||
+          parameter.find_first_not_of(
+              "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") !=
+              std::string::npos) {
+        errors << "ky generate route: parameters must look like :userId\n";
+        return 2;
+      }
+      if (!parameterNames.insert(parameter).second) {
+        errors << "ky generate route: duplicate parameter :" << parameter << '\n';
+        return 2;
+      }
+    } else if (segment.find_first_not_of(
+                   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~") !=
+               std::string::npos) {
+      errors << "ky generate route: static path segments contain unsupported characters\n";
+      return 2;
+    }
+  }
+  const auto registrationPrefix =
+      "app." + options.generatorMethod + "(\"" + routeUrl + "\"";
+  if (indexSource.find(registrationPrefix) != std::string::npos) {
+    errors << "ky generate route: " << options.generatorMethod << ' ' << routeUrl
+           << " is already registered\n";
+    return 2;
+  }
   auto updatedIndex = indexSource;
   updatedIndex.replace(updatedIndex.find(importMarker), importMarker.size(),
                        importMarker + "import \"./" + name + ".kyna\" as " + alias + ";\n");
@@ -271,8 +319,16 @@ int generateRoute(const Options &options, std::ostream &output, std::ostream &er
                        routeMarker + "    app." + options.generatorMethod + "(\"" + routeUrl +
                            "\", " + alias + ".index);\n");
   const auto routeSource =
+      "# ky:route method=" + options.generatorMethod + " path=\"" + routeUrl +
+      "\" handler=index\n"
       "export func index(request: any): any {\n"
-      "    return http.json({ route: \"" + name + "\", method: request.method });\n"
+      "    return http.json({\n"
+      "        route: \"" + name + "\",\n"
+      "        method: request.method,\n"
+      "        path: request.path,\n"
+      "        params: request.params,\n"
+      "        query: request.query\n"
+      "    });\n"
       "}\n";
   if (!write(routePath, routeSource, error) || !write(indexPath, updatedIndex, error)) {
     errors << "ky generate route: " << error << '\n';

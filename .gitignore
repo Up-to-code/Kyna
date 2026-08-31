@@ -12,3 +12,4 @@ _CPack_Packages/
 fake-store-output/
 weather-output/
 .dependencies/
+examples/my-app/

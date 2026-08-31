@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.12
+
+- Add a ready-to-run `GET /` homepage to new backend projects.
+- Save pending editors before route generation so registry updates cannot collide with an unsaved `index.kyna`.
+- Add a homepage preset and live endpoint actions for project and route items, including prompts for dynamic slug values.
+
+## 1.0.11
+
+- Redesign the Kyna sidebar into compact Project and Routes views instead of a list of action rows.
+- Group registered routes by HTTP method with colored icons, parameter-aware tooltips, file identity, and click-to-open navigation.
+- Expand the route wizard with static, `:slug`, nested multi-parameter, and custom route shapes.
+- Generate handler metadata plus `request.params` and `request.query` examples, with decoded dynamic/query parameters in the HTTP runtime.
+
 ## 1.0.10
 
 - Make `kyna.toml` the single source of truth for backend host and port in Run, Serve, and Dev.

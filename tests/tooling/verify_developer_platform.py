@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import http.client
+import json
 import os
 import pathlib
 import signal
@@ -103,13 +104,20 @@ print("after-error", changing);
         backend = root / "api"
         require(invoke(cli, "new", str(backend), "--template", "backend", "--no-git").returncode == 0, "backend scaffold failed")
         for expected in ("src/app.kyna", "src/middleware/request_logger.kyna",
-                         "src/routes/index.kyna", "src/routes/health.kyna"):
+                         "src/routes/index.kyna", "src/routes/home.kyna", "src/routes/health.kyna"):
             require((backend / expected).is_file(), f"backend scaffold omitted {expected}")
         require(not (backend / "src/config/server.kyna").exists(),
                 "backend duplicated manifest server configuration in source")
         app_source = (backend / "src/app.kyna").read_text(encoding="utf-8")
         require("http.server()" in app_source and "serverConfig" not in app_source,
                 "backend application does not defer to kyna.toml server settings")
+        initial_routes = (backend / "src/routes/index.kyna").read_text(encoding="utf-8")
+        require('app.get("/", homeRoute.show);' in initial_routes,
+                "backend scaffold omitted its homepage route")
+        duplicate_home = invoke(cli, "generate", "route", "another-home", "--method", "get",
+                                "--path", "/", cwd=backend)
+        require(duplicate_home.returncode == 2 and "already registered" in duplicate_home.stderr,
+                "route generator accepted a duplicate method/path registration")
         generated = invoke(cli, "generate", "route", "users", "--method", "post",
                            "--path", "/api/users", cwd=backend)
         require(generated.returncode == 0, generated.stderr)
@@ -118,6 +126,18 @@ print("after-error", changing);
         require('import "./users.kyna" as usersRoute;' in route_index and
                 'app.post("/api/users", usersRoute.index);' in route_index,
                 "route generator did not wire the route registry")
+        generated_detail = invoke(cli, "generate", "route", "user-detail", "--method", "get",
+                                  "--path", "/teams/:team/users/:user", cwd=backend)
+        require(generated_detail.returncode == 0, generated_detail.stderr)
+        detail_source = (backend / "src/routes/user-detail.kyna").read_text(encoding="utf-8")
+        require('# ky:route method=get path="/teams/:team/users/:user" handler=index' in detail_source,
+                "generated route omitted machine-readable route identity")
+        require("params: request.params" in detail_source and "query: request.query" in detail_source,
+                "generated route did not expose path and query data")
+        duplicate_slug = invoke(cli, "generate", "route", "duplicate", "--method", "get",
+                                "--path", "/:id/:id", cwd=backend)
+        require(duplicate_slug.returncode == 2 and "duplicate parameter" in duplicate_slug.stderr,
+                "route generator accepted duplicate path-parameter names")
         require(invoke(cli, "check", cwd=backend).returncode == 0,
                 "generated Express-style backend did not type-check")
         port = free_port()
@@ -147,6 +167,24 @@ print("after-error", changing);
             else:
                 raise AssertionError("backend server did not start on the kyna.toml port")
             require(body == '{"status":"ok"}', f"unexpected health response: {body}")
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+            connection.request("GET", "/")
+            response = connection.getresponse()
+            home_body = response.read().decode()
+            connection.close()
+            require(response.status == 200 and '"status":"ready"' in home_body,
+                    f"homepage route was not ready: {response.status} {home_body}")
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+            connection.request("GET", "/teams/acme/users/alice%20smith?include=posts+comments&limit=10")
+            response = connection.getresponse()
+            route_body = response.read().decode()
+            connection.close()
+            require(response.status == 200, f"dynamic route returned {response.status}: {route_body}")
+            route_result = json.loads(route_body)
+            require(route_result["params"] == {"team": "acme", "user": "alice smith"},
+                    f"multiple route parameters were not captured: {route_result}")
+            require(route_result["query"] == {"include": "posts comments", "limit": "10"},
+                    f"query parameters were not decoded: {route_result}")
         finally:
             if os.name == "nt":
                 server.terminate()

@@ -8,6 +8,51 @@
 namespace kyna {
 namespace {
 TypeRef t(const std::string &n) { return TypeRef{n, false, {}}; }
+
+// Replace interface type parameters (mapped by name) with concrete arguments
+// throughout a merged contract, so `extends Base<int>` binds T -> int.
+TypeRef substituteContractType(const TypeRef &in, const std::map<std::string, TypeRef> &mapping,
+                               int depth = 0) {
+  if (depth > 32)
+    return in;
+  TypeRef out = in;
+  if (const auto found = mapping.find(in.name); found != mapping.end()) {
+    out = found->second;
+    // A nullable reference (`T?`) keeps its nullability when substituted for
+    // the concrete argument (`T?` -> `int?`).
+    out.nullable = out.nullable || in.nullable;
+    for (auto &u : out.unionTypes)
+      u = substituteContractType(u, mapping, depth + 1);
+  }
+  for (auto &arg : out.typeArgs)
+    arg = substituteContractType(arg, mapping, depth + 1);
+  for (auto &u : out.unionTypes)
+    u = substituteContractType(u, mapping, depth + 1);
+  return out;
+}
+
+void substituteContractTypes(InterfaceDecl &contract,
+                             const std::map<std::string, TypeRef> &mapping) {
+  auto remap = [&](TypeRef &in) { in = substituteContractType(in, mapping); };
+  for (auto &field : contract.fields)
+    remap(field.type);
+  for (auto &method : contract.methods) {
+    remap(method.returnType);
+    for (auto &param : method.params)
+      remap(param.type);
+  }
+  for (auto &sig : contract.callSignatures) {
+    remap(sig.returnType);
+    for (auto &param : sig.params)
+      remap(param.type);
+  }
+  for (auto &sig : contract.indexSignatures) {
+    remap(sig.keyType);
+    remap(sig.valueType);
+  }
+  for (auto &parent : contract.parents)
+    remap(parent);
+}
 int visibility(const std::vector<std::string> &modifiers) {
   if (hasModifier(modifiers, "public"))
     return 2;
@@ -51,10 +96,18 @@ bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
                        [](const auto &x) { return x.name == "null"; });
   if (e.name == "num" && (a.name == "int" || a.name == "float"))
     return true;
-  if (const auto *contract = interfaces.find(e.name); contract && classes.contains(a.name))
-    return classConforms(classes[a.name], *contract, {});
-  if (e.name == a.name && (!a.nullable || e.nullable || e.name == "null"))
+  if (const auto *contract = interfaces.find(e.name); contract && classes.contains(a.name)) {
+    std::vector<std::string> stack;
+    return classConforms(classes[a.name], effectiveContract(*contract, stack), e, {});
+  }
+  if (e.name == a.name && (!a.nullable || e.nullable || e.name == "null")) {
+    if (e.typeArgs.size() != a.typeArgs.size())
+      return false;
+    for (std::size_t index = 0; index < e.typeArgs.size(); ++index)
+      if (!compatible(e.typeArgs[index], a.typeArgs[index]))
+        return false;
     return true;
+  }
   for (auto &u : e.unionTypes)
     if (compatible(u, a))
       return true;
@@ -85,6 +138,14 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
   const auto previousFunctions = functions;
   const auto previousClasses = classes;
   const auto previousInterfaces = interfaces;
+  // Merged-in ambient interfaces from imported type-definition modules
+  // (.kyna.d / .d.ky / .ky.d) become globally visible to this module.
+  for (const auto &iface : externalInterfaces)
+    interfaces.declareInterface(iface);
+  // Classes exported by imported modules become visible for `new`, type
+  // annotations, and member access across module boundaries.
+  for (const auto &klass : externalClasses)
+    classes[klass.name] = klass;
   activeLoopLabels.clear();
   std::set<std::string> declarations;
   for (auto &s : p) {
@@ -304,12 +365,12 @@ void Analyzer::stmt(const StmtPtr &s) {
                 error("override of '" + m.name + "' cannot narrow visibility", s->location);
             }
           }
-          for (const auto &contractName : n.interfaces) {
-            const auto *contract = interfaces.find(contractName);
+          for (const auto &contractRef : n.interfaces) {
+            const auto *contract = interfaces.find(contractRef.name);
             if (!contract)
-              error("unknown interface '" + contractName + "'", s->location);
+              error("unknown interface '" + contractRef.name + "'", s->location);
             else
-              classConforms(n, *contract, s->location);
+              classConforms(n, *contract, contractRef, s->location);
           }
           const bool abstractClass = hasModifier(n.modifiers, "abstract");
           for (auto &m : n.methods) {
@@ -426,11 +487,15 @@ const FunctionDecl *Analyzer::findMethod(const ClassDecl &klass, const std::stri
   return nullptr;
 }
 bool Analyzer::classConforms(const ClassDecl &klass, const InterfaceDecl &contract,
-                             SourceLocation location) {
+                             const TypeRef &contractRef, SourceLocation location) {
+  std::vector<std::string> stack;
+  const auto effective = effectiveContract(contract, stack);
   bool conforms = true;
-  for (const auto &required : contract.fields) {
+  for (const auto &required : effective.fields) {
+    if (effective.optionalFields.contains(required.name))
+      continue;
     const auto *field = findField(klass, required.name);
-    if (!field || !compatible(required.type, field->type)) {
+    if (!field || !compatible(substitute(required.type, contract, contractRef), field->type)) {
       conforms = false;
       if (location.known())
         error("class '" + klass.name + "' does not provide compatible field '" + required.name +
@@ -438,10 +503,14 @@ bool Analyzer::classConforms(const ClassDecl &klass, const InterfaceDecl &contra
               location);
     }
   }
-  for (const auto &required : contract.methods) {
+  for (const auto &required : effective.methods) {
     const auto *method = findMethod(klass, required.name);
-    if (!method || !sameParameters(*method, required) ||
-        !compatible(required.returnType, method->returnType) ||
+    FunctionDecl substitutedRow = required;
+    for (auto &param : substitutedRow.params)
+      param.type = substitute(param.type, contract, contractRef);
+    substitutedRow.returnType = substitute(required.returnType, contract, contractRef);
+    if (!method || !sameParameters(*method, substitutedRow) ||
+        !compatible(substitutedRow.returnType, method->returnType) ||
         visibility(method->modifiers) != 2) {
       conforms = false;
       if (location.known())
@@ -452,12 +521,41 @@ bool Analyzer::classConforms(const ClassDecl &klass, const InterfaceDecl &contra
   }
   return conforms;
 }
+TypeRef Analyzer::substitute(const TypeRef &type, const InterfaceDecl &contract,
+                             const TypeRef &contractRef) const {
+  if (contractRef.typeArgs.empty())
+    return type;
+  auto replace = [&](const TypeRef &value) -> TypeRef {
+    for (std::size_t index = 0; index < contract.typeParams.size() &&
+                                index < contractRef.typeArgs.size();
+         ++index)
+      if (value.name == contract.typeParams[index]) {
+        TypeRef result = contractRef.typeArgs[index];
+        return result;
+      }
+    return value;
+  };
+  TypeRef result = type;
+  result.name = replace(type).name;
+  result.nullable = type.nullable;
+  result.typeArgs.clear();
+  for (const auto &arg : type.typeArgs)
+    result.typeArgs.push_back(substitute(arg, contract, contractRef));
+  result.unionTypes.clear();
+  for (const auto &u : type.unionTypes)
+    result.unionTypes.push_back(substitute(u, contract, contractRef));
+  return result;
+}
 bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &contract,
                               SourceLocation location) {
+  std::vector<std::string> stack;
+  const auto effective = effectiveContract(contract, stack);
   bool conforms = true;
-  for (const auto &required : contract.fields) {
+  for (const auto &required : effective.fields) {
     const auto found = std::find_if(object.fields.begin(), object.fields.end(),
                                     [&](const auto &f) { return f.name == required.name; });
+    if (found == object.fields.end() && effective.optionalFields.contains(required.name))
+      continue;
     if (found == object.fields.end() || !compatible(required.type, expr(found->value))) {
       conforms = false;
       error("object does not provide compatible field '" + required.name +
@@ -465,12 +563,55 @@ bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &con
             location);
     }
   }
-  if (!contract.methods.empty()) {
+  if (!effective.methods.empty() || !effective.callSignatures.empty()) {
     conforms = false;
     error("closed object literals cannot provide methods required by interface '" + contract.name +
               "'",
           location);
   }
   return conforms;
+}
+InterfaceDecl Analyzer::effectiveContract(const InterfaceDecl &declaration,
+                                          std::vector<std::string> &stack) const {
+  if (std::find(stack.begin(), stack.end(), declaration.name) != stack.end())
+    return {}; // cycle guard
+  stack.push_back(declaration.name);
+  InterfaceDecl merged;
+  merged.name = declaration.name;
+  merged.typeParams = declaration.typeParams;
+  auto mergeIn = [&](const InterfaceDecl &source) {
+    for (const auto &field : source.fields)
+      if (std::none_of(merged.fields.begin(), merged.fields.end(),
+                       [&](const auto &existing) { return existing.name == field.name; }))
+        merged.fields.push_back(field);
+    for (const auto &method : source.methods)
+      if (std::none_of(merged.methods.begin(), merged.methods.end(),
+                       [&](const auto &existing) { return existing.name == method.name; }))
+        merged.methods.push_back(method);
+    for (const auto &sig : source.callSignatures)
+      merged.callSignatures.push_back(sig);
+    for (const auto &sig : source.indexSignatures)
+      merged.indexSignatures.push_back(sig);
+    for (const auto &name : source.optionalFields)
+      merged.optionalFields.insert(name);
+  };
+  for (const auto &parentRef : declaration.parents) {
+    const auto *parent = interfaces.find(parentRef.name);
+    if (!parent)
+      continue;
+    auto parentEffective = effectiveContract(*parent, stack);
+    if (!parentRef.typeArgs.empty()) {
+      std::map<std::string, TypeRef> mapping;
+      for (std::size_t index = 0;
+           index < parentEffective.typeParams.size() && index < parentRef.typeArgs.size();
+           ++index)
+        mapping[parentEffective.typeParams[index]] = parentRef.typeArgs[index];
+      substituteContractTypes(parentEffective, mapping);
+    }
+    mergeIn(parentEffective);
+  }
+  mergeIn(declaration);
+  stack.pop_back();
+  return merged;
 }
 } // namespace kyna

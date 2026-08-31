@@ -85,6 +85,12 @@ std::string tokenName(TokenKind kind) {
     return "intf";
   case TokenKind::Trait:
     return "trait";
+  case TokenKind::From:
+    return "from";
+  case TokenKind::Default:
+    return "default";
+  case TokenKind::Type:
+    return "type";
   case TokenKind::True:
     return "true";
   case TokenKind::False:

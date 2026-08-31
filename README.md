@@ -197,7 +197,7 @@ The language also supports first-class functions, mutable and transitive lexical
 | --- | --- |
 | `ky new <name> [--template minimal\|backend]` | Create a project; an interactive terminal can select the template. |
 | `ky init [path] [--template minimal\|backend]` | Initialize an empty directory without overwriting unrelated files. |
-| `ky generate route <name>` | Create an Express-style backend route and register it automatically. |
+| `ky generate route <name>` | Create and register an Express-style backend route; `--path` supports named segments such as `/teams/:team/users/:user`. |
 | `ky run [entry]` / `ky check [entry]` | Run or check an explicit file or the nearest project manifest entry. |
 | `ky fmt [paths...]` | Format recursively; use `--check` in CI or `-` for stdin/stdout. |
 | `ky dev` / `ky serve` | Watch and restart a checked backend, or serve it once. |
@@ -241,7 +241,7 @@ Package and install the local extension from the repository root:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.10.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.12.vsix --force
 ```
 
 The extension recognizes `.kyna` files and provides highlighting, snippets, completion, symbols, same-file definitions, hover information, import completion, live diagnostics, CodeLens, document formatting, and commands for running, checking, and inspecting compiler output. It prefers `ky`, falls back to `kyna`, and retains `kyna.executable` for configuration compatibility.
