@@ -37,6 +37,7 @@ Options parseArguments(int argc, char **argv) {
   bool help = false;
   bool version = false;
   bool noColor = false;
+  std::string colorMode{"auto"};
   std::string diagnosticFormat{"text"};
   std::string outputFormat{"text"};
   app.add_flag("-h,--help", help, "Show command help");
@@ -46,7 +47,9 @@ Options parseArguments(int argc, char **argv) {
       ->check(CLI::IsMember({"text", "json"}));
   app.add_option("--format", outputFormat, "Inspection output format")
       ->check(CLI::IsMember({"text", "json"}));
-  app.add_flag("--no-color", noColor, "Disable ANSI colors");
+  app.add_option("--color", colorMode, "ANSI color policy")
+      ->check(CLI::IsMember({"auto", "always", "never"}));
+  app.add_flag("--no-color", noColor, "Alias for --color never");
   app.add_option("--source-name", options.sourceName,
                  "Real source path used for stdin module resolution");
 
@@ -109,7 +112,10 @@ Options parseArguments(int argc, char **argv) {
     return options;
   }
 
-  options.color = !noColor;
+  if (noColor)
+    colorMode = "never";
+  options.color = colorMode != "never";
+  options.forceColor = colorMode == "always";
   options.jsonDiagnostics = diagnosticFormat == "json";
   options.jsonOutput = outputFormat == "json";
   if (options.command != Command::Repl && options.input.empty()) {

@@ -103,7 +103,7 @@ async function runActive(command) {
     return;
   }
   const program = executable(editor.document);
-  const arguments = [command, editor.document.fileName, '--no-color'];
+  const arguments = [command, editor.document.fileName, '--color', 'always'];
   const name = command === 'run' ? 'Kyna Run' : 'Kyna Check';
   for (const existing of vscode.window.terminals.filter(terminal => terminal.name.includes(name)))
     existing.dispose();

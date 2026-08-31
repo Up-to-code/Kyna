@@ -9,9 +9,11 @@
 int main(int argc, char **argv) {
   auto options = kyna::cli::parseArguments(argc, argv);
 #if defined(_WIN32)
-  options.richTerminal = options.color && _isatty(_fileno(stderr));
+  const bool terminal = _isatty(_fileno(stderr));
 #else
-  options.richTerminal = options.color && isatty(fileno(stderr));
+  const bool terminal = isatty(fileno(stderr));
 #endif
+  options.color = options.color && (terminal || options.forceColor);
+  options.richTerminal = options.color && terminal;
   return kyna::cli::dispatch(options, std::cin, std::cout, std::cerr);
 }

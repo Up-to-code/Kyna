@@ -60,7 +60,8 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
               "Options:\n"
               "  --module-path <dir>          Add a module search root (repeatable)\n"
               "  --diagnostic-format <kind>  text or json\n"
-              "  --no-color                  Disable ANSI diagnostic colors\n";
+              "  --color <policy>            auto, always, or never\n"
+              "  --no-color                  Alias for --color never\n";
     return 0;
   }
   if (options.command == Command::Version) {

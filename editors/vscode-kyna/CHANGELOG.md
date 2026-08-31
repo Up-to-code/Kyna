@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- Render compiler errors and warnings with ANSI color in the managed Run/Check terminal.
+- Keep inspection panels and machine-readable live diagnostics free of ANSI escape sequences.
+
 ## 1.0.3
 
 - Capture CLI stdout/stderr through VS Code `ProcessExecution` without invoking the user's shell.

@@ -184,6 +184,10 @@ if(KYNA_BUILD_TESTS)
            COMMAND kyna bytecode
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/exceptions.kyna"
                    --no-color)
+  add_test(NAME kyna_cli_color_policy
+           COMMAND "${Python3_EXECUTABLE}"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_cli_color.py"
+                   "$<TARGET_FILE:kyna>")
 endif()
 
 include(GNUInstallDirs)

@@ -48,7 +48,7 @@ Run a program:
 ./build-debug/bin/kyna repl
 ```
 
-The CLI also supports `tokens`, `ast`, resolved `hir`, verified `mir`, validated `bytecode` disassembly, repeated `--module-path`, `--diagnostic-format text|json`, and `kyna file.kyna` as a `run` alias. Global options work before or after the input path. See [distribution.md](docs/distribution.md) for Linux, Windows, and macOS archives.
+The CLI also supports `tokens`, `ast`, resolved `hir`, verified `mir`, validated `bytecode` disassembly, repeated `--module-path`, `--diagnostic-format text|json`, and `kyna file.kyna` as a `run` alias. Diagnostic color uses `--color auto|always|never`; `--no-color` remains an alias for `never`. Global options work before or after the input path. See [distribution.md](docs/distribution.md) for Linux, Windows, and macOS archives.
 
 ## A small Kyna program
 
@@ -106,7 +106,7 @@ Build and install the extension locally:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.3.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.4.vsix --force
 ```
 
 The extension registers only the canonical `.kyna` extension, plus `#` comments, completions for Kyna words/declarations/imports, live diagnostics, symbols, definitions, hover, CodeLens, Run/Check, and compiler-inspection commands. Its primary icon is purple; the black-and-white branding assets remain available in [`editors/vscode-kyna/assets/legacy/`](editors/vscode-kyna/assets/legacy/).

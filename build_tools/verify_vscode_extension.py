@@ -43,6 +43,8 @@ def main() -> int:
         failures.append("Run/Check must launch Kyna through direct process execution")
     if "vscode.tasks.executeTask(task)" not in implementation:
         failures.append("Run/Check must retain process output in a managed task terminal")
+    if "[command, editor.document.fileName, '--color', 'always']" not in implementation:
+        failures.append("Run/Check must request colored terminal diagnostics")
     if "terminal.sendText(" in implementation:
         failures.append("Run/Check must not route commands through the user's login shell")
     if "vscode.window.terminals.filter" not in implementation or "existing.dispose()" not in implementation:

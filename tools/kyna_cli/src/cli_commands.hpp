@@ -18,6 +18,7 @@ struct Options {
   bool jsonDiagnostics{false};
   bool jsonOutput{false};
   bool color{true};
+  bool forceColor{false};
   bool richTerminal{false};
   std::string error;
 };
