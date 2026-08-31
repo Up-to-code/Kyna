@@ -6,4 +6,4 @@ kyna_add_module(kyna_typecheck SOURCES
   src/interface_catalog.cpp
   src/program_validation.cpp
   src/module_analyzer.cpp
-  PUBLIC_DEPENDENCIES kyna_resolution kyna_syntax kyna_types kyna_diagnostics)
+  PUBLIC_DEPENDENCIES kyna_resolution kyna_symbols kyna_syntax kyna_types kyna_diagnostics)

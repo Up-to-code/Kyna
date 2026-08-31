@@ -5,7 +5,7 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | Area | Current status |
 |---|---|
 | Source spans, lexer, parser recovery | implemented and tested |
-| Name/type analysis and class contracts | implemented baseline |
+| Name/type analysis and class contracts | implemented baseline; standard-library symbols and basic call contracts are centralized in `kyna_symbols` |
 | Namespace modules and cycle diagnostics | implemented baseline |
 | HIR | stable typed IDs, resolved locals/functions/native calls, lexical capture analysis, nested-function lifting, array/object/index/member expressions, typed exceptions, renderer, and lowering for literals, bindings, calls, operators, assignment, blocks, conditionals, exhaustive matches, loops, and labeled control flow |
 | MIR | explicit temporaries/basic blocks/terminators/calls, exception regions, closure/capture operations, native/member/index/collection operations, verifier, short-circuit boolean lowering, cleanup routing, and labeled `break`/`continue` lowering |
@@ -16,11 +16,11 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | CLI11 command grammar | run/check/repl/tokens/ast/hir/mir/bytecode implemented |
 | FTXUI terminal diagnostics | implemented for interactive terminals |
 | Managed heap | iterative tracing, temporary roots, heap-owned VM closures/capture cells, VM allocation safepoints, cycle reclamation, and per-execution statistics implemented; generational collection remains open |
-| JSON, collections, filesystem, process | JSON parse/stringify, collection literals/indexing/default sort/unique/push/pop/keys, filesystem primitives, environment, and clocks execute through VM adapters; callback collection algorithms and full process migration remain open |
+| Text, JSON, collections, filesystem, process | Unicode code-point length/slice/search/case operations, JSON parse/stringify, collection literals/indexing/mutation/default sort/unique/push/pop/keys, filesystem primitives, JSON files, process execution/environment, and clocks execute through VM adapters; callback collection algorithms remain open |
 | HTTP/HTTPS | linked libcurl adapter, TLS verification, timeouts, bounded retry, typed failure phases |
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
-| Full HIR/MIR coverage | exceptions, collection literals, indexing, core JSON, and initial native calls are implemented; classes, modules, mutation opcodes, callback collection algorithms, and remaining production natives remain open |
+| Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, and direct production natives are implemented; classes, modules, callback collection algorithms, fetch response methods, and async operations remain open |
 | HTTP server, sockets, DAP, LSP | not implemented |
 | Formatter, package manager, documentation generator | not implemented |
 | VS Code extension | `.kyna`, comments, completion, imports, live diagnostics, Run/Check, purple assets |

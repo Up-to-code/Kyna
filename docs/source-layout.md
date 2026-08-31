@@ -11,6 +11,7 @@ Run `make architecture-check` to reject compatibility leftovers and ambiguous fi
 | `compiler/kyna_lexing` | Tokens, keywords, token descriptions, and recoverable tokenization |
 | `compiler/kyna_syntax` | Syntax node families and syntax-tree ownership |
 | `compiler/kyna_parsing` | Declaration, statement, expression, type, and recovery parsing |
+| `compiler/kyna_symbols` | Standard-library symbol identities, call signatures, and argument contracts |
 | `compiler/kyna_resolution` | Module paths, dependency graphs, caching, and cycle reports |
 | `compiler/kyna_typecheck` | Names, types, control flow, class contracts, interfaces, and lints |
 | `compiler/kyna_hir` | Resolved locals, compiler-owned operators, stable IDs, and syntax lowering |
@@ -20,6 +21,7 @@ Run `make architecture-check` to reject compatibility leftovers and ambiguous fi
 | `runtime/kyna_vm` | Runtime values, frames, bytecode execution, legacy execution, and tracing heap |
 | `library/collections` | Collection transforms and predicate algorithms |
 | `library/database` | Kyna database values, query results, and `db` namespace installation |
+| `library/text` | UTF-8 validation and Unicode-aware text operations |
 | `library/core` | Trusted standard-library catalog and JSON value codec |
 | `sdk/kyna_embedding` | The high-level language-session interface |
 | `tools/kyna_cli` | CLI11 command parsing and command adapters |

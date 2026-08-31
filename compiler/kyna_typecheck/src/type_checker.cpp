@@ -1,6 +1,8 @@
 #include "kyna/semantics/program_analyzer.hpp"
 #include "kyna/semantics/modifier_query.hpp"
+#include "kyna/symbols/standard_library_symbols.hpp"
 #include <algorithm>
+#include <limits>
 #include <set>
 
 namespace kyna {
@@ -110,6 +112,34 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
                       "pass a value compatible with parameter '" + f.params[i].name + "'");
             }
             return f.hasReturnType ? f.returnType : t("any");
+          }
+          if (auto variable = std::get_if<Variable>(&n.callee->node)) {
+            if (const auto *builtin = findStandardLibrarySymbol(variable->name);
+                builtin && builtin->callable) {
+              if (n.args.size() < builtin->minimumArguments ||
+                  n.args.size() > builtin->maximumArguments) {
+                const auto expected = builtin->minimumArguments == builtin->maximumArguments
+                                          ? std::to_string(builtin->minimumArguments)
+                                          : std::to_string(builtin->minimumArguments) + " to " +
+                                                (builtin->maximumArguments ==
+                                                         std::numeric_limits<std::size_t>::max()
+                                                     ? std::string("any number of")
+                                                     : std::to_string(builtin->maximumArguments));
+                error("standard-library function '" + variable->name + "' expects " + expected +
+                          " argument(s), but " + std::to_string(n.args.size()) + " were provided",
+                      e->location, "KSEM1204", "use the documented function signature");
+              }
+              for (std::size_t index = 0;
+                   index < std::min(argumentTypes.size(), builtin->argumentKinds.size()); ++index) {
+                if (!acceptsBuiltinArgument(builtin->argumentKinds[index], argumentTypes[index]))
+                  error("argument " + std::to_string(index + 1) + " to '" + variable->name +
+                            "' has type " + argumentTypes[index].str() + ", expected " +
+                            std::string(builtinArgumentKindName(builtin->argumentKinds[index])),
+                        n.args[index]->location, "KSEM1205",
+                        "pass a value matching the standard-library function signature");
+              }
+              return builtin->returnType;
+            }
           }
           if (std::holds_alternative<Member>(n.callee->node))
             return c;

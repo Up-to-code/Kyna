@@ -1,5 +1,6 @@
 #include "kyna/semantics/program_analyzer.hpp"
 #include "kyna/semantics/modifier_query.hpp"
+#include "kyna/symbols/standard_library_symbols.hpp"
 #include <algorithm>
 #include <map>
 #include <set>
@@ -39,18 +40,7 @@ Analyzer::Scope *Analyzer::bindingScope(const std::string &n) const {
 }
 bool Analyzer::defined(const std::string &n) const {
   return bindingScope(n) != nullptr || functions.contains(n) || classes.contains(n) ||
-         n == "print" || n == "typeOf" || n == "collectGarbage" || n == "gcStats" || n == "len" ||
-         n == "push" || n == "pop" || n == "keys" || n == "readFile" || n == "writeFile" ||
-         n == "readJsonFile" || n == "writeJsonFile" || n == "createDirectory" ||
-         n == "fileExists" || n == "removePath" || n == "listDirectory" || n == "fs" ||
-         n == "processRun" || n == "processEnv" || n == "sleep" || n == "httpGet" || n == "fetch" ||
-         n == "build" || n == "wait" || n == "log" || n == "logColor" || n == "console" ||
-         n == "error" || n == "filter" || n == "sort" || n == "bubbleSort" || n == "call" ||
-         n == "jsonParse" || n == "jsonStringify" || n == "process" || n == "createApiStore" ||
-         n == "db" || n == "map" || n == "reduce" || n == "find" || n == "any" || n == "all" ||
-         n == "unique" || n == "collections" || n == "textContains" || n == "textFind" ||
-         n == "textSlice" || n == "textReplace" || n == "textSplit" || n == "textTrim" ||
-         n == "textLower" || n == "textUpper";
+         findStandardLibrarySymbol(n) != nullptr;
 }
 bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
   if (e.name == "any" || a.name == "any")

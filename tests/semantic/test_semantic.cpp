@@ -29,6 +29,16 @@ int main() {
   assert(std::any_of(callDiagnostics.begin(), callDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1201"; }));
 
+  auto wrongBuiltinArity = kyna::Parser(kyna::lex("textSlice(\"Kyna\");")).parse();
+  auto builtinArityDiagnostics = kyna::validate(wrongBuiltinArity);
+  assert(std::any_of(builtinArityDiagnostics.begin(), builtinArityDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1204"; }));
+
+  auto wrongBuiltinType = kyna::Parser(kyna::lex("textUpper(42);")).parse();
+  auto builtinTypeDiagnostics = kyna::validate(wrongBuiltinType);
+  assert(std::any_of(builtinTypeDiagnostics.begin(), builtinTypeDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1205"; }));
+
   auto outsideBreak = kyna::Parser(kyna::lex("break;")).parse();
   auto outsideBreakDiagnostics = kyna::validate(outsideBreak);
   assert(std::any_of(outsideBreakDiagnostics.begin(), outsideBreakDiagnostics.end(),
