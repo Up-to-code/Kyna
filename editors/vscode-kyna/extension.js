@@ -7,6 +7,7 @@ const languageSelector = { language: 'kyna', scheme: 'file' };
 const validationTimers = new Map();
 const validationProcesses = new Map();
 let missingExecutableReported = false;
+let inspectionOutput;
 
 const wordCompletions = [
   ['let', vscode.CompletionItemKind.Keyword, 'Mutable, type-locked binding', 'let ${1:name} = ${0:value};'],
@@ -108,6 +109,24 @@ async function runActive(command) {
   });
   terminal.show(true);
   terminal.sendText(`${quoteShell(executable(editor.document))} ${command} ${quoteShell(editor.document.fileName)} --no-color`);
+}
+
+async function inspectActive(command, title) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== 'kyna') return;
+  await editor.document.save();
+  const document = editor.document;
+  childProcess.execFile(executable(document),
+    [command, document.fileName, '--no-color'],
+    { cwd: path.dirname(document.fileName), maxBuffer: 8 * 1024 * 1024 },
+    (error, stdout, stderr) => {
+      inspectionOutput.clear();
+      inspectionOutput.appendLine(`${title}: ${document.fileName}`);
+      inspectionOutput.append(stdout);
+      inspectionOutput.append(stderr);
+      if (error && !stdout && !stderr) inspectionOutput.appendLine(error.message);
+      inspectionOutput.show(true);
+    });
 }
 
 function toDiagnostic(entry, document) {
@@ -248,8 +267,76 @@ const completionProvider = {
   }
 };
 
+function declarationAt(document, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const expression = new RegExp(`\\b(?:class|intf|func|let|set)\\s+${escaped}\\b`);
+  for (let line = 0; line < document.lineCount; line += 1) {
+    const match = document.lineAt(line).text.match(expression);
+    if (match) {
+      const column = document.lineAt(line).text.indexOf(name, match.index);
+      return new vscode.Location(document.uri,
+        new vscode.Position(line, Math.max(0, column)));
+    }
+  }
+  return undefined;
+}
+
+const definitionProvider = {
+  provideDefinition(document, position) {
+    const range = document.getWordRangeAtPosition(position);
+    return range ? declarationAt(document, document.getText(range)) : undefined;
+  }
+};
+
+const hoverDetails = new Map(wordCompletions.map(([word, , detail]) => [word, detail]));
+const hoverProvider = {
+  provideHover(document, position) {
+    const range = document.getWordRangeAtPosition(position);
+    if (!range) return undefined;
+    const word = document.getText(range);
+    const detail = hoverDetails.get(word);
+    if (!detail) return undefined;
+    return new vscode.Hover(new vscode.MarkdownString(`**${word}** — ${detail}`), range);
+  }
+};
+
+const symbolProvider = {
+  provideDocumentSymbols(document) {
+    const symbols = [];
+    const expression = /\b(class|intf|func|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    for (let line = 0; line < document.lineCount; line += 1) {
+      const text = document.lineAt(line).text;
+      for (const match of text.matchAll(expression)) {
+        const kinds = {
+          class: vscode.SymbolKind.Class,
+          intf: vscode.SymbolKind.Interface,
+          func: vscode.SymbolKind.Function,
+          let: vscode.SymbolKind.Variable,
+          set: vscode.SymbolKind.Constant
+        };
+        const start = new vscode.Position(line, match.index);
+        const end = new vscode.Position(line, match.index + match[0].length);
+        symbols.push(new vscode.DocumentSymbol(match[2], match[1], kinds[match[1]],
+          new vscode.Range(start, end), new vscode.Range(start, end)));
+      }
+    }
+    return symbols;
+  }
+};
+
+const codeLensProvider = {
+  provideCodeLenses(document) {
+    const range = new vscode.Range(0, 0, 0, 0);
+    return [
+      new vscode.CodeLens(range, { command: 'kyna.runFile', title: '$(play) Run Kyna' }),
+      new vscode.CodeLens(range, { command: 'kyna.checkFile', title: '$(check) Check Kyna' })
+    ];
+  }
+};
+
 function activate(context) {
   const diagnostics = vscode.languages.createDiagnosticCollection('kyna');
+  inspectionOutput = vscode.window.createOutputChannel('Kyna Compiler');
   const runButton = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   runButton.text = '$(play) Run Kyna';
   runButton.command = 'kyna.runFile';
@@ -262,10 +349,20 @@ function activate(context) {
 
   context.subscriptions.push(
     diagnostics,
+    inspectionOutput,
     runButton,
     vscode.commands.registerCommand('kyna.runFile', () => runActive('run')),
     vscode.commands.registerCommand('kyna.checkFile', () => runActive('check')),
+    vscode.commands.registerCommand('kyna.showTokens', () => inspectActive('tokens', 'Tokens')),
+    vscode.commands.registerCommand('kyna.showAst', () => inspectActive('ast', 'Syntax tree')),
+    vscode.commands.registerCommand('kyna.showHir', () => inspectActive('hir', 'HIR')),
+    vscode.commands.registerCommand('kyna.showMir', () => inspectActive('mir', 'MIR')),
+    vscode.commands.registerCommand('kyna.showBytecode', () => inspectActive('bytecode', 'Bytecode')),
     vscode.languages.registerCompletionItemProvider(languageSelector, completionProvider, '.', '"', '/'),
+    vscode.languages.registerDefinitionProvider(languageSelector, definitionProvider),
+    vscode.languages.registerHoverProvider(languageSelector, hoverProvider),
+    vscode.languages.registerDocumentSymbolProvider(languageSelector, symbolProvider),
+    vscode.languages.registerCodeLensProvider(languageSelector, codeLensProvider),
     vscode.workspace.onDidOpenTextDocument(document => scheduleValidation(document, diagnostics)),
     vscode.workspace.onDidChangeTextDocument(event => scheduleValidation(event.document, diagnostics)),
     vscode.workspace.onDidSaveTextDocument(document => validate(document, diagnostics)),

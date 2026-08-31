@@ -2,7 +2,7 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
@@ -13,7 +13,7 @@
   "homepage": "https://github.com/Up-to-code/Kyna",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
-  "activationEvents": ["onLanguage:kyna", "onCommand:kyna.runFile", "onCommand:kyna.checkFile"],
+  "activationEvents": ["onLanguage:kyna"],
   "main": "./extension.js",
   "contributes": {
     "languages": [{
@@ -51,6 +51,26 @@
           "light": "./assets/check-light.svg",
           "dark": "./assets/check-dark.svg"
         }
+      },
+      {
+        "command": "kyna.showTokens",
+        "title": "Kyna: Show Tokens"
+      },
+      {
+        "command": "kyna.showAst",
+        "title": "Kyna: Show Syntax Tree"
+      },
+      {
+        "command": "kyna.showHir",
+        "title": "Kyna: Show HIR"
+      },
+      {
+        "command": "kyna.showMir",
+        "title": "Kyna: Show MIR"
+      },
+      {
+        "command": "kyna.showBytecode",
+        "title": "Kyna: Show Bytecode"
       }
     ],
     "menus": {

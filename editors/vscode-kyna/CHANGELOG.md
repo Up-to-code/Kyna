@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- Adds document symbols, same-file definitions, hover details, and Run/Check CodeLens.
+- Adds token, syntax-tree, HIR, MIR, and bytecode inspection commands backed by the Kyna CLI.
+- Adds Unicode text standard-library completions and packages the latest backend examples.
+- Ensures packaging replaces stale local VSIX artifacts instead of accumulating old versions.
+
 ## 1.0.0
 
 - Registers only `.kyna` source files.

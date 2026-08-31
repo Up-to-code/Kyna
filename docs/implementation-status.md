@@ -23,7 +23,7 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
 | HTTP server, sockets, DAP, LSP | not implemented |
 | Formatter, package manager, documentation generator | not implemented |
-| VS Code extension | `.kyna`, comments, completion, imports, live diagnostics, Run/Check, purple assets |
+| VS Code extension | 1.0.1: `.kyna`, comments, completion, imports, symbols, definitions, hover, CodeLens, live diagnostics, Run/Check, compiler inspection, purple assets |
 | Cross-platform archives | CI matrix and CPack archives configured; signed native installers remain a release gate |
 
 Kyna 1.0 must not be tagged until every mandatory gate in [ROADMAP.md](../ROADMAP.md) and [release-policy.md](release-policy.md) is complete.

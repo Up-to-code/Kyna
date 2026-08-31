@@ -96,6 +96,9 @@ if(KYNA_BUILD_TESTS)
   add_test(NAME kyna_repository_architecture
            COMMAND Python3::Interpreter
                    "${CMAKE_CURRENT_SOURCE_DIR}/build_tools/verify_repository_architecture.py")
+  add_test(NAME kyna_vscode_extension_manifest
+           COMMAND Python3::Interpreter
+                   "${CMAKE_CURRENT_SOURCE_DIR}/build_tools/verify_vscode_extension.py")
   function(add_kyna_test name source)
     add_executable(${name} ${source})
     target_link_libraries(${name} PRIVATE kyna_embedding)

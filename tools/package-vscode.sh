@@ -5,6 +5,7 @@ ext="$root/editors/vscode-kyna"
 version=$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$ext/package.json" | head -1)
 test -n "$version"
 out="$ext/kyna-language-support-$version.vsix"
+rm -f "$ext"/kyna-language-support-*.vsix
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/extension"

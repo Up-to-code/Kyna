@@ -104,10 +104,10 @@ Build and install the extension locally:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.0.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.1.vsix --force
 ```
 
-The extension registers only the canonical `.kyna` extension, plus `#` comments, completions for Kyna words/declarations/imports, live diagnostics, and editor Run/Check commands. Its primary icon is purple; the black-and-white branding assets remain available in [`editors/vscode-kyna/assets/legacy/`](editors/vscode-kyna/assets/legacy/).
+The extension registers only the canonical `.kyna` extension, plus `#` comments, completions for Kyna words/declarations/imports, live diagnostics, symbols, definitions, hover, CodeLens, Run/Check, and compiler-inspection commands. Its primary icon is purple; the black-and-white branding assets remain available in [`editors/vscode-kyna/assets/legacy/`](editors/vscode-kyna/assets/legacy/).
 
 ## Documentation
 
