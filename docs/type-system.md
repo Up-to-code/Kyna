@@ -18,7 +18,7 @@ intf Named<T> extends Shape {
   name: str;
   label?: str;
   (): int;                 // call signature
-  [key: string]: int;      // index signature
+  [key: str]: int;         // index signature
 }
 class Circle implements Named<float> {
   public name: str;

@@ -140,6 +140,24 @@ print("after-error", changing);
                 "route generator accepted duplicate path-parameter names")
         require(invoke(cli, "check", cwd=backend).returncode == 0,
                 "generated Express-style backend did not type-check")
+
+        # Importing a symbol the target module does not export is a module-level
+        # error (K4004), checked across the real module loader in this project.
+        modules = backend / "src" / "modules"
+        modules.mkdir(parents=True, exist_ok=True)
+        (modules / "lib.kyna").write_text(
+            'export func greet(name: str): str { return name; }\n', encoding="utf-8")
+        consumer = modules / "consumer.kyna"
+        consumer.write_text(
+            'import { greet } from "./lib.kyna"; print(greet("Kyna"));\n', encoding="utf-8")
+        require(invoke(cli, "check", str(consumer), cwd=backend).returncode == 0,
+                "valid named import did not type-check")
+        consumer.write_text(
+            'import { missing } from "./lib.kyna"; print(missing);\n', encoding="utf-8")
+        missing_import = invoke(cli, "check", str(consumer), cwd=backend)
+        require(missing_import.returncode != 0, "nonexported named import did not fail to type-check")
+        require("has no exported member 'missing'" in missing_import.stderr,
+                f"nonexported import lacked a module diagnostic: {missing_import.stderr}")
         port = free_port()
         manifest_path = backend / "kyna.toml"
         manifest_source = manifest_path.read_text(encoding="utf-8")

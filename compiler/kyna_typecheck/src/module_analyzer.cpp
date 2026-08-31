@@ -99,6 +99,20 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
       if (!importDecl->namespaceAlias.empty())
         imports[importDecl->namespaceAlias] =
             TypeRef{"module:" + importDecl->alias, false, {}};
+      // Validate JavaScript-style named imports: the imported symbol must be
+      // exported by the target module. A missing or non-exported name is a
+      // compile error, matching module semantics.
+      const auto exportMap = moduleExports.find(importDecl->alias);
+      for (const auto &specifier : importDecl->named) {
+        if (exportMap == moduleExports.end() ||
+            !exportMap->second.contains(specifier.imported)) {
+          Diagnostic diagnostic{"module '" + importDecl->path +
+                                    "' has no exported member '" + specifier.imported + "'",
+                                statement->location, false};
+          diagnostic.code = "K4004";
+          diagnostics.push_back(std::move(diagnostic));
+        }
+      }
     }
     Analyzer analyzer;
     analyzer.setExternalBindings(std::move(imports));
