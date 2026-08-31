@@ -1,5 +1,5 @@
 {
-  "formatVersion": 4,
+  "formatVersion": 6,
   "opcodes": [
     { "enum": "LoadConstant", "mnemonic": "load.constant" },
     { "enum": "LoadNull", "mnemonic": "load.null" },
@@ -29,6 +29,7 @@
     { "enum": "LoadMember", "mnemonic": "load.member" },
     { "enum": "MakeArray", "mnemonic": "make.array" },
     { "enum": "MakeObject", "mnemonic": "make.object" },
+    { "enum": "MakeInstance", "mnemonic": "make.instance" },
     { "enum": "LoadIndex", "mnemonic": "load.index" },
     { "enum": "StoreIndex", "mnemonic": "store.index" },
     { "enum": "StoreMember", "mnemonic": "store.member" },

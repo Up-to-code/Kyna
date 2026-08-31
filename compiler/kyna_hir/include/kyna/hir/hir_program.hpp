@@ -29,6 +29,11 @@ struct HirFunctionId {
   auto operator<=>(const HirFunctionId &) const = default;
 };
 
+struct HirClassId {
+  std::uint32_t value{0};
+  auto operator<=>(const HirClassId &) const = default;
+};
+
 using HirConstant = std::variant<std::nullptr_t, bool, std::int64_t, double, std::string, char>;
 
 enum class HirUnaryOperator { Negate, Not };
@@ -95,6 +100,10 @@ struct HirNativeCallExpression {
   std::string name;
   std::vector<HirExpressionId> arguments;
 };
+struct HirNewExpression {
+  HirClassId klass;
+  std::vector<HirExpressionId> arguments;
+};
 struct HirMemberExpression {
   HirExpressionId object;
   std::string member;
@@ -136,7 +145,7 @@ struct HirExpression {
                             HirBinaryExpression, HirAssignLocalExpression,
                             HirAssignIndexExpression, HirAssignMemberExpression, HirCallExpression,
                             HirIndirectCallExpression, HirNativeCallExpression,
-                            HirMemberExpression, HirIndexExpression, HirArrayExpression,
+                            HirNewExpression, HirMemberExpression, HirIndexExpression, HirArrayExpression,
                             HirObjectExpression, HirIfExpression, HirMatchExpression>;
   Node node;
   SourceSpan span;
@@ -212,6 +221,25 @@ struct HirFunction {
   std::optional<HirFunctionId> parent;
 };
 
+struct HirClassField {
+  std::string name;
+  SourceSpan span;
+};
+
+struct HirClassMethod {
+  std::string name;
+  HirFunctionId function;
+};
+
+struct HirClass {
+  std::string name;
+  std::optional<HirClassId> parent;
+  std::vector<HirClassField> fields;
+  std::vector<HirClassMethod> methods;
+  std::optional<HirFunctionId> constructor;
+  SourceSpan span;
+};
+
 struct HirProgram {
   std::string name;
   std::vector<HirExpression> expressions;
@@ -219,6 +247,7 @@ struct HirProgram {
   std::vector<HirLocal> locals;
   std::vector<HirStatementId> body;
   std::vector<HirFunction> functions;
+  std::vector<HirClass> classes;
 };
 
 [[nodiscard]] const char *hirBinaryOperatorName(HirBinaryOperator operation);

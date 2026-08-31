@@ -44,6 +44,14 @@ VmClosure *Heap::allocateClosure(std::uint32_t function,
   return closures.back().get();
 }
 
+VmBoundMethod *Heap::allocateBoundMethod(Object *receiver, std::uint32_t function) {
+  boundMethods.push_back(
+      std::make_unique<VmBoundMethod>(VmBoundMethod{receiver, function}));
+  ++allocatedCount;
+  peakLiveCount = std::max(peakLiveCount, live());
+  return boundMethods.back().get();
+}
+
 ErrorObject *Heap::allocateError(std::string message, std::string code, const Value &cause) {
   errors.push_back(
       std::make_unique<ErrorObject>(ErrorObject{std::move(message), std::move(code), cause}));
@@ -66,6 +74,7 @@ void Heap::collectRoots(const HeapRoots &roots) {
   std::set<ModuleNamespace *> markedModules;
   std::set<VmCaptureCell *> markedCaptureCells;
   std::set<VmClosure *> markedClosures;
+  std::set<VmBoundMethod *> markedBoundMethods;
   std::set<ErrorObject *> markedErrors;
   std::deque<Value> pendingValues;
   std::deque<Environment *> pendingEnvironments;
@@ -145,6 +154,11 @@ void Heap::collectRoots(const HeapRoots &roots) {
       for (auto *capture : (*closure)->captures)
         if (capture)
           pendingCaptureCells.push_back(capture);
+    } else if (const auto *method = std::get_if<VmBoundMethod *>(&value.data)) {
+      if (!*method || !markedBoundMethods.insert(*method).second)
+        continue;
+      if ((*method)->receiver)
+        pendingValues.emplace_back((*method)->receiver);
     } else if (const auto *error = std::get_if<ErrorPtr>(&value.data)) {
       if (!*error || !markedErrors.insert(*error).second)
         continue;
@@ -164,6 +178,12 @@ void Heap::collectRoots(const HeapRoots &roots) {
       std::remove_if(closures.begin(), closures.end(),
                      [&](const auto &closure) { return !markedClosures.contains(closure.get()); }),
       closures.end());
+  boundMethods.erase(
+      std::remove_if(boundMethods.begin(), boundMethods.end(),
+                     [&](const auto &method) {
+                       return !markedBoundMethods.contains(method.get());
+                     }),
+      boundMethods.end());
   captureCells.erase(
       std::remove_if(captureCells.begin(), captureCells.end(),
                      [&](const auto &cell) { return !markedCaptureCells.contains(cell.get()); }),

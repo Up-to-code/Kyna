@@ -18,6 +18,7 @@ struct Function;
 struct Class;
 struct ModuleNamespace;
 struct VmClosure;
+struct VmBoundMethod;
 struct ErrorObject;
 struct VmFunctionReference {
   std::uint32_t function{0};
@@ -32,7 +33,7 @@ using ErrorPtr = ErrorObject *;
 struct Value {
   using Data = std::variant<std::nullptr_t, bool, int64_t, double, std::string, char, ObjectPtr,
                             ArrayPtr, FunctionPtr, ClassPtr, ModulePtr, VmFunctionReference,
-                            VmClosure *, ErrorPtr>;
+                            VmClosure *, VmBoundMethod *, ErrorPtr>;
   Data data{nullptr};
   Value() = default;
   template <class T> Value(T v) : data(std::move(v)) {}
@@ -47,6 +48,10 @@ struct VmCaptureCell {
 struct VmClosure {
   std::uint32_t function{0};
   std::vector<VmCaptureCell *> captures;
+};
+struct VmBoundMethod {
+  ObjectPtr receiver{nullptr};
+  std::uint32_t function{0};
 };
 struct ErrorObject {
   std::string message;
@@ -82,6 +87,8 @@ private:
 struct Object {
   std::map<std::string, Value> fields;
   ClassPtr klass;
+  std::optional<std::uint32_t> vmClass;
+  std::string vmClassName;
 };
 struct Array {
   std::vector<Value> elements;

@@ -10,6 +10,21 @@ class HirLowerer {
 public:
   explicit HirLowerer(const HirProgram &source) : hir(source) {
     mir.name = source.name;
+    for (const auto &sourceClass : source.classes) {
+      MirClass target{sourceClass.name,
+                      sourceClass.parent
+                          ? std::optional<std::uint32_t>{sourceClass.parent->value}
+                          : std::nullopt,
+                      {}, {},
+                      sourceClass.constructor
+                          ? std::optional<std::uint32_t>{sourceClass.constructor->value}
+                          : std::nullopt};
+      for (const auto &field : sourceClass.fields)
+        target.fields.push_back(field.name);
+      for (const auto &method : sourceClass.methods)
+        target.methods.push_back({method.name, method.function.value});
+      mir.classes.push_back(std::move(target));
+    }
     mir.blocks.emplace_back();
     activate(mir.temporaryCount, mir.blocks, mir.exceptionRegions);
   }
@@ -233,6 +248,16 @@ private:
             current().instructions.push_back(
                 {MirInstructionKind::MakeObject, target, {}, {}, nullptr, expression.span, 0,
                  std::move(values), 0, {}, std::move(names)});
+            return target;
+          } else if constexpr (std::is_same_v<T, HirNewExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> arguments;
+            arguments.reserve(node.arguments.size());
+            for (const auto argument : node.arguments)
+              arguments.push_back(lowerExpression(argument));
+            current().instructions.push_back({MirInstructionKind::MakeInstance, target, {}, {},
+                                               nullptr, expression.span, node.klass.value,
+                                               std::move(arguments)});
             return target;
           } else if constexpr (std::is_same_v<T, HirClosureExpression>) {
             const auto target = temporary();
@@ -614,6 +639,7 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::LoadMember: return "load_member";
   case MirInstructionKind::MakeArray: return "make_array";
   case MirInstructionKind::MakeObject: return "make_object";
+  case MirInstructionKind::MakeInstance: return "make_instance";
   case MirInstructionKind::LoadIndex: return "load_index";
   case MirInstructionKind::StoreIndex: return "store_index";
   case MirInstructionKind::StoreMember: return "store_member";

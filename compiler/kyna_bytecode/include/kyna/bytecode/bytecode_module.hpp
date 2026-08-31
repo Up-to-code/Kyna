@@ -3,6 +3,7 @@
 #include "kyna/source/source_span.hpp"
 #include <cstdint>
 #include <string>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -40,6 +41,7 @@ enum class OpCode : std::uint8_t {
   LoadMember,
   MakeArray,
   MakeObject,
+  MakeInstance,
   LoadIndex,
   StoreIndex,
   StoreMember,
@@ -76,8 +78,21 @@ struct BytecodeCaptureSource {
   std::uint32_t index{0};
 };
 
+struct BytecodeClassMethod {
+  std::string name;
+  std::uint32_t function{0};
+};
+
+struct BytecodeClass {
+  std::string name;
+  std::optional<std::uint32_t> parent;
+  std::vector<std::string> fields;
+  std::vector<BytecodeClassMethod> methods;
+  std::optional<std::uint32_t> constructor;
+};
+
 struct BytecodeModule {
-  static constexpr std::uint32_t FormatVersion = 5;
+  static constexpr std::uint32_t FormatVersion = 6;
   std::uint32_t formatVersion{FormatVersion};
   std::string name;
   std::vector<BytecodeConstant> constants;
@@ -86,6 +101,7 @@ struct BytecodeModule {
   std::vector<std::vector<std::string>> objectFieldNames;
   std::vector<std::vector<BytecodeCaptureSource>> closureCaptures;
   std::vector<BytecodeFunction> functions;
+  std::vector<BytecodeClass> classes;
   std::uint32_t entryFunction{0};
 };
 

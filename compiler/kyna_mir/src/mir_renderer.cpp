@@ -81,6 +81,13 @@ void renderBody(std::ostringstream &output, const std::vector<MirBasicBlock> &bl
           output << "%t" << instruction.arguments[index].value;
         }
         output << (instruction.kind == MirInstructionKind::MakeArray ? ']' : '}');
+      } else if (instruction.kind == MirInstructionKind::MakeInstance) {
+        output << " @c" << instruction.function << '(';
+        for (std::size_t argument = 0; argument < instruction.arguments.size(); ++argument) {
+          if (argument) output << ", ";
+          output << "%t" << instruction.arguments[argument].value;
+        }
+        output << ')';
       } else if (instruction.kind == MirInstructionKind::LoadIndex) {
         output << " %t" << instruction.first.value << ", %t" << instruction.second.value;
       } else if (instruction.kind == MirInstructionKind::StoreIndex ||
@@ -143,6 +150,16 @@ std::string renderMir(const MirProgram &program) {
            << " captures=" << function.captures.size()
            << " temporaries=" << function.temporaryCount << '\n';
     renderBody(output, function.blocks, function.exceptionRegions);
+  }
+  for (std::size_t index = 0; index < program.classes.size(); ++index) {
+    const auto &klass = program.classes[index];
+    output << "\nmir.class @c" << index << ' ' << klass.name;
+    if (klass.parent) output << " extends @c" << *klass.parent;
+    if (klass.constructor) output << " constructor=@f" << *klass.constructor + 1;
+    output << '\n';
+    for (const auto &field : klass.fields) output << "  field " << field << '\n';
+    for (const auto &method : klass.methods)
+      output << "  method " << method.name << " @f" << method.function + 1 << '\n';
   }
   return output.str();
 }

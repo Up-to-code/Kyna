@@ -11,6 +11,7 @@ struct Array;
 struct Value;
 struct VmCaptureCell;
 struct VmClosure;
+struct VmBoundMethod;
 struct ErrorObject;
 class Environment;
 
@@ -56,6 +57,7 @@ public:
   VmCaptureCell *allocateCaptureCell(const Value &value);
   VmClosure *allocateClosure(std::uint32_t function,
                              std::vector<VmCaptureCell *> captures);
+  VmBoundMethod *allocateBoundMethod(Object *receiver, std::uint32_t function);
   ErrorObject *allocateError(std::string message, std::string code, const Value &cause);
   void collect(const std::vector<Environment *> &roots);
   void collectRoots(const HeapRoots &roots);
@@ -64,7 +66,8 @@ public:
   void setThreshold(std::size_t threshold);
   std::size_t allocated() const { return allocatedCount; }
   std::size_t live() const {
-    return objects.size() + arrays.size() + captureCells.size() + closures.size() + errors.size();
+    return objects.size() + arrays.size() + captureCells.size() + closures.size() +
+           boundMethods.size() + errors.size();
   }
   std::size_t collections() const { return collectionCount; }
   HeapStats stats() const;
@@ -75,6 +78,7 @@ private:
   std::vector<std::unique_ptr<Array>> arrays;
   std::vector<std::unique_ptr<VmCaptureCell>> captureCells;
   std::vector<std::unique_ptr<VmClosure>> closures;
+  std::vector<std::unique_ptr<VmBoundMethod>> boundMethods;
   std::vector<std::unique_ptr<ErrorObject>> errors;
   std::size_t allocatedCount{0};
   std::size_t collectionCount{0};

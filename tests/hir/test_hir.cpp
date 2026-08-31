@@ -80,4 +80,25 @@ int main() {
   assert(exceptionListing.find("throw") != std::string::npos);
   assert(exceptionListing.find(" catch ") != std::string::npos);
   assert(exceptionListing.find(" finally ") != std::string::npos);
+
+  const auto classSource = sources.add(
+      "hir-classes",
+      "class Animal { public name: str; public init(name: str) { self.name = name; } "
+      "public func speak(): str { return self.name; } } "
+      "class Dog extends Animal { public override func speak(): str { return self.name; } } "
+      "set pet = new Dog(\"Rex\"); pet.speak();");
+  auto classLexed = kyna::tokenize(*sources.find(classSource));
+  auto classParsed =
+      kyna::parseModule(*sources.find(classSource), std::move(classLexed.tokens));
+  auto classHir = kyna::lowerSyntaxToHir("hir-classes", classParsed.tree);
+  assert(classHir.ok());
+  assert(classHir.program->classes.size() == 2);
+  assert(classHir.program->classes[1].parent == kyna::HirClassId{0});
+  assert(classHir.program->classes[0].constructor.has_value());
+  assert(classHir.program->functions.size() == 3);
+  assert(classHir.program->functions[0].parameters.size() == 2);
+  const auto classListing = kyna::renderHir(*classHir.program);
+  assert(classListing.find("class @c1 Dog extends @c0") != std::string::npos);
+  assert(classListing.find("new @c1") != std::string::npos);
+  assert(classListing.find("assign.member") != std::string::npos);
 }

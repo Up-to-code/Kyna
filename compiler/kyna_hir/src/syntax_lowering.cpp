@@ -40,9 +40,9 @@ public:
   }
 
   HirLoweringResult lower(const SyntaxTree &tree) {
-    for (const auto &statement : tree.module.declarations)
+    for (const auto &statement : tree.module.declarations) {
       if (const auto *function = std::get_if<FunctionDecl>(&statement->node)) {
-        if (functions.contains(function->name)) {
+        if (functions.contains(function->name) || classes.contains(function->name)) {
           Diagnostic diagnostic{"function '" + function->name + "' is declared more than once",
                                 statement->location, false, "KHIR1101"};
           diagnostic.category = "hir";
@@ -53,6 +53,41 @@ public:
         functions.insert_or_assign(function->name, id);
         program.functions.push_back(
             {function->name, {}, {}, statement->location, {}, std::nullopt});
+      } else if (const auto *klass = std::get_if<ClassDecl>(&statement->node)) {
+        if (classes.contains(klass->name) || functions.contains(klass->name)) {
+          Diagnostic diagnostic{"class '" + klass->name + "' is declared more than once",
+                                statement->location, false, "KHIR1101"};
+          diagnostic.category = "hir";
+          diagnostics.push_back(std::move(diagnostic));
+          continue;
+        }
+        const auto classId = HirClassId{static_cast<std::uint32_t>(program.classes.size())};
+        classes.insert_or_assign(klass->name, classId);
+        HirClass loweredClass{klass->name, std::nullopt, {}, {}, std::nullopt,
+                              statement->location};
+        for (const auto &field : klass->fields)
+          loweredClass.fields.push_back({field.name, statement->location});
+        for (const auto &method : klass->methods) {
+          const auto functionId =
+              HirFunctionId{static_cast<std::uint32_t>(program.functions.size())};
+          program.functions.push_back({klass->name + "." + method.name, {}, {},
+                                       statement->location, {}, std::nullopt});
+          if (method.name == "init")
+            loweredClass.constructor = functionId;
+          else
+            loweredClass.methods.push_back({method.name, functionId});
+        }
+        program.classes.push_back(std::move(loweredClass));
+      }
+    }
+
+    for (const auto &statement : tree.module.declarations)
+      if (const auto *klass = std::get_if<ClassDecl>(&statement->node);
+          klass && !klass->parent.empty()) {
+        const auto child = classes.find(klass->name);
+        const auto parent = classes.find(klass->parent);
+        if (child != classes.end() && parent != classes.end())
+          program.classes[child->second.value].parent = parent->second;
       }
 
     if (!diagnostics.empty())
@@ -63,11 +98,32 @@ public:
         if (const auto found = functions.find(function->name); found != functions.end())
           lowerFunction(found->second, *function, statement->location);
 
+    for (const auto &statement : tree.module.declarations)
+      if (const auto *klass = std::get_if<ClassDecl>(&statement->node)) {
+        const auto found = classes.find(klass->name);
+        if (found == classes.end())
+          continue;
+        const auto &loweredClass = program.classes[found->second.value];
+        for (const auto &method : klass->methods) {
+          std::optional<HirFunctionId> function;
+          if (method.name == "init")
+            function = loweredClass.constructor;
+          else
+            for (const auto &candidate : loweredClass.methods)
+              if (candidate.name == method.name)
+                function = candidate.function;
+          if (function)
+            lowerFunction(*function, method, statement->location, false, found->second);
+        }
+      }
+
     scopes.clear();
     scopes.emplace_back();
     for (const auto &statement : tree.module.declarations) {
       if (std::holds_alternative<ImportDecl>(statement->node) ||
-          std::holds_alternative<FunctionDecl>(statement->node))
+          std::holds_alternative<FunctionDecl>(statement->node) ||
+          std::holds_alternative<ClassDecl>(statement->node) ||
+          std::holds_alternative<InterfaceDecl>(statement->node))
         continue;
       if (const auto lowered = lowerStatement(statement))
         program.body.push_back(*lowered);
@@ -83,10 +139,12 @@ private:
   std::vector<Diagnostic> diagnostics;
   std::vector<std::unordered_map<std::string, HirLocalId>> scopes;
   std::unordered_map<std::string, HirFunctionId> functions;
+  std::unordered_map<std::string, HirClassId> classes;
   std::vector<std::string> loopLabels;
   std::vector<std::optional<HirFunctionId>> localOwners;
   std::vector<bool> responseLocals;
   std::optional<HirFunctionId> currentFunction;
+  std::optional<HirLocalId> currentSelf;
   std::unordered_map<const Stmt *, std::pair<HirFunctionId, HirLocalId>> nestedFunctions;
 
   void unsupported(std::string construct, SourceSpan span) {
@@ -146,8 +204,10 @@ private:
   }
 
   void lowerFunction(HirFunctionId id, const FunctionDecl &declaration, SourceSpan span,
-                     bool preserveOuterScopes = false) {
+                     bool preserveOuterScopes = false,
+                     std::optional<HirClassId> owningClass = std::nullopt) {
     const auto previousFunction = currentFunction;
+    const auto previousSelf = currentSelf;
     auto previousLoops = std::move(loopLabels);
     std::vector<std::unordered_map<std::string, HirLocalId>> savedScopes;
     if (!preserveOuterScopes) {
@@ -156,6 +216,13 @@ private:
     }
     currentFunction = id;
     scopes.emplace_back();
+    if (owningClass) {
+      const auto receiver = addNamedLocal("self", false, span);
+      currentSelf = receiver;
+      program.functions.at(id.value).parameters.push_back(receiver);
+    } else if (!preserveOuterScopes) {
+      currentSelf.reset();
+    }
     for (const auto &parameter : declaration.params)
       program.functions.at(id.value).parameters.push_back(addParameter(parameter, span));
     const auto body = lowerStatement(declaration.body);
@@ -164,6 +231,7 @@ private:
       program.functions.at(id.value).body = *body;
     const auto captures = program.functions.at(id.value).captures;
     currentFunction = previousFunction;
+    currentSelf = previousSelf;
     loopLabels = std::move(previousLoops);
     if (!preserveOuterScopes)
       scopes = std::move(savedScopes);
@@ -303,6 +371,16 @@ private:
                                    expression->location);
             unsupported("an unresolved local '" + node.name + "'", expression->location);
             return std::nullopt;
+          } else if constexpr (std::is_same_v<T, SelfExpr>) {
+            if (!currentSelf) {
+              unsupported("self outside a method", expression->location);
+              return std::nullopt;
+            }
+            captureIfNeeded(*currentSelf);
+            return addExpression(HirLocalExpression{*currentSelf}, expression->location);
+          } else if constexpr (std::is_same_v<T, SuperExpr>) {
+            unsupported("super dispatch", expression->location);
+            return std::nullopt;
           } else if constexpr (std::is_same_v<T, Unary>) {
             if (node.op != TokenKind::Minus && node.op != TokenKind::Bang) {
               unsupported("unary operator '" + tokenName(node.op) + "'", expression->location);
@@ -388,6 +466,23 @@ private:
               elements.push_back(*lowered);
             }
             return addExpression(HirArrayExpression{std::move(elements)}, expression->location);
+          } else if constexpr (std::is_same_v<T, NewExpr>) {
+            const auto klass = classes.find(node.className);
+            if (klass == classes.end()) {
+              unsupported("construction of unknown class '" + node.className + "'",
+                          expression->location);
+              return std::nullopt;
+            }
+            std::vector<HirExpressionId> arguments;
+            arguments.reserve(node.args.size());
+            for (const auto &argument : node.args) {
+              const auto lowered = lowerExpression(argument);
+              if (!lowered)
+                return std::nullopt;
+              arguments.push_back(*lowered);
+            }
+            return addExpression(HirNewExpression{klass->second, std::move(arguments)},
+                                 expression->location);
           } else if constexpr (std::is_same_v<T, ObjectExpr>) {
             std::vector<HirObjectField> fields;
             fields.reserve(node.fields.size());

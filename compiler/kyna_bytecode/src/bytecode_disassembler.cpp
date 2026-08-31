@@ -122,6 +122,10 @@ std::string disassembleBytecode(const BytecodeModule &module) {
         if (instruction.opcode == OpCode::MakeObject)
           output << ", names[" << instruction.second << ']';
         break;
+      case OpCode::MakeInstance:
+        output << " r" << instruction.destination << ", class[" << instruction.first
+               << "], arguments[" << instruction.second << ']';
+        break;
       case OpCode::LoadIndex:
         output << " r" << instruction.destination << ", r" << instruction.first << ", r"
                << instruction.second;
@@ -147,6 +151,16 @@ std::string disassembleBytecode(const BytecodeModule &module) {
       output << "       exception [" << handler.firstInstruction << ", "
              << handler.firstInstruction + handler.instructionCount << ") -> "
              << handler.handlerInstruction << " error=r" << handler.errorRegister << '\n';
+  }
+  for (std::size_t index = 0; index < module.classes.size(); ++index) {
+    const auto &klass = module.classes[index];
+    output << "\nclass " << index << ' ' << klass.name;
+    if (klass.parent) output << " extends " << *klass.parent;
+    if (klass.constructor) output << " constructor=" << *klass.constructor;
+    output << '\n';
+    for (const auto &field : klass.fields) output << "  field " << field << '\n';
+    for (const auto &method : klass.methods)
+      output << "  method " << method.name << " function=" << method.function << '\n';
   }
   return output.str();
 }

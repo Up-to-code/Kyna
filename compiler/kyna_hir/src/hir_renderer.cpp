@@ -76,6 +76,13 @@ std::string renderHir(const HirProgram &program) {
               output << "%e" << node.arguments[argument].value;
             }
             output << ')';
+          } else if constexpr (std::is_same_v<T, HirNewExpression>) {
+            output << "new @c" << node.klass.value << '(';
+            for (std::size_t argument = 0; argument < node.arguments.size(); ++argument) {
+              if (argument) output << ", ";
+              output << "%e" << node.arguments[argument].value;
+            }
+            output << ')';
           } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
             output << "member %e" << node.object.value << ", " << node.member;
           } else if constexpr (std::is_same_v<T, HirIndexExpression>) {
@@ -163,6 +170,18 @@ std::string renderHir(const HirProgram &program) {
   output << "  body";
   for (const auto statement : program.body) output << " %s" << statement.value;
   output << '\n';
+  for (std::size_t index = 0; index < program.classes.size(); ++index) {
+    const auto &klass = program.classes[index];
+    output << "  class @c" << index << ' ' << klass.name;
+    if (klass.parent) output << " extends @c" << klass.parent->value;
+    output << '\n';
+    for (const auto &field : klass.fields)
+      output << "    field " << field.name << '\n';
+    if (klass.constructor)
+      output << "    constructor @f" << klass.constructor->value << '\n';
+    for (const auto &method : klass.methods)
+      output << "    method " << method.name << " @f" << method.function.value << '\n';
+  }
   for (std::size_t index = 0; index < program.functions.size(); ++index) {
     const auto &function = program.functions[index];
     output << "  function @f" << index << ' ' << function.name << '(';

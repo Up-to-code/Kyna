@@ -42,4 +42,16 @@ int main() {
   }
   isolatedHeap.collect({});
   assert(isolatedHeap.live() == 0);
+
+  {
+    auto roots = isolatedHeap.rootScope();
+    auto *receiver = isolatedHeap.allocate();
+    auto *method = isolatedHeap.allocateBoundMethod(receiver, 7);
+    kyna::Value methodRoot(method);
+    roots.protect(methodRoot);
+    isolatedHeap.collect({});
+    assert(isolatedHeap.live() == 2);
+  }
+  isolatedHeap.collect({});
+  assert(isolatedHeap.live() == 0);
 }

@@ -6,8 +6,10 @@
 #include "kyna/hir/syntax_lowering.hpp"
 #include "kyna/lexing/tokenizer.hpp"
 #include "kyna/mir/hir_lowering.hpp"
+#include "kyna/mir/mir_renderer.hpp"
 #include "kyna/parsing/module_parser.hpp"
 #include "kyna/source/source_manager.hpp"
+#include <algorithm>
 #include <cassert>
 #include <string>
 
@@ -236,7 +238,7 @@ int main() {
   assert(firstClassMir.ok());
   auto firstClassModule = kyna::compileMirToBytecode(*firstClassMir.program);
   assert(firstClassModule.ok());
-  assert(firstClassModule.module->formatVersion == 5);
+  assert(firstClassModule.module->formatVersion == 6);
   const auto firstClassListing = kyna::disassembleBytecode(*firstClassModule.module);
   assert(firstClassListing.find("load.function") != std::string::npos);
   assert(firstClassListing.find("call.indirect") != std::string::npos);
@@ -244,6 +246,32 @@ int main() {
       kyna::BytecodeVirtualMachine().execute(*firstClassModule.module);
   assert(firstClassResult.ok());
   assert(std::get<std::int64_t>(firstClassResult.value.data) == 42);
+
+  const auto classSource = sources.add(
+      "classes",
+      "class Animal { public name: str; public init(name: str) { self.name = name; } "
+      "public func speak(): str { return self.name; } } "
+      "class Dog extends Animal { public override func speak(): str { "
+      "return self.name + \" barks\"; } } "
+      "set pet = new Dog(\"Rex\"); return pet.speak();");
+  auto classLexed = kyna::tokenize(*sources.find(classSource));
+  auto classParsed =
+      kyna::parseModule(*sources.find(classSource), std::move(classLexed.tokens));
+  auto classHir = kyna::lowerSyntaxToHir("classes", classParsed.tree);
+  assert(classHir.ok());
+  auto classMir = kyna::lowerHirToMir(*classHir.program);
+  assert(classMir.ok());
+  const auto classMirListing = kyna::renderMir(*classMir.program);
+  assert(classMirListing.find("make_instance @c1") != std::string::npos);
+  auto classModule = kyna::compileMirToBytecode(*classMir.program);
+  assert(classModule.ok());
+  assert(classModule.module->classes.size() == 2);
+  const auto classListing = kyna::disassembleBytecode(*classModule.module);
+  assert(classListing.find("make.instance") != std::string::npos);
+  assert(classListing.find("class 1 Dog extends 0") != std::string::npos);
+  const auto classResult = kyna::BytecodeVirtualMachine().execute(*classModule.module);
+  assert(classResult.ok());
+  assert(std::get<std::string>(classResult.value.data) == "Rex barks");
 
   const auto closureSource = sources.add(
       "closures",
@@ -525,6 +553,21 @@ int main() {
   const auto executed = kyna::BytecodeVirtualMachine().execute(module);
   assert(executed.ok());
   assert(std::get<std::int64_t>(executed.value.data) == 42);
+
+  kyna::BytecodeModule cyclicClasses;
+  cyclicClasses.name = "cyclic-classes";
+  cyclicClasses.functions.push_back(
+      {"main", 1,
+       {{kyna::OpCode::LoadNull, 0, 0, 0, {}},
+        {kyna::OpCode::Return, 0, 0, 0, {}}},
+       0, 0, {}});
+  cyclicClasses.classes = {{"First", 1, {}, {}, std::nullopt},
+                           {"Second", 0, {}, {}, std::nullopt}};
+  const auto cyclicValidation = kyna::validateBytecode(cyclicClasses);
+  assert(!cyclicValidation.ok());
+  assert(std::ranges::any_of(cyclicValidation.diagnostics, [](const auto &diagnostic) {
+    return diagnostic.code == "KBC1208";
+  }));
 
   module.functions.front().instructions.front().first = 99;
   const auto invalid = kyna::validateBytecode(module);

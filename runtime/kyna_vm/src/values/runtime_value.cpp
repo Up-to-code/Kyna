@@ -19,7 +19,8 @@ std::string Value::typeName() const {
         else if constexpr (std::is_same_v<T, char>)
           return "char";
         else if constexpr (std::is_same_v<T, ObjectPtr>)
-          return v && v->klass ? v->klass->declaration.name : "object";
+          return v && v->klass ? v->klass->declaration.name
+                               : v && !v->vmClassName.empty() ? v->vmClassName : "object";
         else if constexpr (std::is_same_v<T, ArrayPtr>)
           return "array";
         else if constexpr (std::is_same_v<T, FunctionPtr>)
@@ -28,7 +29,8 @@ std::string Value::typeName() const {
           return "module";
         else if constexpr (std::is_same_v<T, VmFunctionReference>)
           return "func";
-        else if constexpr (std::is_same_v<T, VmClosure *>)
+        else if constexpr (std::is_same_v<T, VmClosure *> ||
+                           std::is_same_v<T, VmBoundMethod *>)
           return "func";
         else if constexpr (std::is_same_v<T, ErrorPtr>)
           return "Error";
@@ -56,7 +58,10 @@ std::string Value::display() const {
         else if constexpr (std::is_same_v<T, char>)
           return std::string(1, v);
         else if constexpr (std::is_same_v<T, ObjectPtr>)
-          return "<" + (v && v->klass ? v->klass->declaration.name : "object") + ">";
+          return "<" + (v && v->klass ? v->klass->declaration.name
+                                       : v && !v->vmClassName.empty() ? v->vmClassName
+                                                                      : "object") +
+                 ">";
         else if constexpr (std::is_same_v<T, ArrayPtr>) {
           std::string s = "[";
           for (size_t i = 0; i < v->elements.size(); ++i) {
@@ -73,6 +78,9 @@ std::string Value::display() const {
           return "<func @" + std::to_string(v.function) + ">";
         else if constexpr (std::is_same_v<T, VmClosure *>)
           return v ? "<closure @" + std::to_string(v->function) + ">" : "<closure>";
+        else if constexpr (std::is_same_v<T, VmBoundMethod *>)
+          return v ? "<bound method @" + std::to_string(v->function) + ">"
+                   : "<bound method>";
         else if constexpr (std::is_same_v<T, ErrorPtr>)
           return v ? v->message : "<error>";
         else

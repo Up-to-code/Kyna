@@ -1,5 +1,6 @@
 #include "kyna/bytecode/bytecode_validator.hpp"
 #include <string>
+#include <vector>
 
 namespace kyna {
 namespace {
@@ -206,6 +207,18 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
           report(result, "KBC1127", "object field names do not match object values",
                  instruction.span);
         break;
+      case OpCode::MakeInstance:
+        registerError(instruction.destination, "instance destination");
+        if (instruction.first >= module.classes.size())
+          report(result, "KBC1201", "instance class index is out of range", instruction.span);
+        if (instruction.second >= module.callArguments.size()) {
+          report(result, "KBC1202", "constructor argument-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        for (const auto argument : module.callArguments[instruction.second])
+          registerError(argument, "constructor argument");
+        break;
       case OpCode::LoadIndex:
         registerError(instruction.destination, "index destination");
         registerError(instruction.first, "indexed value");
@@ -255,6 +268,36 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
       report(result, "KBC1106",
              "function '" + function.name + "' can fall past its final instruction",
              function.instructions.back().span);
+  }
+  for (const auto &klass : module.classes) {
+    if (klass.parent && *klass.parent >= module.classes.size())
+      report(result, "KBC1203", "class '" + klass.name + "' has an invalid parent");
+    if (klass.constructor && *klass.constructor >= module.functions.size())
+      report(result, "KBC1204", "class '" + klass.name + "' has an invalid constructor");
+    else if (klass.constructor && module.functions[*klass.constructor].parameterCount == 0)
+      report(result, "KBC1206", "constructor for class '" + klass.name +
+                                      "' does not accept the implicit receiver");
+    for (const auto &method : klass.methods) {
+      if (method.function >= module.functions.size())
+        report(result, "KBC1205", "class '" + klass.name + "' has an invalid method '" +
+                                      method.name + "'");
+      else if (module.functions[method.function].parameterCount == 0)
+        report(result, "KBC1207", "method '" + klass.name + "." + method.name +
+                                      "' does not accept the implicit receiver");
+    }
+  }
+  for (std::size_t classIndex = 0; classIndex < module.classes.size(); ++classIndex) {
+    std::vector<bool> visited(module.classes.size(), false);
+    std::optional<std::uint32_t> cursor{static_cast<std::uint32_t>(classIndex)};
+    while (cursor && *cursor < module.classes.size()) {
+      if (visited[*cursor]) {
+        report(result, "KBC1208", "class inheritance metadata contains a cycle involving '" +
+                                        module.classes[*cursor].name + "'");
+        break;
+      }
+      visited[*cursor] = true;
+      cursor = module.classes[*cursor].parent;
+    }
   }
   return result;
 }

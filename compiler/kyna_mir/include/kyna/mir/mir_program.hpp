@@ -47,6 +47,7 @@ enum class MirInstructionKind {
   LoadMember,
   MakeArray,
   MakeObject,
+  MakeInstance,
   LoadIndex,
   StoreIndex,
   StoreMember
@@ -131,6 +132,19 @@ struct MirFunction {
   std::vector<HirLocalId> captures;
 };
 
+struct MirClassMethod {
+  std::string name;
+  std::uint32_t function{0};
+};
+
+struct MirClass {
+  std::string name;
+  std::optional<std::uint32_t> parent;
+  std::vector<std::string> fields;
+  std::vector<MirClassMethod> methods;
+  std::optional<std::uint32_t> constructor;
+};
+
 struct MirProgram {
   std::string name;
   std::uint32_t temporaryCount{0};
@@ -138,6 +152,7 @@ struct MirProgram {
   std::vector<MirBasicBlock> blocks;
   std::vector<MirExceptionRegion> exceptionRegions;
   std::vector<MirFunction> functions;
+  std::vector<MirClass> classes;
 };
 
 [[nodiscard]] const char *mirInstructionName(MirInstructionKind kind);

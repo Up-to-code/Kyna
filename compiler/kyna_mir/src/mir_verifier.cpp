@@ -56,6 +56,7 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           instruction.kind != MirInstructionKind::LoadMember &&
           instruction.kind != MirInstructionKind::MakeArray &&
           instruction.kind != MirInstructionKind::MakeObject &&
+          instruction.kind != MirInstructionKind::MakeInstance &&
           instruction.kind != MirInstructionKind::StoreIndex &&
           instruction.kind != MirInstructionKind::StoreMember) {
         if (!validTemporary(instruction.first))
@@ -83,7 +84,8 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
                      instruction.span, "KMIR1132");
       }
       if (instruction.kind == MirInstructionKind::MakeArray ||
-          instruction.kind == MirInstructionKind::MakeObject) {
+          instruction.kind == MirInstructionKind::MakeObject ||
+          instruction.kind == MirInstructionKind::MakeInstance) {
         for (const auto element : instruction.arguments)
           if (!validTemporary(element))
             addError(diagnostics, "MIR collection literal reads an invalid temporary",
@@ -92,6 +94,10 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
             instruction.names.size() != instruction.arguments.size())
           addError(diagnostics, "MIR object field names and values have different lengths",
                    instruction.span, "KMIR1134");
+        if (instruction.kind == MirInstructionKind::MakeInstance &&
+            instruction.function >= program.classes.size())
+          addError(diagnostics, "MIR instance construction targets an invalid class",
+                   instruction.span, "KMIR1138");
       }
       if (instruction.kind == MirInstructionKind::StoreIndex ||
           instruction.kind == MirInstructionKind::StoreMember) {
@@ -220,6 +226,18 @@ MirVerificationResult verifyMir(const MirProgram &program) {
     verifyBody(program, function.name, function.parameterCount, function.temporaryCount,
                static_cast<std::uint32_t>(function.captures.size()), function.entryBlock,
                function.blocks, function.exceptionRegions, diagnostics);
+  for (const auto &klass : program.classes) {
+    if (klass.parent && *klass.parent >= program.classes.size())
+      addError(diagnostics, "MIR class '" + klass.name + "' has an invalid parent", {},
+               "KMIR1201");
+    if (klass.constructor && *klass.constructor >= program.functions.size())
+      addError(diagnostics, "MIR class '" + klass.name + "' has an invalid constructor", {},
+               "KMIR1202");
+    for (const auto &method : klass.methods)
+      if (method.function >= program.functions.size())
+        addError(diagnostics, "MIR class '" + klass.name + "' has an invalid method", {},
+                 "KMIR1203");
+  }
   return {std::move(diagnostics)};
 }
 

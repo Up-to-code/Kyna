@@ -16,6 +16,7 @@ struct CallFrame {
   std::vector<RuntimeValue> registers;
   std::size_t instructionPointer{0};
   std::optional<std::uint32_t> returnDestination;
+  std::optional<RuntimeValue> returnOverride;
   SourceSpan callSite;
   std::vector<VmCaptureCell *> captures;
   std::vector<VmCaptureCell *> registerCells;
@@ -97,8 +98,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
   std::vector<CallFrame> frames;
   const auto &entry = module.functions[module.entryFunction];
   frames.push_back(
-      {module.entryFunction, std::vector<RuntimeValue>(entry.registerCount), 0, std::nullopt, {},
-       {}, std::vector<VmCaptureCell *>(entry.registerCount, nullptr)});
+      {module.entryFunction, std::vector<RuntimeValue>(entry.registerCount), 0, std::nullopt,
+       std::nullopt, {}, {}, std::vector<VmCaptureCell *>(entry.registerCount, nullptr)});
 
   const auto readRegister = [](const CallFrame &frame, std::uint32_t index)
       -> const RuntimeValue & {
@@ -115,6 +116,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     for (const auto &activeFrame : frames) {
       for (const auto &value : activeFrame.registers)
         roots.values.push_back(&value);
+      if (activeFrame.returnOverride)
+        roots.values.push_back(&*activeFrame.returnOverride);
       for (auto *cell : activeFrame.registerCells)
         if (cell)
           roots.captureCells.push_back(cell);
@@ -123,6 +126,34 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
           roots.captureCells.push_back(cell);
     }
     heap.maybeCollectRoots(roots);
+  };
+  const auto findVmMethod = [&](std::uint32_t classIndex, const std::string &name) {
+    std::optional<std::uint32_t> cursor{classIndex};
+    while (cursor) {
+      const auto &klass = module.classes[*cursor];
+      for (const auto &method : klass.methods)
+        if (method.name == name)
+          return std::optional<std::uint32_t>{method.function};
+      cursor = klass.parent;
+    }
+    return std::optional<std::uint32_t>{};
+  };
+  const auto findVmConstructor = [&](std::uint32_t classIndex) {
+    std::optional<std::uint32_t> cursor{classIndex};
+    while (cursor) {
+      const auto &klass = module.classes[*cursor];
+      if (klass.constructor) return klass.constructor;
+      cursor = klass.parent;
+    }
+    return std::optional<std::uint32_t>{};
+  };
+  const auto initializeVmFields = [&](auto &&self, std::uint32_t classIndex,
+                                      Object *instance) -> void {
+    const auto &klass = module.classes[classIndex];
+    if (klass.parent)
+      self(self, *klass.parent, instance);
+    for (const auto &field : klass.fields)
+      instance->fields.try_emplace(field, RuntimeValue());
   };
   const auto unwindError = [&](ErrorObject *error, SourceSpan span)
       -> std::optional<BytecodeExecutionResult> {
@@ -388,6 +419,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     case OpCode::CallIndirect: {
       std::uint32_t targetFunction = instruction.first;
       std::vector<VmCaptureCell *> calledCaptures;
+      ObjectPtr boundReceiver = nullptr;
       if (instruction.opcode == OpCode::CallIndirect) {
         const auto &callee = readRegister(frame, instruction.first);
         if (const auto *reference = std::get_if<VmFunctionReference>(&callee.data)) {
@@ -395,6 +427,10 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         } else if (const auto *closure = std::get_if<VmClosure *>(&callee.data); closure && *closure) {
           targetFunction = (*closure)->function;
           calledCaptures = (*closure)->captures;
+        } else if (const auto *method = std::get_if<VmBoundMethod *>(&callee.data);
+                   method && *method) {
+          targetFunction = (*method)->function;
+          boundReceiver = (*method)->receiver;
         } else {
           if (auto failure = raise("KVM2010", "value of type '" + callee.typeName() +
                                                           "' is not callable",
@@ -405,11 +441,12 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       }
       const auto &target = module.functions[targetFunction];
       const auto &arguments = module.callArguments[instruction.second];
-      if (arguments.size() != target.parameterCount) {
+      const auto suppliedArguments = arguments.size() + (boundReceiver ? 1u : 0u);
+      if (suppliedArguments != target.parameterCount) {
         if (auto failure = raise("KVM2011", "function '" + target.name + "' expects " +
                                                 std::to_string(target.parameterCount) +
                                                 " argument(s), but " +
-                                                std::to_string(arguments.size()) +
+                                                std::to_string(suppliedArguments) +
                                                 " were provided",
                                  instruction.span))
           return *std::move(failure);
@@ -424,10 +461,16 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         continue;
       }
       CallFrame called{targetFunction, std::vector<RuntimeValue>(target.registerCount), 0,
-                       instruction.destination, instruction.span, std::move(calledCaptures),
+                       instruction.destination, std::nullopt, instruction.span,
+                       std::move(calledCaptures),
                        std::vector<VmCaptureCell *>(target.registerCount, nullptr)};
+      std::size_t firstArgument = 0;
+      if (boundReceiver) {
+        called.registers[0] = RuntimeValue(boundReceiver);
+        firstArgument = 1;
+      }
       for (std::size_t index = 0; index < arguments.size(); ++index)
-        called.registers[index] = readRegister(frame, arguments[index]);
+        called.registers[index + firstArgument] = readRegister(frame, arguments[index]);
       ++frame.instructionPointer;
       frames.push_back(std::move(called));
       continue;
@@ -464,7 +507,18 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         const auto found = (*instance)->fields.find(member);
         if (found != (*instance)->fields.end())
           writeRegister(frame, instruction.destination, found->second);
-        else {
+        else if ((*instance)->vmClass) {
+          const auto method = findVmMethod(*(*instance)->vmClass, member);
+          if (method)
+            writeRegister(frame, instruction.destination,
+                          RuntimeValue(heap.allocateBoundMethod(*instance, *method)));
+          else {
+            if (auto failure = raise("KRT2002", "object has no member '" + member + "'",
+                                     instruction.span, object))
+              return *std::move(failure);
+            continue;
+          }
+        } else {
           if (auto failure = raise("KRT2002", "object has no member '" + member + "'",
                                    instruction.span, object))
             return *std::move(failure);
@@ -491,6 +545,59 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         continue;
       }
       break;
+    }
+    case OpCode::MakeInstance: {
+      const auto &klass = module.classes[instruction.first];
+      auto *instance = heap.allocate();
+      instance->vmClass = instruction.first;
+      instance->vmClassName = klass.name;
+      initializeVmFields(initializeVmFields, instruction.first, instance);
+      const auto &arguments = module.callArguments[instruction.second];
+      const auto constructorIndex = findVmConstructor(instruction.first);
+      if (!constructorIndex) {
+        if (!arguments.empty()) {
+          if (auto failure = raise("KVM2201", "class '" + klass.name +
+                                                  "' has no constructor but received " +
+                                                  std::to_string(arguments.size()) +
+                                                  " argument(s)",
+                                   instruction.span, RuntimeValue(instance)))
+            return *std::move(failure);
+          continue;
+        }
+        writeRegister(frame, instruction.destination, RuntimeValue(instance));
+        collectAtSafepoint();
+        break;
+      }
+      const auto &constructor = module.functions[*constructorIndex];
+      if (constructor.parameterCount != arguments.size() + 1) {
+        if (auto failure = raise("KVM2202", "constructor for '" + klass.name + "' expects " +
+                                                std::to_string(constructor.parameterCount - 1) +
+                                                " argument(s), but " +
+                                                std::to_string(arguments.size()) +
+                                                " were provided",
+                                 instruction.span, RuntimeValue(instance)))
+          return *std::move(failure);
+        continue;
+      }
+      if (frames.size() >= MaximumCallFrames) {
+        if (auto failure = raise("KVM2004", "maximum call depth of " +
+                                                std::to_string(MaximumCallFrames) +
+                                                " exceeded while constructing '" + klass.name +
+                                                "'",
+                                 instruction.span, RuntimeValue(instance)))
+          return *std::move(failure);
+        continue;
+      }
+      CallFrame called{*constructorIndex,
+                       std::vector<RuntimeValue>(constructor.registerCount), 0,
+                       instruction.destination, RuntimeValue(instance), instruction.span, {},
+                       std::vector<VmCaptureCell *>(constructor.registerCount, nullptr)};
+      called.registers[0] = RuntimeValue(instance);
+      for (std::size_t index = 0; index < arguments.size(); ++index)
+        called.registers[index + 1] = readRegister(frame, arguments[index]);
+      ++frame.instructionPointer;
+      frames.push_back(std::move(called));
+      continue;
     }
     case OpCode::MakeArray: {
       auto *array = heap.allocateArray();
@@ -656,7 +763,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       continue;
     }
     case OpCode::Return: {
-      auto result = readRegister(frame, instruction.first);
+      auto result = frame.returnOverride ? *frame.returnOverride
+                                         : readRegister(frame, instruction.first);
       if (frames.size() == 1)
         return {std::move(result), {}, heap.stats()};
       const auto destination = *frame.returnDestination;
