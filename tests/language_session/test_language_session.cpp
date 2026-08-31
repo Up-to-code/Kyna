@@ -221,6 +221,26 @@ int main() {
   assert(database->queries == 1);
   assert(database->lastRequest.parameters.size() == 1);
   assert(std::get<std::int64_t>(database->lastRequest.parameters[0]) == 7);
+  const auto bytecodeReads = files->reads;
+  const auto bytecodeWrites = files->writes;
+  const auto bytecodeDirectories = files->directories;
+  const auto bytecodeRequests = network->requests;
+  const auto bytecodeSleeps = clock->sleeps;
+  const auto bytecodeCapabilities = deterministicSession.runSource(
+      "bytecode-capabilities.kyna",
+      "writeFile(\"vm.txt\", \"bytecode-host\"); "
+      "set contents = readFile(\"vm.txt\"); "
+      "if (contents != \"bytecode-host\" || !fileExists(\"vm.txt\")) { error(\"file\"); } "
+      "createDirectory(\"vm-cache\"); "
+      "if (processEnv(\"NAME\") != \"test\") { error(\"environment\"); } "
+      "sleep(1); "
+      "if (httpGet(\"http://example.test\") != \"[3,1,2]\") { error(\"network\"); }");
+  assert(bytecodeCapabilities.ok());
+  assert(files->reads == bytecodeReads + 1);
+  assert(files->writes == bytecodeWrites + 1);
+  assert(files->directories == bytecodeDirectories + 1);
+  assert(network->requests == bytecodeRequests + 1);
+  assert(clock->sleeps == bytecodeSleeps + 1);
   auto collectionsResult = deterministicSession.runSource(
       "collections.kyna",
       "func kynaDouble(value: int): int { return value * 2; } "
