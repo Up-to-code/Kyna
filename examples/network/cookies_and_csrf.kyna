@@ -1,0 +1,16 @@
+# Send cookies explicitly. Replace placeholders with values from a secure source.
+try {
+    set response = fetch("https://api.example.com/v1/session", {
+        method: "POST",
+        body: "{}",
+        timeout: 10000,
+        headers: {
+            "Content-Type": "application/json",
+            Cookie: "session=replace-from-secure-storage",
+            "X-CSRF-Token": "replace-from-secure-storage"
+        }
+    });
+    print("session", response.status, response.ok);
+} catch (failure) {
+    print("session request failed", failure.code, failure.message);
+}

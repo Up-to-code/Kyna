@@ -3,6 +3,7 @@
 #include "kyna/execution/tree_walk_interpreter.hpp"
 #include "kyna/modules/module_loader.hpp"
 #include "kyna/semantics/module_analyzer.hpp"
+#include "kyna/semantics/program_analyzer.hpp"
 #include "kyna/source/source_manager.hpp"
 #include <filesystem>
 #include <string>
@@ -17,6 +18,7 @@ struct LanguageSessionOptions {
 struct LanguageResult {
   std::vector<Diagnostic> diagnostics;
   bool executed{false};
+  HeapStats heapStats;
   [[nodiscard]] bool ok() const;
 };
 
@@ -45,6 +47,7 @@ private:
   LanguageSessionOptions options;
   SourceManager sources;
   TreeWalkInterpreter executor;
+  Analyzer interactiveAnalyzer;
 
   AnalysisResult compile(const std::filesystem::path &entry, std::vector<Diagnostic> &frontEnd);
 };

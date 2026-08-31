@@ -4,7 +4,7 @@ PREFIX ?= $(HOME)/.local
 VSCODE ?= /Applications/Visual Studio Code.app/Contents/Resources/app/bin/code
 VSCODE_EXTENSION_VERSION := $(shell sed -n 's/.*"version": "\([^"]*\)".*/\1/p' editors/vscode-kyna/package.json | head -1)
 
-.PHONY: all configure build release test architecture-check asan format lint install run vscode-package vscode-install clean
+.PHONY: all configure build release test architecture-check asan format lint install install-all run cli-screenshot vscode-package vscode-install clean
 all: build
 
 configure:
@@ -38,18 +38,24 @@ asan:
 
 install: build
 	cmake --install $(BUILD_DIR) --prefix "$(PREFIX)"
-	@echo "Installed kyna to $(PREFIX)/bin/kyna"
+	@echo "Installed ky to $(PREFIX)/bin/ky (with the kyna compatibility alias)"
 	@echo "Ensure $(PREFIX)/bin is on PATH."
 
 run: build
 	@test -n "$(FILE)" || (echo "usage: make run FILE=examples/hello.kyna"; exit 2)
-	./$(BUILD_DIR)/bin/kyna $(FILE)
+	./$(BUILD_DIR)/bin/ky $(FILE)
+
+cli-screenshot: build
+	python3 tools/render-cli-screenshot.py
 
 vscode-package:
 	sh tools/package-vscode.sh
 
 vscode-install: vscode-package
 	"$(VSCODE)" --install-extension editors/vscode-kyna/kyna-language-support-$(VSCODE_EXTENSION_VERSION).vsix --force
+
+install-all: install vscode-install
+	@echo "Installed the Kyna CLI and VS Code language support."
 
 clean:
 	rm -rf build build-release build-asan

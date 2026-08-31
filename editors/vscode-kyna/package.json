@@ -2,7 +2,7 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "1.0.4",
+  "version": "1.0.10",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
@@ -13,24 +13,43 @@
   "homepage": "https://github.com/Up-to-code/Kyna",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages"],
-  "activationEvents": ["onLanguage:kyna"],
+  "activationEvents": ["onLanguage:kyna", "onLanguage:kyna-manifest", "workspaceContains:kyna.toml"],
   "main": "./extension.js",
   "contributes": {
-    "languages": [{
-      "id": "kyna",
-      "aliases": ["Kyna", "kyna"],
-      "extensions": [".kyna"],
-      "configuration": "./language-configuration.json",
-      "icon": {
-        "light": "./assets/kyna-file-light.svg",
-        "dark": "./assets/kyna-file-dark.svg"
+    "languages": [
+      {
+        "id": "kyna",
+        "aliases": ["Kyna", "kyna"],
+        "extensions": [".kyna"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./assets/kyna-file-light.svg",
+          "dark": "./assets/kyna-file-dark.svg"
+        }
+      },
+      {
+        "id": "kyna-manifest",
+        "aliases": ["Kyna Manifest", "kyna.toml"],
+        "filenames": ["kyna.toml"],
+        "configuration": "./manifest-language-configuration.json",
+        "icon": {
+          "light": "./assets/manifest-light.svg",
+          "dark": "./assets/manifest-dark.svg"
+        }
       }
-    }],
-    "grammars": [{
-      "language": "kyna",
-      "scopeName": "source.kyna",
-      "path": "./syntaxes/kyna.tmLanguage.json"
-    }],
+    ],
+    "grammars": [
+      {
+        "language": "kyna",
+        "scopeName": "source.kyna",
+        "path": "./syntaxes/kyna.tmLanguage.json"
+      },
+      {
+        "language": "kyna-manifest",
+        "scopeName": "source.kyna-manifest",
+        "path": "./syntaxes/kyna-manifest.tmLanguage.json"
+      }
+    ],
     "snippets": [{
       "language": "kyna",
       "path": "./snippets/kyna.json"
@@ -71,13 +90,61 @@
       {
         "command": "kyna.showBytecode",
         "title": "Kyna: Show Bytecode"
+      },
+      {
+        "command": "kyna.runProject",
+        "title": "Kyna: Run Project (Port from kyna.toml)",
+        "icon": { "light": "./assets/project-run-light.svg", "dark": "./assets/project-run-dark.svg" }
+      },
+      {
+        "command": "kyna.devProject",
+        "title": "Kyna: Watch & Restart Development Server",
+        "icon": { "light": "./assets/dev-light.svg", "dark": "./assets/dev-dark.svg" }
+      },
+      {
+        "command": "kyna.installDependencies",
+        "title": "Kyna: Install Project Dependencies",
+        "icon": { "light": "./assets/install-light.svg", "dark": "./assets/install-dark.svg" }
+      },
+      {
+        "command": "kyna.generateRoute",
+        "title": "Kyna: Generate Route",
+        "icon": { "light": "./assets/route-light.svg", "dark": "./assets/route-dark.svg" }
+      },
+      {
+        "command": "kyna.configureProject",
+        "title": "Kyna: Configure Backend",
+        "icon": { "light": "./assets/configure-light.svg", "dark": "./assets/configure-dark.svg" }
+      },
+      {
+        "command": "kyna.openManifest",
+        "title": "Kyna: Open Project Manifest",
+        "icon": { "light": "./assets/manifest-light.svg", "dark": "./assets/manifest-dark.svg" }
       }
     ],
     "menus": {
       "editor/title": [
         { "command": "kyna.runFile", "when": "editorLangId == kyna", "group": "navigation@1" },
-        { "command": "kyna.checkFile", "when": "editorLangId == kyna", "group": "navigation@2" }
+        { "command": "kyna.checkFile", "when": "editorLangId == kyna", "group": "navigation@2" },
+        { "command": "kyna.runProject", "when": "editorLangId == kyna-manifest", "group": "navigation@1" },
+        { "command": "kyna.devProject", "when": "editorLangId == kyna-manifest", "group": "navigation@2" },
+        { "command": "kyna.installDependencies", "when": "editorLangId == kyna-manifest", "group": "kyna@1" },
+        { "command": "kyna.generateRoute", "when": "editorLangId == kyna-manifest", "group": "kyna@2" },
+        { "command": "kyna.configureProject", "when": "editorLangId == kyna-manifest", "group": "kyna@3" }
+      ],
+      "explorer/context": [
+        { "command": "kyna.runProject", "when": "resourceFilename == kyna.toml", "group": "kyna@1" },
+        { "command": "kyna.devProject", "when": "resourceFilename == kyna.toml", "group": "kyna@2" },
+        { "command": "kyna.installDependencies", "when": "resourceFilename == kyna.toml", "group": "kyna@3" },
+        { "command": "kyna.generateRoute", "when": "resourceFilename == kyna.toml", "group": "kyna@4" },
+        { "command": "kyna.configureProject", "when": "resourceFilename == kyna.toml", "group": "kyna@5" }
       ]
+    },
+    "viewsContainers": {
+      "activitybar": [{ "id": "kyna", "title": "Kyna", "icon": "./assets/kyna-sidebar.svg" }]
+    },
+    "views": {
+      "kyna": [{ "id": "kyna.project", "name": "Project" }]
     },
     "configuration": {
       "title": "Kyna",
@@ -85,9 +152,15 @@
         "kyna.executable": {
           "type": "string",
           "default": "",
-          "description": "Kyna executable path. Empty auto-detects build/bin/kyna and preset build directories in the workspace, then falls back to PATH."
+          "description": "Kyna executable path. Empty auto-detects ky in preset/workspace build directories, then tries ky and the kyna 1.x compatibility alias on PATH."
         }
       }
     }
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2"
+  },
+  "scripts": {
+    "package": "vsce package"
   }
 }

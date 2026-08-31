@@ -70,39 +70,60 @@ TypeRef Analyzer::merge(const TypeRef &a, const TypeRef &b) {
 }
 std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
   errors.clear();
-  scope = std::make_shared<Scope>();
-  for (const auto &[name, type] : externalBindings) {
-    scope->types[name] = type;
-    scope->mutableBindings[name] = false;
+  if (!interactive || !scope) {
+    scope = std::make_shared<Scope>();
+    for (const auto &[name, type] : externalBindings) {
+      scope->types[name] = type;
+      scope->mutableBindings[name] = false;
+    }
+    functions.clear();
+    classes.clear();
+    interfaces.clear();
   }
-  functions.clear();
-  classes.clear();
-  interfaces.clear();
+  const auto previousTypes = scope->types;
+  const auto previousMutability = scope->mutableBindings;
+  const auto previousFunctions = functions;
+  const auto previousClasses = classes;
+  const auto previousInterfaces = interfaces;
   activeLoopLabels.clear();
   std::set<std::string> declarations;
   for (auto &s : p) {
     if (auto f = std::get_if<FunctionDecl>(&s->node)) {
-      if (!declarations.insert(f->name).second)
+      if (!declarations.insert(f->name).second || functions.contains(f->name) ||
+          classes.contains(f->name) || scope->types.contains(f->name) ||
+          interfaces.find(f->name))
         error("top-level declaration '" + f->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
       else
         functions[f->name] = *f;
     }
     if (auto c = std::get_if<ClassDecl>(&s->node)) {
-      if (!declarations.insert(c->name).second)
+      if (!declarations.insert(c->name).second || functions.contains(c->name) ||
+          classes.contains(c->name) || scope->types.contains(c->name) ||
+          interfaces.find(c->name))
         error("top-level declaration '" + c->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
       else
         classes[c->name] = *c;
     }
     if (auto i = std::get_if<InterfaceDecl>(&s->node)) {
-      if (!declarations.insert(i->name).second || !interfaces.declareInterface(*i))
+      if (!declarations.insert(i->name).second || functions.contains(i->name) ||
+          classes.contains(i->name) || scope->types.contains(i->name) ||
+          interfaces.find(i->name) || !interfaces.declareInterface(*i))
         error("top-level declaration '" + i->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
     }
   }
   for (auto &s : p)
     stmt(s);
+  if (interactive && std::any_of(errors.begin(), errors.end(),
+                                 [](const Diagnostic &diagnostic) { return !diagnostic.warning; })) {
+    scope->types = previousTypes;
+    scope->mutableBindings = previousMutability;
+    functions = previousFunctions;
+    classes = previousClasses;
+    interfaces = previousInterfaces;
+  }
   return errors;
 }
 void Analyzer::stmt(const StmtPtr &s) {

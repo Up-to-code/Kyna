@@ -1,6 +1,31 @@
 #include "kyna/parsing/recursive_descent_parser.hpp"
 
 namespace kyna {
+namespace {
+std::string decodeQuotedFieldName(const std::string &literal) {
+  if (literal.size() < 2)
+    return literal;
+  std::string value;
+  value.reserve(literal.size() - 2);
+  for (std::size_t index = 1; index + 1 < literal.size(); ++index) {
+    if (literal[index] != '\\' || index + 2 >= literal.size()) {
+      value.push_back(literal[index]);
+      continue;
+    }
+    switch (literal[++index]) {
+    case 'n': value.push_back('\n'); break;
+    case 'r': value.push_back('\r'); break;
+    case 't': value.push_back('\t'); break;
+    case '\\': value.push_back('\\'); break;
+    case '\'': value.push_back('\''); break;
+    case '"': value.push_back('"'); break;
+    default: value.push_back(literal[index]); break;
+    }
+  }
+  return value;
+}
+} // namespace
+
 ExprPtr Parser::expression() { return assignment(); }
 ExprPtr Parser::assignment() {
   auto e = logicOr();
@@ -146,9 +171,15 @@ ExprPtr Parser::primary() {
     std::vector<ObjectField> fs;
     if (!check(TokenKind::RightBrace)) {
       do {
-        auto n = consume(TokenKind::Identifier, "expected object field name");
+        Token n = peek();
+        if (check(TokenKind::Identifier) || check(TokenKind::String))
+          ++current;
+        else
+          n = consume(TokenKind::Identifier, "expected object field name");
         consume(TokenKind::Colon, "expected ':' after object field");
-        fs.push_back({n.lexeme, expression()});
+        fs.push_back(
+            {n.kind == TokenKind::String ? decodeQuotedFieldName(n.lexeme) : n.lexeme,
+             expression()});
       } while (match(TokenKind::Comma));
     }
     consume(TokenKind::RightBrace, "expected '}' after object");

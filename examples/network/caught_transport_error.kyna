@@ -1,0 +1,7 @@
+# Catch a deterministic transport error and inspect its stable code and message.
+try {
+    set response = fetch("invalid://unsupported-scheme", { timeout: 500 });
+    print("unexpected", response.status);
+} catch (failure) {
+    print("caught network", failure.code, textContains(failure.message, "unsupported URL scheme"));
+}

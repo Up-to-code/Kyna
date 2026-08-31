@@ -1,0 +1,7 @@
+# ky:imports
+import "./health.kyna" as healthRoute;
+
+export func register(app: any): void {
+    # ky:routes
+    app.get("/health", healthRoute.show);
+}

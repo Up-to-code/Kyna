@@ -1,0 +1,21 @@
+# Filesystem and JSON-file operations. Run from a disposable working directory.
+set directory = "kyna-filesystem-example";
+set textPath = directory + "/message.txt";
+set jsonPath = directory + "/metadata.json";
+
+try {
+    createDirectory(directory);
+    writeFile(textPath, "Hello filesystem");
+    writeJsonFile(jsonPath, { language: "Kyna", version: 1 });
+
+    set message = readFile(textPath);
+    set metadata = readJsonFile(jsonPath);
+    set entries = listDirectory(directory);
+    print("files", message, metadata.language, fileExists(textPath), len(entries));
+
+    removePath(textPath);
+    removePath(jsonPath);
+    removePath(directory);
+} catch (failure) {
+    print("filesystem failure", failure.code, failure.message);
+}

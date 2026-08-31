@@ -1,0 +1,8 @@
+# In-memory CRUD store.
+set store = createApiStore([{ id: 1, name: "first" }]);
+set initial = store.get(1);
+store.create({ id: 2, name: "second" });
+set updated = store.update(2, { name: "updated" });
+set removed = store.remove(1);
+
+print("store", initial.name, updated.name, removed, len(store.list()));

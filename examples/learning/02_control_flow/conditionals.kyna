@@ -1,0 +1,8 @@
+set score = 84;
+set grade = if (score >= 80) {
+    "great"
+} else {
+    "keep learning"
+};
+
+print("conditional", grade);

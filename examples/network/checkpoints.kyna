@@ -1,0 +1,22 @@
+# Deterministic request/response checkpoints using Kyna's built-in mock endpoint.
+try {
+    set response = fetch("mock://kyna/users", { timeout: 1000 });
+    set users = response.json();
+
+    if (!response.ok) {
+        error("checkpoint: expected a successful response");
+    }
+    if (response.status != 200) {
+        error("checkpoint: expected HTTP 200");
+    }
+    if (response.headers["content-type"] != "application/json") {
+        error("checkpoint: expected a JSON content type");
+    }
+    if (len(users) != 3 || users[0].name != "Ada") {
+        error("checkpoint: unexpected response body");
+    }
+
+    print("checkpoints", response.status, len(users), users[0].name);
+} catch (failure) {
+    print("checkpoint failure", failure.code, failure.message);
+}

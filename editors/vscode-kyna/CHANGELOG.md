@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.10
+
+- Make `kyna.toml` the single source of truth for backend host and port in Run, Serve, and Dev.
+- Add explicit Run Project and Watch & Restart CodeLens actions and move secondary manifest actions into the labeled overflow menu.
+- Stop stale Run/Dev tasks before launching another backend and remove ambiguous K/R/A Explorer badges.
+- Support the `ky run dev` compatibility spelling alongside canonical `ky dev`.
+
+## 1.0.9
+
+- Add first-class `kyna.toml` highlighting, completion, and manifest icons.
+- Add a dedicated Kyna Project activity-bar view with Run, Dev, Install, Generate Route, Configure, and Open Manifest actions.
+- Add matching theme-aware command icons, Explorer badges, backend snippets, HTTP application completion, and imported-member definitions.
+- Support the Express-style `main → app → routes` backend architecture and `ky generate route` workflow.
+
+## 1.0.8
+
+- Prefer the new `ky` CLI while retaining automatic discovery of the `kyna` 1.x compatibility alias.
+- Add native VS Code document formatting through `ky fmt - --source-name <file>`, including `editor.formatOnSave` support.
+- Package with official `@vscode/vsce`; release packages rewrite README artwork to immutable HTTPS URLs and validate all required contents.
+
+## 1.0.7
+
+- Adds injected `os` and `terminal` namespace completions.
+- Documents the expanded per-allocation-class heap inspector.
+
+## 1.0.6
+
+- Adds native TOML and XML parse/stringify completions and namespace members.
+- Adds a cleanup-safe document file checkpoint snippet.
+
+## 1.0.5
+
+- Adds `http`, `json`, `fetchResult`, and non-throwing `http.tryFetch` completions.
+- Completes inferred members for fetch responses and safe-fetch result bindings.
+- Adds learning snippets for safe HTTP requests and cleanup-safe JSON files.
+
 ## 1.0.4
 
 - Render compiler errors and warnings with ANSI color in the managed Run/Check terminal.

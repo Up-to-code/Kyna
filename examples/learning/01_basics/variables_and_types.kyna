@@ -1,0 +1,8 @@
+# set creates an immutable binding. An explicit annotation documents its type.
+set language: str = "Kyna";
+set release: int = 1;
+set stable: bool = true;
+set nickname: str? = null;
+
+print("values", language, release, stable, nickname == null);
+print("types", typeOf(language), typeOf(release), typeOf(stable), typeOf(nickname));

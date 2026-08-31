@@ -1,0 +1,8 @@
+set path = "kyna-invalid-json-runtime-fixture.json";
+writeFile(path, "{\"broken\": true,,}");
+try {
+    readJsonFile(path);
+} catch (failure) {
+    removePath(path);
+    throw failure;
+}

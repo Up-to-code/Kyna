@@ -42,11 +42,15 @@ public:
 class RecordingProcesses final : public kyna::ProcessPort {
 public:
   int runs{0};
+  std::vector<std::string> environmentNames;
   int run(const std::string &) override {
     ++runs;
     return 0;
   }
-  std::optional<std::string> environment(const std::string &) override {
+  std::optional<std::string> environment(const std::string &name) override {
+    environmentNames.push_back(name);
+    if (name == "MISSING")
+      return std::nullopt;
     return std::string("test");
   }
 };
@@ -57,16 +61,28 @@ public:
   std::string lastMethod;
   std::optional<std::string> lastBody;
   std::map<std::string, std::string> lastHeaders;
+  std::chrono::milliseconds lastTimeout{0};
   std::optional<kyna::NetworkResponse> send(const kyna::NetworkRequest &request,
                                             kyna::NetworkFailure &failure) override {
     ++requests;
     lastMethod = request.method;
     lastBody = request.body;
     lastHeaders = request.headers;
+    lastTimeout = request.timeout;
     if (request.url == "https://failure.test") {
       failure = {kyna::NetworkFailurePhase::Tls, 35, "certificate handshake rejected", false};
       return std::nullopt;
     }
+    if (request.url == "https://timeout.test") {
+      failure = {kyna::NetworkFailurePhase::Timeout, 28, "request deadline exceeded", true};
+      return std::nullopt;
+    }
+    if (request.url == "https://unauthorized.test")
+      return kyna::NetworkResponse{401, "{\"error\":\"unauthorized\"}", request.url,
+                                   {{"content-type", "application/json"}}};
+    if (request.url == "https://invalid-json.test")
+      return kyna::NetworkResponse{200, "{broken json}", request.url,
+                                   {{"content-type", "application/json"}}};
     if (request.method == "POST")
       return kyna::NetworkResponse{201, "{\"id\":31,\"title\":\"created\"}", request.url,
                                    {{"content-type", "application/json"}}};
@@ -79,6 +95,17 @@ class RecordingClock final : public kyna::ClockPort {
 public:
   int sleeps{0};
   void sleep(std::chrono::milliseconds) override { ++sleeps; }
+};
+
+class RecordingHostInfo final : public kyna::HostInfoPort {
+public:
+  std::string operatingSystem() const override { return "test-os"; }
+  std::string architecture() const override { return "test-architecture"; }
+  std::optional<std::string> workingDirectory(std::string &) const override {
+    return "/virtual/workspace";
+  }
+  bool standardOutputIsTerminal() const override { return true; }
+  bool supportsColor() const override { return false; }
 };
 
 class RecordingDatabase final : public kyna::DatabasePort {
@@ -174,13 +201,15 @@ int main() {
   auto network = std::make_shared<RecordingNetwork>();
   auto clock = std::make_shared<RecordingClock>();
   auto database = std::make_shared<RecordingDatabase>();
+  auto host = std::make_shared<RecordingHostInfo>();
   kyna::LanguageSessionOptions deterministicOptions;
-  deterministicOptions.capabilities = {files, processes, network, clock, database};
+  deterministicOptions.capabilities = {files, processes, network, clock, database, host, nullptr};
   kyna::LanguageSession deterministicSession(std::move(deterministicOptions));
   assert(deterministicSession
              .runSource("capabilities.kyna",
                         "writeFile(\"memory\", \"value\"); readFile(\"memory\"); "
-                        "processRun(\"command\"); processEnv(\"NAME\"); sleep(1); "
+                        "processRun(\"command\"); build(\"command\"); "
+                        "processEnv(\"NAME\"); sleep(1); wait(1); "
                         "httpGet(\"http://example.test\"); "
                         "set response = fetch(\"http://example.test\"); "
                         "set values = response.json(); set ordered = sort(values); "
@@ -212,15 +241,21 @@ int main() {
   assert(files->writes == 2 && files->reads == 2);
   assert(files->contents == "{\"id\":31,\"title\":\"created\"}");
   assert(files->directories == 1 && files->removals == 1);
-  assert(processes->runs == 1);
+  assert(processes->runs == 2);
   assert(network->requests == 3);
   assert(network->lastMethod == "POST");
   assert(network->lastBody == "{\"title\":\"created\"}");
   assert(network->lastHeaders.at("Authorization") == "Bearer test");
-  assert(clock->sleeps == 1);
+  assert(clock->sleeps == 2);
   assert(database->queries == 1);
   assert(database->lastRequest.parameters.size() == 1);
   assert(std::get<std::int64_t>(database->lastRequest.parameters[0]) == 7);
+  const auto hostInformation = deterministicSession.runSource(
+      "host-information.kyna",
+      "if (os.name() != \"test-os\" || osArchitecture() != \"test-architecture\" || "
+      "os.cwd() != \"/virtual/workspace\" || !terminal.interactive() || "
+      "terminalSupportsColor()) { error(\"host information mapping\"); }");
+  assert(hostInformation.ok());
   const auto bytecodeReads = files->reads;
   const auto bytecodeWrites = files->writes;
   const auto bytecodeDirectories = files->directories;
@@ -228,17 +263,26 @@ int main() {
   const auto bytecodeSleeps = clock->sleeps;
   const auto bytecodeCapabilities = deterministicSession.runSource(
       "bytecode-capabilities.kyna",
-      "writeFile(\"vm.txt\", \"bytecode-host\"); "
-      "set contents = readFile(\"vm.txt\"); "
-      "if (contents != \"bytecode-host\" || !fileExists(\"vm.txt\")) { error(\"file\"); } "
+      "writeFile(\"vm.txt\", \"draft\"); "
+      "let contents = readFile(\"vm.txt\"); "
+      "contents = textReplace(contents, \"draft\", \"published\"); "
+      "writeFile(\"vm.txt\", contents); "
+      "set edited = readFile(\"vm.txt\"); "
+      "if (edited != \"published\" || !fileExists(\"vm.txt\")) { error(\"file edit\"); } "
       "createDirectory(\"vm-cache\"); "
-      "if (processEnv(\"NAME\") != \"test\") { error(\"environment\"); } "
+      "set present: str? = processEnv(\"NAME\"); "
+      "set missing: str? = process.env(\"MISSING\"); "
+      "if (present != \"test\" || missing != null) { error(\"environment\"); } "
       "sleep(1); "
       "if (httpGet(\"http://example.test\") != \"[3,1,2]\") { error(\"network\"); }");
   assert(bytecodeCapabilities.ok());
-  assert(files->reads == bytecodeReads + 1);
-  assert(files->writes == bytecodeWrites + 1);
+  assert(files->reads == bytecodeReads + 2);
+  assert(files->writes == bytecodeWrites + 2);
+  assert(files->contents == "published");
   assert(files->directories == bytecodeDirectories + 1);
+  assert(processes->environmentNames.size() >= 2);
+  assert(processes->environmentNames[processes->environmentNames.size() - 2] == "NAME");
+  assert(processes->environmentNames.back() == "MISSING");
   assert(network->requests == bytecodeRequests + 1);
   assert(clock->sleeps == bytecodeSleeps + 1);
   const auto bytecodeFetchRequests = network->requests;
@@ -247,7 +291,9 @@ int main() {
       "try { "
       "set response = fetch(\"https://example.test/products\", "
       "{ method: \"POST\", body: \"{\\\"title\\\":\\\"created\\\"}\", "
-      "timeout: 1200, headers: { Authorization: \"Bearer bytecode\" } }); "
+      "timeout: 1200, headers: { Authorization: \"Bearer bytecode\", "
+      "\"X-API-Key\": \"test-key\", Cookie: \"session=test-session\", "
+      "\"Content-Type\": \"application/json\" } }); "
       "set product = response.json(); "
       "if (!response.ok || response.status != 201 || product.id != 31 || "
       "response.text() != \"{\\\"id\\\":31,\\\"title\\\":\\\"created\\\"}\" || "
@@ -259,6 +305,48 @@ int main() {
   assert(network->lastMethod == "POST");
   assert(network->lastBody == "{\"title\":\"created\"}");
   assert(network->lastHeaders.at("Authorization") == "Bearer bytecode");
+  assert(network->lastHeaders.at("X-API-Key") == "test-key");
+  assert(network->lastHeaders.at("Cookie") == "session=test-session");
+  assert(network->lastHeaders.at("Content-Type") == "application/json");
+  assert(network->lastTimeout == std::chrono::milliseconds(1200));
+  const auto statusResponse = deterministicSession.runSource(
+      "bytecode-http-status.kyna",
+      "set response = fetch(\"https://unauthorized.test\", { timeout: 800 }); "
+      "set body = response.json(); "
+      "if (response.ok || response.status != 401 || body.error != \"unauthorized\") { "
+      "error(\"HTTP status handling\"); }");
+  assert(statusResponse.ok());
+  const auto invalidResponseJson = deterministicSession.runSource(
+      "bytecode-invalid-response-json.kyna",
+      "try { set response = fetch(\"https://invalid-json.test\", { timeout: 800 }); "
+      "response.json(); error(\"expected invalid JSON\"); "
+      "} catch (failure) { if (failure.code != \"K5100\") { throw failure; } }");
+  assert(invalidResponseJson.ok());
+  const auto caughtTimeout = deterministicSession.runSource(
+      "bytecode-timeout.kyna",
+      "try { fetch(\"https://timeout.test\", { timeout: 25 }); "
+      "error(\"expected timeout\"); } catch (failure) { "
+      "if (failure.code != \"KNET2001\" || !textContains(failure.message, \"timeout\")) { "
+      "throw failure; } }");
+  assert(caughtTimeout.ok());
+  const auto safeFetchSuccess = deterministicSession.runSource(
+      "bytecode-safe-fetch-success.kyna",
+      "set result = http.tryFetch(\"https://example.test/products\", { timeout: 50 }); "
+      "if (!result.ok || result.error != null || result.response.status != 200) { "
+      "error(\"safe fetch success\"); }");
+  assert(safeFetchSuccess.ok());
+  const auto safeFetchHttpFailure = deterministicSession.runSource(
+      "bytecode-safe-fetch-http-status.kyna",
+      "set result = fetchResult(\"https://unauthorized.test\", { timeout: 50 }); "
+      "if (result.ok || result.error != null || result.response.status != 401) { "
+      "error(\"safe fetch HTTP status\"); }");
+  assert(safeFetchHttpFailure.ok());
+  const auto safeFetchTransportFailure = deterministicSession.runSource(
+      "bytecode-safe-fetch-transport.kyna",
+      "set result = http.tryFetch(\"https://failure.test\", { timeout: 50 }); "
+      "if (result.ok || result.response != null || result.error.code != \"KNET2001\" || "
+      "!textContains(result.error.message, \"request failed\")) { error(\"safe fetch transport\"); }");
+  assert(safeFetchTransportFailure.ok());
   const auto bytecodeJson = deterministicSession.runSource(
       "bytecode-json.kyna",
       "set decoded = jsonParse(\"{\\\"items\\\":[20,22],\\\"ready\\\":true}\"); "
@@ -302,15 +390,17 @@ int main() {
   const auto bytecodeProcessRuns = processes->runs;
   const auto bytecodeHostUtilities = deterministicSession.runSource(
       "bytecode-host-utilities.kyna",
-      "writeJsonFile(\"products.json\", { id: 42, ready: true }); "
+      "writeJsonFile(\"products.json\", { id: 42, revision: 1 }); "
+      "set initial = readJsonFile(\"products.json\"); "
+      "writeJsonFile(\"products.json\", { id: initial.id, revision: initial.revision + 1 }); "
       "set saved = readJsonFile(\"products.json\"); "
       "set entries = listDirectory(\".\"); "
-      "if (saved.id != 42 || entries[0] != \"products.json\" || "
+      "if (saved.id != 42 || saved.revision != 2 || entries[0] != \"products.json\" || "
       "processRun(\"deterministic\") != 0 || !removePath(\"products.json\")) { "
       "error(\"host utilities\"); }");
   assert(bytecodeHostUtilities.ok());
-  assert(files->writes == bytecodeJsonFileWrites + 1);
-  assert(files->reads == bytecodeJsonFileReads + 1);
+  assert(files->writes == bytecodeJsonFileWrites + 2);
+  assert(files->reads == bytecodeJsonFileReads + 2);
   assert(files->removals == bytecodeRemovals + 1);
   assert(processes->runs == bytecodeProcessRuns + 1);
   auto collectionsResult = deterministicSession.runSource(
@@ -380,7 +470,8 @@ int main() {
 
   auto moduleFiles = std::make_shared<RecordingFiles>();
   kyna::LanguageSessionOptions cachedModuleOptions;
-  cachedModuleOptions.capabilities = {moduleFiles, processes, network, clock, database};
+  cachedModuleOptions.capabilities = {moduleFiles, processes, network, clock, database, host,
+                                      nullptr};
   kyna::LanguageSession cachedModuleSession(std::move(cachedModuleOptions));
   writeSource(directory / "side-effect.kyna",
               "export set value = 1; writeFile(\"initialization\", \"once\");");
@@ -406,18 +497,27 @@ int main() {
   assert(hasCode(cycle.diagnostics, "K4002"));
 
   const auto persistedDirectory = directory / "persisted";
+  const auto persistedTextFile = persistedDirectory / "message.txt";
   const auto persistedFile = persistedDirectory / "products.json";
   const auto persistenceSource =
-      "try { createDirectory(\"" + persistedDirectory.string() + "\"); writeJsonFile(\"" +
-      persistedFile.string() + "\", { id: 1, title: \"saved\" }); set saved = readJsonFile(\"" +
-      persistedFile.string() + "\"); if (saved.id != 1 || !fileExists(\"" + persistedFile.string() +
-      "\")) { error(\"persistence failed\"); } set entries = listDirectory(\"" +
-      persistedDirectory.string() +
-      "\"); if (entries[0] != \"products.json\") { error(\"listing failed\"); } } "
+      "try { createDirectory(\"" + persistedDirectory.string() + "\"); writeFile(\"" +
+      persistedTextFile.string() + "\", \"draft\"); let text = readFile(\"" +
+      persistedTextFile.string() + "\"); text = textReplace(text, \"draft\", \"published\"); "
+      "writeFile(\"" + persistedTextFile.string() + "\", text); writeJsonFile(\"" +
+      persistedFile.string() + "\", { id: 1, revision: 1 }); set initial = readJsonFile(\"" +
+      persistedFile.string() + "\"); writeJsonFile(\"" + persistedFile.string() +
+      "\", { id: initial.id, revision: initial.revision + 1 }); set saved = readJsonFile(\"" +
+      persistedFile.string() + "\"); if (readFile(\"" + persistedTextFile.string() +
+      "\") != \"published\" || saved.id != 1 || saved.revision != 2 || !fileExists(\"" +
+      persistedFile.string() + "\")) { error(\"persistence edit failed\"); } "
+      "set entries = listDirectory(\"" + persistedDirectory.string() +
+      "\"); if (len(entries) != 2) { error(\"listing failed\"); } removePath(\"" +
+      persistedTextFile.string() + "\"); removePath(\"" + persistedFile.string() +
+      "\"); removePath(\"" + persistedDirectory.string() + "\"); } "
       "catch (message) { error(message); }";
   kyna::LanguageSession productionFileSession;
   assert(productionFileSession.runSource("persistence.kyna", persistenceSource).ok());
-  assert(std::filesystem::is_regular_file(persistedFile));
+  assert(!std::filesystem::exists(persistedDirectory));
 
   std::filesystem::remove_all(directory);
 }

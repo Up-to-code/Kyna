@@ -1,0 +1,1 @@
+set response = fetch("mock://kyna/users", { headers: { Accept: 42 } });

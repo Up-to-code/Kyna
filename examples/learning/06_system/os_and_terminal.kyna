@@ -1,0 +1,15 @@
+# Host facts are injected capabilities, so embedders and tests can replace them.
+set systemName = osName();
+set cpu = osArchitecture();
+set directory = osWorkingDirectory();
+set interactive = terminalIsInteractive();
+set color = terminalSupportsColor();
+
+if (systemName != os.name() || cpu != os.architecture() || directory != os.cwd() ||
+    interactive != terminal.interactive() || color != terminal.supportsColor()) {
+    error("host namespace aliases disagree");
+}
+
+print("os", systemName, cpu);
+print("working directory", directory);
+print("terminal", interactive, color);

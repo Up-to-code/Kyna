@@ -1,5 +1,7 @@
 #include "kyna/stdlib/bytecode_standard_library.hpp"
+#include "kyna/formats/document_formats.hpp"
 #include "kyna/text/unicode_text.hpp"
+#include "format_value_codec.hpp"
 #include "json_value_codec.hpp"
 #include <algorithm>
 #include <cctype>
@@ -219,6 +221,25 @@ public:
       auto value = capabilities.processes->environment(std::get<std::string>(arguments[0].data));
       return {value ? RuntimeValue(std::move(*value)) : RuntimeValue(), std::nullopt};
     }
+    if (name == "osName" || name == "osArchitecture" || name == "osWorkingDirectory" ||
+        name == "terminalIsInteractive" || name == "terminalSupportsColor") {
+      if (!arguments.empty())
+        return failure("KHOST2000", std::string(name) + " expects no arguments");
+      if (!capabilities.host)
+        return failure("KHOST2000", "host information capability is unavailable");
+      if (name == "osName")
+        return {RuntimeValue(capabilities.host->operatingSystem()), std::nullopt};
+      if (name == "osArchitecture")
+        return {RuntimeValue(capabilities.host->architecture()), std::nullopt};
+      if (name == "terminalIsInteractive")
+        return {RuntimeValue(capabilities.host->standardOutputIsTerminal()), std::nullopt};
+      if (name == "terminalSupportsColor")
+        return {RuntimeValue(capabilities.host->supportsColor()), std::nullopt};
+      std::string message;
+      auto directory = capabilities.host->workingDirectory(message);
+      return directory ? NativeCallResult{RuntimeValue(std::move(*directory)), std::nullopt}
+                       : failure("KHOST2001", std::move(message));
+    }
     if (name == "processRun" || name == "build") {
       if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
         return failure("KPROC2002", std::string(name) + " expects one command string");
@@ -249,6 +270,35 @@ public:
                                        ": " + networkFailure.message,
                        arguments[0]);
       return {RuntimeValue(std::move(response->body)), std::nullopt};
+    }
+    if (name == "fetchResult") {
+      auto fetched = invoke("fetch", arguments, heap);
+      auto roots = heap.rootScope();
+      auto *result = static_cast<Object *>(nullptr);
+      if (fetched.failure) {
+        RuntimeValue error(heap.allocateError(fetched.failure->message, fetched.failure->code,
+                                               fetched.failure->cause));
+        roots.protect(error);
+        result = heap.allocate();
+        result->fields["ok"] = RuntimeValue(false);
+        result->fields["response"] = RuntimeValue();
+        result->fields["error"] = error;
+      } else {
+        roots.protect(fetched.value);
+        result = heap.allocate();
+        bool responseOk = true;
+        if (const auto response = std::get_if<ObjectPtr>(&fetched.value.data);
+            response && *response) {
+          if (const auto found = (*response)->fields.find("ok");
+              found != (*response)->fields.end() &&
+              std::holds_alternative<bool>(found->second.data))
+            responseOk = std::get<bool>(found->second.data);
+        }
+        result->fields["ok"] = RuntimeValue(responseOk);
+        result->fields["response"] = fetched.value;
+        result->fields["error"] = RuntimeValue();
+      }
+      return {RuntimeValue(result), std::nullopt};
     }
     if (name == "fetch") {
       if (arguments.empty() || arguments.size() > 2 ||
@@ -352,6 +402,32 @@ public:
                        error.diagnostic.message, arguments[0]);
       }
     }
+    if (name == "tomlParse" || name == "xmlParse") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure(name == "tomlParse" ? "KFORMAT1001" : "KFORMAT1101",
+                       std::string(name) + " expects exactly one string");
+      const auto parsed = name == "tomlParse"
+                              ? parseTomlDocument(std::get<std::string>(arguments[0].data))
+                              : parseXmlDocument(std::get<std::string>(arguments[0].data));
+      if (!parsed.valid)
+        return failure(parsed.failure.code, parsed.failure.message, arguments[0]);
+      return {formatValueToRuntime(parsed.value, heap), std::nullopt};
+    }
+    if (name == "tomlStringify" || name == "xmlStringify") {
+      if (arguments.size() != 1)
+        return failure(name == "tomlStringify" ? "KFORMAT1002" : "KFORMAT1102",
+                       std::string(name) + " expects exactly one value");
+      std::string conversionError;
+      auto value = runtimeValueToFormat(arguments[0], conversionError);
+      if (!value)
+        return failure(name == "tomlStringify" ? "KFORMAT1002" : "KFORMAT1102",
+                       std::move(conversionError), arguments[0]);
+      const auto encoded = name == "tomlStringify" ? stringifyTomlDocument(*value)
+                                                    : stringifyXmlDocument(*value);
+      if (!encoded.valid)
+        return failure(encoded.failure.code, encoded.failure.message, arguments[0]);
+      return {RuntimeValue(std::get<std::string>(encoded.value.data)), std::nullopt};
+    }
     if (name == "push") {
       if (arguments.size() != 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
         return failure("KCOL1004", "push expects an array and a value");
@@ -430,9 +506,13 @@ const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
       "print", "log", "typeOf", "len", "error", "readFile", "writeFile", "fileExists",
       "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
-      "processEnv", "processRun", "build", "sleep", "wait", "httpGet", "fetch",
+      "processEnv", "processRun", "build", "osName", "osArchitecture",
+      "osWorkingDirectory", "terminalIsInteractive", "terminalSupportsColor",
+      "sleep", "wait", "httpGet", "fetch",
+      "fetchResult",
       "responseJson", "responseText", "jsonParse",
-      "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort",
+      "jsonStringify", "tomlParse", "tomlStringify", "xmlParse", "xmlStringify",
+      "push", "pop", "keys", "unique", "sort", "bubbleSort",
       "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
       "textLower", "textUpper"};
   return names;

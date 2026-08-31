@@ -13,6 +13,7 @@
 #include "kyna/stdlib/bytecode_standard_library.hpp"
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
@@ -24,9 +25,17 @@ bool hasErrors(const std::vector<Diagnostic> &diagnostics) {
                      [](const Diagnostic &diagnostic) { return !diagnostic.warning; });
 }
 
+bool requiresHostServer(const std::filesystem::path &entry) {
+  std::ifstream file(entry, std::ios::binary);
+  if (!file) return false;
+  std::ostringstream contents; contents << file.rdbuf();
+  return contents.str().find("http.server") != std::string::npos;
+}
+
 struct BytecodeAttempt {
   bool supported{false};
   std::vector<Diagnostic> diagnostics;
+  HeapStats heapStats;
 };
 
 HirLoweringOptions standardLibraryHirOptions() {
@@ -37,6 +46,19 @@ HirLoweringOptions standardLibraryHirOptions() {
        {"process.stringify", "jsonStringify"},
        {"process.run", "processRun"},
        {"process.env", "processEnv"},
+       {"os.name", "osName"},
+       {"os.architecture", "osArchitecture"},
+       {"os.cwd", "osWorkingDirectory"},
+       {"terminal.interactive", "terminalIsInteractive"},
+       {"terminal.supportsColor", "terminalSupportsColor"},
+       {"http.fetch", "fetch"},
+       {"http.tryFetch", "fetchResult"},
+       {"json.parse", "jsonParse"},
+       {"json.stringify", "jsonStringify"},
+       {"toml.parse", "tomlParse"},
+       {"toml.stringify", "tomlStringify"},
+       {"xml.parse", "xmlParse"},
+       {"xml.stringify", "xmlStringify"},
        {"fs.read", "readFile"},
        {"fs.write", "writeFile"},
        {"fs.readJson", "readJsonFile"},
@@ -58,17 +80,17 @@ BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree 
         std::all_of(hir.diagnostics.begin(), hir.diagnostics.end(),
                     [](const Diagnostic &diagnostic) { return diagnostic.code == "KHIR1201"; });
     return {!onlyUnsupported, onlyUnsupported ? std::vector<Diagnostic>{}
-                                             : std::move(hir.diagnostics)};
+                                             : std::move(hir.diagnostics), {}};
   }
   auto mir = lowerHirToMir(*hir.program);
   if (!mir.program)
-    return {true, std::move(mir.diagnostics)};
+    return {true, std::move(mir.diagnostics), {}};
   auto bytecode = compileMirToBytecode(*mir.program);
   if (!bytecode.module)
-    return {true, std::move(bytecode.diagnostics)};
+    return {true, std::move(bytecode.diagnostics), {}};
   auto nativeLibrary = createBytecodeStandardLibrary(std::move(capabilities), std::cout);
   auto execution = BytecodeVirtualMachine().execute(*bytecode.module, nativeLibrary.get());
-  return {true, std::move(execution.diagnostics)};
+  return {true, std::move(execution.diagnostics), execution.heapStats};
 }
 
 std::string escapeJson(std::string_view value) {
@@ -164,7 +186,9 @@ bool LanguageResult::ok() const { return !hasErrors(diagnostics); }
 bool InspectionResult::ok() const { return !hasErrors(diagnostics); }
 
 LanguageSession::LanguageSession(LanguageSessionOptions sessionOptions)
-    : options(std::move(sessionOptions)), executor(options.capabilities, installStandardLibrary) {}
+    : options(std::move(sessionOptions)), executor(options.capabilities, installStandardLibrary) {
+  interactiveAnalyzer.setInteractive(true);
+}
 
 AnalysisResult LanguageSession::compile(const std::filesystem::path &entry,
                                         std::vector<Diagnostic> &frontEnd) {
@@ -179,7 +203,7 @@ LanguageResult LanguageSession::check(const std::filesystem::path &entry) {
   std::vector<Diagnostic> diagnostics;
   auto analysis = compile(entry, diagnostics);
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
-  return {std::move(diagnostics), false};
+  return {std::move(diagnostics), false, {}};
 }
 
 LanguageResult LanguageSession::run(const std::filesystem::path &entry) {
@@ -187,8 +211,8 @@ LanguageResult LanguageSession::run(const std::filesystem::path &entry) {
   auto analysis = compile(entry, diagnostics);
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
   if (!analysis.program || hasErrors(diagnostics))
-    return {std::move(diagnostics), false};
-  if (analysis.program->modules.modules.size() == 1) {
+    return {std::move(diagnostics), false, {}};
+  if (!requiresHostServer(entry) && analysis.program->modules.modules.size() == 1) {
     const auto module = analysis.program->modules.modules.find(analysis.program->modules.entry);
     if (module != analysis.program->modules.modules.end() && module->second.dependencies.empty()) {
       auto attempt = executeBytecodeSubset(entry.string(), module->second.syntax,
@@ -196,13 +220,13 @@ LanguageResult LanguageSession::run(const std::filesystem::path &entry) {
       if (attempt.supported) {
         diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());
         const bool executed = !hasErrors(diagnostics);
-        return {std::move(diagnostics), executed};
+        return {std::move(diagnostics), executed, attempt.heapStats};
       }
     }
   }
   auto execution = executor.execute(*analysis.program);
   diagnostics.insert(diagnostics.end(), execution.diagnostics.begin(), execution.diagnostics.end());
-  return {std::move(diagnostics), execution.ok()};
+  return {std::move(diagnostics), execution.ok(), executor.runtime().heap().stats()};
 }
 
 LanguageResult LanguageSession::checkSource(std::string name, std::string source) {
@@ -213,14 +237,14 @@ LanguageResult LanguageSession::checkSource(std::string name, std::string source
   std::vector<Diagnostic> diagnostics = std::move(lexed.diagnostics);
   diagnostics.insert(diagnostics.end(), parsed.diagnostics.begin(), parsed.diagnostics.end());
   if (hasErrors(diagnostics))
-    return {std::move(diagnostics), false};
+    return {std::move(diagnostics), false, {}};
   ParsedModuleGraph graph;
   graph.entry = name;
   graph.initializationOrder.push_back(name);
   graph.modules.emplace(name, ModuleRecord{std::move(parsed.tree), {}});
   auto analysis = analyzeModuleGraph(std::move(graph));
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
-  return {std::move(diagnostics), false};
+  return {std::move(diagnostics), false, {}};
 }
 
 LanguageResult LanguageSession::checkSourceAtPath(const std::filesystem::path &entry,
@@ -229,10 +253,10 @@ LanguageResult LanguageSession::checkSourceAtPath(const std::filesystem::path &e
                                                ModuleLoadOptions{options.modulePaths});
   auto diagnostics = std::move(loaded.diagnostics);
   if (!loaded.ok())
-    return {std::move(diagnostics), false};
+    return {std::move(diagnostics), false, {}};
   auto analysis = analyzeModuleGraph(std::move(loaded.graph));
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
-  return {std::move(diagnostics), false};
+  return {std::move(diagnostics), false, {}};
 }
 
 LanguageResult LanguageSession::runSource(std::string name, std::string source, bool interactive) {
@@ -243,25 +267,30 @@ LanguageResult LanguageSession::runSource(std::string name, std::string source, 
   std::vector<Diagnostic> diagnostics = std::move(lexed.diagnostics);
   diagnostics.insert(diagnostics.end(), parsed.diagnostics.begin(), parsed.diagnostics.end());
   if (hasErrors(diagnostics))
-    return {std::move(diagnostics), false};
+    return {std::move(diagnostics), false, {}};
   Analyzer analyzer;
-  analyzer.setInteractive(interactive);
-  auto semantic = analyzer.analyze(parsed.tree.module.declarations);
+  auto semantic = interactive ? interactiveAnalyzer.analyze(parsed.tree.module.declarations)
+                              : analyzer.analyze(parsed.tree.module.declarations);
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (hasErrors(diagnostics))
-    return {std::move(diagnostics), false};
-  auto attempt = executeBytecodeSubset(name, parsed.tree, options.capabilities);
-  if (attempt.supported) {
-    diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());
-    const bool executed = !hasErrors(diagnostics);
-    return {std::move(diagnostics), executed};
+    return {std::move(diagnostics), false, {}};
+  // Interactive submissions must share one runtime environment. The bytecode
+  // fast path creates a fresh VM for each source unit, which is correct for a
+  // standalone program but would discard declarations and values in a REPL.
+  if (!interactive) {
+    auto attempt = executeBytecodeSubset(name, parsed.tree, options.capabilities);
+    if (attempt.supported) {
+      diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());
+      const bool executed = !hasErrors(diagnostics);
+      return {std::move(diagnostics), executed, attempt.heapStats};
+    }
   }
   try {
     executor.runtime().execute(parsed.tree.module.declarations);
-    return {std::move(diagnostics), true};
+    return {std::move(diagnostics), true, executor.runtime().heap().stats()};
   } catch (const KynaError &error) {
     diagnostics.push_back(error.diagnostic);
-    return {std::move(diagnostics), false};
+    return {std::move(diagnostics), false, executor.runtime().heap().stats()};
   }
 }
 

@@ -1,0 +1,16 @@
+# Run in a disposable working directory: the lesson removes everything it creates.
+set directory = "kyna-learning-files";
+set path = directory + "/lesson.json";
+
+try {
+    fs.createDirectory(directory);
+    fs.writeJson(path, { stage: "draft", revision: 1 });
+    set draft = fs.readJson(path);
+    fs.writeJson(path, { stage: "published", revision: draft.revision + 1 });
+    set published = fs.readJson(path);
+    print("file", published.stage, published.revision, fs.exists(path));
+    fs.remove(path);
+    fs.remove(directory);
+} catch (failure) {
+    throw failure;
+}

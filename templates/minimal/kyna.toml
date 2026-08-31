@@ -1,0 +1,11 @@
+[project]
+name = "minimal"
+version = "0.1.0"
+entry = "src/main.kyna"
+template = "minimal"
+
+[scripts]
+check = "ky check"
+test = "ky check tests"
+
+[dependencies]

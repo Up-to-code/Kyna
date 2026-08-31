@@ -1,0 +1,10 @@
+let cleanupRan = false;
+try {
+    error("lesson failure");
+} catch (failure) {
+    print("caught", failure.code, failure.message);
+} finally {
+    cleanupRan = true;
+}
+
+print("cleanup", cleanupRan);

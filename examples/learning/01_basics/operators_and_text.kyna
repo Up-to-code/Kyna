@@ -1,0 +1,7 @@
+set total = 20 + 22;
+set comparison = total == 42 && total > 10;
+set greeting = textReplace("Hello student", "student", "Kyna");
+set unicode = "Héllo 世界";
+
+print("operators", total, comparison, 17 % 5);
+print("text", greeting, len(unicode), textSlice(unicode, 6));

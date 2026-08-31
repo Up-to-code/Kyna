@@ -1,0 +1,1 @@
+writeFile("__kyna_missing_runtime_fixture__/write.txt", "cannot be written");

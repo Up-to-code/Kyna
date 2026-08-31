@@ -13,17 +13,17 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | Bytecode VM | explicit iterative call frames, cross-frame exception unwinding, catchable runtime failures, first-class functions, mutable/transitive lexical captures, injected native adapter, checked integer arithmetic, stable runtime codes, source call stacks, and validated execution for the lowered subset |
 | Tree-walk compatibility engine | retained temporarily for constructs not yet lowered |
 | Structured text/JSON diagnostics | `kyna.diagnostic/v1` implemented |
-| CLI11 command grammar | run/check/repl/tokens/ast/hir/mir/bytecode implemented |
-| FTXUI terminal diagnostics | implemented for interactive terminals |
+| CLI11 command grammar | primary `ky` plus the `kyna` 1.x alias; projects, route generation, run/check, formatter, dependency locking, serve/dev, doctor, self-management, REPL, and compiler inspection implemented |
+| FTXUI terminal experience | interactive template selector with arrows or j/k, Kyna-purple presentation, terminal-aware diagnostics and execution animation; broader phase progress reporting remains open |
 | Managed heap | iterative tracing, temporary roots, heap-owned VM closures/capture cells, VM allocation safepoints, cycle reclamation, and per-execution statistics implemented; generational collection remains open |
-| Text, JSON, collections, filesystem, process | Unicode code-point length/slice/search/case operations, JSON parse/stringify, collection literals/indexing/mutation/default sort/unique/push/pop/keys, filesystem primitives, JSON files, process execution/environment, and clocks execute through VM adapters; namespace calls such as `process.json`, `console.log`, and `fs.readJson` lower to their canonical VM natives; callback collection algorithms remain open |
-| HTTP/HTTPS | linked libcurl adapter, TLS verification, timeouts, bounded retry, typed failure phases, and VM-native `fetch` responses with status/headers/JSON/text |
+| Text, JSON, TOML, XML, collections, filesystem, process | Unicode text, JSON, native toml++/pugixml document conversion, collection operations, filesystem primitives, file editing, process execution/environment, and clocks execute through VM adapters; namespace calls lower to canonical VM natives; callback collection algorithms remain open |
+| HTTP/HTTPS | libcurl client plus an injected Boost.Asio/Beast server capability; router methods, middleware, parameters/query/headers/body, JSON/text helpers, loopback-safe defaults, body limits, timeouts, overrides, and graceful interruption are implemented |
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
 | Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
-| HTTP server, sockets, DAP, LSP | not implemented |
-| Formatter, package manager, documentation generator | not implemented |
-| VS Code extension | 1.0.4: `.kyna`, comments, completion, imports, symbols, definitions, hover, CodeLens, live diagnostics, replaceable task-backed Run/Check terminals with color policy, compiler inspection, purple assets |
-| Cross-platform archives | CI matrix and CPack archives configured; signed native installers remain a release gate |
+| Raw sockets, DAP, LSP | not implemented |
+| Formatter and package manager | comment/string-preserving formatter with stdin/check/recursive modes and Git/path dependency locking implemented; a documentation generator and central registry are intentionally absent |
+| VS Code extension | 1.0.10: `.kyna` plus `kyna.toml`, clear manifest CodeLens actions, stale Run/Dev cleanup, manifest-authoritative server settings, a Kyna Project view, Run/Watch/Install/Generate/Configure actions, Express-style HTTP completions/snippets, symbols, definitions, hover, live diagnostics, CLI-backed formatting, `ky`/`kyna` discovery, task-backed terminals, compiler inspection, theme-aware assets, and official VSCE packaging |
+| Cross-platform distribution | standardized macOS/Linux/Windows archives, per-user shell/PowerShell installers, self-management, GHCR image, Dev Container, signing/notarization gates, checksums, and provenance workflow implemented; clean hosted-runner release validation remains a release gate |
 
 Kyna 1.0 must not be tagged until every mandatory gate in [ROADMAP.md](../ROADMAP.md) and [release-policy.md](release-policy.md) is complete.

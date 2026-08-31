@@ -1,0 +1,4 @@
+export func handle(request: any): any {
+    console.log(request.method, request.path);
+    return null;
+}

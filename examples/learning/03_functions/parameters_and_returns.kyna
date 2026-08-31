@@ -1,0 +1,10 @@
+func fullName(first: str, last: str): str {
+    return first + " " + last;
+}
+
+func square(value: int): int {
+    return value * value;
+}
+
+print("functions", fullName("Ada", "Lovelace"), square(6));
+# this. 

@@ -13,5 +13,96 @@
     "prefix": "if",
     "body": ["if (${1:condition}) {", "    $0", "} else {", "    ", "}"],
     "description": "Kyna if statement"
+  },
+  "safe fetch": {
+    "prefix": "tryfetch",
+    "body": [
+      "set result = http.tryFetch(\"${1:https://api.example.com/data}\", { timeout: ${2:10000} });",
+      "if (result.ok) {",
+      "    set response = result.response;",
+      "    $0",
+      "} else {",
+      "    console.log(\"Request failed\", result.error.code, result.error.message);",
+      "}"
+    ],
+    "description": "Non-throwing HTTP request"
+  },
+  "JSON file checkpoint": {
+    "prefix": "jsonfile",
+    "body": [
+      "fs.createDirectory(\"${1:output}\");",
+      "fs.writeJson(\"${1:output}/${2:data.json}\", ${3:{ ready: true }});",
+      "set saved = fs.readJson(\"${1:output}/${2:data.json}\");",
+      "$0"
+    ],
+    "description": "Write and read a JSON file"
+  },
+  "Document file checkpoint": {
+    "prefix": "documentfile",
+    "body": [
+      "fs.createDirectory(\"${1:output}\");",
+      "fs.write(\"${1:output}/${2:project.toml}\", toml.stringify(${3:{ name: \"Kyna\" }}));",
+      "set saved = toml.parse(fs.read(\"${1:output}/${2:project.toml}\"));",
+      "$0"
+    ],
+    "description": "Write, read, and parse a native TOML document"
+  },
+  "Kyna backend entry": {
+    "prefix": "backend-main",
+    "body": [
+      "import \"./app.kyna\" as application;",
+      "",
+      "set app = application.createApp();",
+      "app.listen();"
+    ],
+    "description": "Express-style Kyna backend entry point"
+  },
+  "Kyna application factory": {
+    "prefix": "create-app",
+    "body": [
+      "import \"./routes/index.kyna\" as routes;",
+      "",
+      "export func createApp(): any {",
+      "    set app = http.server({ host: \"${1:127.0.0.1}\", port: ${2:3000} });",
+      "    routes.register(app);",
+      "    return app;",
+      "}"
+    ],
+    "description": "Create and configure a Kyna HTTP application"
+  },
+  "HTTP route handler": {
+    "prefix": "route",
+    "body": [
+      "export func ${1:index}(request: any): any {",
+      "    return http.json({ ${2:ok}: true });",
+      "}"
+    ],
+    "description": "Export an HTTP route handler"
+  },
+  "Route registry": {
+    "prefix": "routes-register",
+    "body": [
+      "import \"./${1:health}.kyna\" as ${1:health}Route;",
+      "",
+      "export func register(app: any): void {",
+      "    app.${2|get,post,put,patch,delete|}(\"/${3:health}\", ${1:health}Route.${4:show});",
+      "}"
+    ],
+    "description": "Import and register an Express-style route module"
+  },
+  "HTTP middleware": {
+    "prefix": "middleware",
+    "body": [
+      "export func ${1:handle}(request: any): any {",
+      "    ${2:console.log(request.method, request.path);}",
+      "    return null;",
+      "}"
+    ],
+    "description": "Create app.use-compatible middleware"
+  },
+  "Import route module": {
+    "prefix": "import-route",
+    "body": ["import \"./routes/${1:users}.kyna\" as ${1:users}Route;"],
+    "description": "Import a Kyna route module"
   }
 }

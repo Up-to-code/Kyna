@@ -1,0 +1,13 @@
+# Mutable and value-returning collection primitives.
+let values = [3, 1, 3];
+push(values, 2);
+set removed = pop(values);
+set fields = keys({ name: "Kyna", version: 1 });
+set distinct = unique(values);
+set ordered = sort(values);
+set bubbleOrdered = bubbleSort(values);
+
+print("mutation", jsonStringify(values), removed);
+print("keys", jsonStringify(fields));
+print("unique", jsonStringify(distinct));
+print("sort", jsonStringify(ordered), jsonStringify(bubbleOrdered));

@@ -1,0 +1,11 @@
+# Process, environment, and clock APIs. Commands stay disabled for portability.
+set executablePath = processEnv("PATH");
+sleep(0);
+wait(0);
+
+if (false) {
+    processRun("echo Kyna");
+    build("echo Kyna");
+}
+
+print("process", typeOf(executablePath));

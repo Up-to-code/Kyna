@@ -7,15 +7,23 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  packages: write
 
 jobs:
   cli:
-    name: CLI (${{ matrix.os }})
+    name: CLI (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - { os: ubuntu-latest, target: linux-x86_64, archive: tar }
+          - { os: ubuntu-24.04-arm, target: linux-arm64, archive: tar }
+          - { os: macos-15-intel, target: darwin-x86_64, archive: tar }
+          - { os: macos-14, target: darwin-arm64, archive: tar }
+          - { os: windows-latest, target: windows-x86_64, archive: zip }
     steps:
       - uses: actions/checkout@v7
       - uses: lukka/run-vcpkg@v11
@@ -27,25 +35,75 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
-      - name: Package CLI
-        run: cpack --config build/CPackConfig.cmake
-      - name: Upload CLI archives
-        uses: actions/upload-artifact@v7
+      - name: Sign macOS executables
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') && runner.os == 'macOS'
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        shell: bash
+        run: |
+          test -n "$CERTIFICATE_BASE64" -a -n "$CERTIFICATE_PASSWORD" -a -n "$SIGNING_IDENTITY"
+          echo "$CERTIFICATE_BASE64" | base64 --decode > signing.p12
+          security create-keychain -p kyna-signing build.keychain
+          security import signing.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k kyna-signing build.keychain
+          codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" build/bin/ky build/bin/kyna
+      - name: Sign Windows executables
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') && runner.os == 'Windows'
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: |
+          if (-not $env:CERTIFICATE_BASE64 -or -not $env:CERTIFICATE_PASSWORD) { throw "Windows signing secrets are required for stable releases." }
+          [IO.File]::WriteAllBytes("signing.pfx", [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          & (Get-ChildItem "C:/Program Files (x86)/Windows Kits/10/bin/*/x64/signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1).FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f signing.pfx /p $env:CERTIFICATE_PASSWORD build/bin/Release/ky.exe build/bin/Release/kyna.exe
+      - name: Stage installation
+        run: cmake --install build --config Release --prefix package
+      - name: Create Unix archive
+        if: matrix.archive == 'tar'
+        shell: bash
+        run: tar -czf "kyna-${{ matrix.target }}.tar.gz" -C package .
+      - name: Create Windows archive
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: Compress-Archive -Path package/* -DestinationPath "kyna-${{ matrix.target }}.zip"
+      - name: Notarize macOS archive
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') && runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        shell: bash
+        run: |
+          test -n "$APPLE_ID" -a -n "$APPLE_TEAM_ID" -a -n "$APPLE_APP_PASSWORD"
+          ditto -c -k --keepParent package kyna-notarization.zip
+          xcrun notarytool submit kyna-notarization.zip --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+      - uses: actions/attest-build-provenance@v3
         with:
-          name: kyna-cli-${{ matrix.os }}
-          path: |
-            kyna-*.tar.gz
-            kyna-*.zip
+          subject-path: kyna-${{ matrix.target }}.*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: kyna-${{ matrix.target }}
+          path: kyna-${{ matrix.target }}.*
 
   extension:
     name: VS Code extension
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Package VSIX
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - name: Package and validate VSIX
+        env:
+          KYNA_RELEASE_REF: ${{ github.ref_name }}
+          KYNA_VERIFY_REMOTE_IMAGES: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '0' }}
         run: sh tools/package-vscode.sh
-      - name: Upload VSIX
-        uses: actions/upload-artifact@v7
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: editors/vscode-kyna/kyna-language-support-*.vsix
+      - uses: actions/upload-artifact@v7
         with:
           name: kyna-vscode-extension
           path: editors/vscode-kyna/kyna-language-support-*.vsix
@@ -56,16 +114,51 @@ jobs:
     needs: [cli, extension]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v8
-        with:
-          path: artifacts
-          merge-multiple: true
-      - name: Generate checksums
-        run: sha256sum artifacts/* > artifacts/SHA256SUMS
-      - name: Create GitHub release
+      - name: Enforce the stable signing gate
+        if: ${{ !contains(github.ref_name, '-') }}
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" artifacts/* --repo "${GITHUB_REPOSITORY}" --generate-notes
+          SIGNED_RELEASE_ENABLED: ${{ vars.KYNA_SIGNED_RELEASE_ENABLED }}
+        run: test "$SIGNED_RELEASE_ENABLED" = true
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with: { path: artifacts, merge-multiple: true }
+      - name: Add installers and checksums
+        run: |
+          cp install.sh install.ps1 artifacts/
+          (cd artifacts && sha256sum kyna-* install.sh install.ps1 > SHA256SUMS)
+      - name: Create GitHub release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release create "$GITHUB_REF_NAME" artifacts/* --repo "$GITHUB_REPOSITORY" --generate-notes ${{ contains(github.ref_name, '-') && '--prerelease' || '' }}
+
+  container:
+    name: Publish container
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/metadata-action@v6
+        id: container-metadata
+        with:
+          images: ghcr.io/up-to-code/kyna
+          tags: |
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: containers/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: KYNA_VERSION=${{ github.ref_name }}
+          tags: ${{ steps.container-metadata.outputs.tags }}
+          labels: ${{ steps.container-metadata.outputs.labels }}
 
   marketplace:
     name: Publish VS Code Marketplace extension
@@ -75,12 +168,8 @@ jobs:
     env:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 20
-      - name: Package VSIX
-        run: sh tools/package-vscode.sh
+      - uses: actions/download-artifact@v8
+        with: { name: kyna-vscode-extension, path: extension }
       - name: Publish extension
         if: env.VSCE_PAT != ''
-        run: npx --yes @vscode/vsce publish --packagePath "editors/vscode-kyna/kyna-language-support-$(node -p "require('./editors/vscode-kyna/package.json').version").vsix" --pat "$VSCE_PAT"
+        run: npx --yes @vscode/vsce@3.9.2 publish --packagePath extension/*.vsix --pat "$VSCE_PAT"

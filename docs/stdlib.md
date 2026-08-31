@@ -9,17 +9,26 @@ The Kyna runtime exposes standard-library functions through the global environme
 - `createDirectory(path)`, `fileExists(path)`, `removePath(path)`, and `listDirectory(path)`
 - `fs.read`, `fs.write`, `fs.readJson`, `fs.writeJson`, `fs.createDirectory`, `fs.exists`, `fs.remove`, and `fs.list`
 - `processRun(command)`, `build(command)`, `processEnv(name)`, `sleep(milliseconds)`, and `wait(milliseconds)`
+- `os.name()`, `os.architecture()`, `os.cwd()`, `terminal.interactive()`, and `terminal.supportsColor()` through the injected host-information capability
 - `httpGet(url)` for a raw response body and `fetch(url)` for a response object with `ok`, `status`, `url`, `text()`, and `json()`
 - `jsonParse`, `jsonStringify`, `process.json`, `process.stringify`, `process.run`, and `process.env`
+- `toml.parse`, `toml.stringify`, `xml.parse`, and `xml.stringify`, with canonical
+  `tomlParse`, `tomlStringify`, `xmlParse`, and `xmlStringify` aliases
 - `filter`, `map`, `reduce`, `find`, `any`, `all`, `unique`, `bubbleSort`, `sort`, and `call`
 - `createApiStore(records)` for an in-memory CRUD store with `list`, `get`, `create`, `update`, and `remove`
 - `db.query(connection, sql, parameters?)` and `db.execute(...)` for parameterized PostgreSQL operations
 - `error(message)` for language errors caught by `try`/`catch`
 - `collectGarbage()` and `gcStats()` for heap diagnostics
 
-Filesystem, process, networking, and sleeping operations call injected `RuntimeCapabilities`; deterministic embedders can replace every host adapter. The production network adapter uses linked libcurl for HTTP and HTTPS with certificate verification, HTTP/1.1, redirects, a Kyna user agent, a 10-second connect timeout, a 30-second overall timeout, and two bounded retries for transient transport failures. Errors identify DNS, connection, TLS, send, receive, timeout, or HTTP-response phases without exposing query parameters. Standard proxy environment variables are honored by libcurl. Streaming, async I/O, and cancellation remain future work. Process execution uses the host shell and is an explicitly trusted capability.
+Filesystem, process, host information, networking, and sleeping operations call injected `RuntimeCapabilities`; deterministic embedders can replace every host adapter. The production network adapter uses linked libcurl for HTTP and HTTPS with certificate verification, HTTP/1.1, redirects, a Kyna user agent, a 10-second connect timeout, a 30-second overall timeout, and two bounded retries for transient transport failures. Errors identify DNS, connection, TLS, send, receive, timeout, or HTTP-response phases without exposing query parameters. Standard proxy environment variables are honored by libcurl. Streaming, async I/O, and cancellation remain future work. Process execution uses the host shell and is an explicitly trusted capability.
+
+`processEnv(name)` and `process.env(name)` return `str?`: the value is a string when the variable exists and `null` when it does not. Text and JSON file edits use an explicit read-modify-write cycle; `writeFile`/`fs.write` and `writeJsonFile`/`fs.writeJson` replace the complete contents exposed by the adapter. See `examples/standard_library/environment_and_file_edit.kyna` for a cleanup-safe checkpoint.
+
+TOML uses pinned toml++ and converts tables/arrays/scalars to ordinary Kyna values. XML uses pinned pugixml and represents each element as `{ name, attributes, text, children }`. Both adapters have stable `KFORMAT` errors and execute through the same value-conversion seam in the tree interpreter and bytecode VM. See `examples/learning/04_data/toml_and_xml.kyna` for in-memory round trips and `examples/learning/06_system/document_files.kyna` for cleanup-safe create/read/edit/delete work.
 
 `fetch` and response `json()`/`text()` now execute through the bytecode native adapter when the response is used directly or stored in a local binding. Request options support `method`, `body`, positive millisecond `timeout`, and string-valued `headers`; malformed options and response JSON produce typed, catchable `KNET`/`K5100` errors.
+
+See [networking.md](networking.md) for POST bodies, query parameters, Bearer authorization, API keys, cookies, HTTP status handling, security guidance, and the deterministic network-test strategy.
 
 Database operations cross the injected `DatabasePort` seam. Official dependency builds use libpq, PostgreSQL `$1` parameter binding, SQL null mapping, and phase-specific `KDB2001` diagnostics. See [database.md](database.md) for the result model and repository-module pattern.
 

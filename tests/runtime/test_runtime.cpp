@@ -54,4 +54,46 @@ int main() {
   }
   isolatedHeap.collect({});
   assert(isolatedHeap.live() == 0);
+
+  {
+    auto roots = isolatedHeap.rootScope();
+    auto *cyclic = isolatedHeap.allocateArray();
+    cyclic->elements.emplace_back(cyclic);
+    kyna::Value cyclicRoot(cyclic);
+    roots.protect(cyclicRoot);
+    assert(cyclicRoot.display() == "[<cycle>]");
+    isolatedHeap.collect({});
+    assert(isolatedHeap.live() == 1);
+  }
+  isolatedHeap.collect({});
+  assert(isolatedHeap.live() == 0);
+
+  // A long alternating object/array cycle exercises the iterative tracer. A
+  // recursive marker would risk overflowing the native stack here.
+  {
+    auto roots = isolatedHeap.rootScope();
+    auto *first = isolatedHeap.allocate();
+    kyna::Value graphRoot(first);
+    roots.protect(graphRoot);
+    auto *current = first;
+    constexpr std::size_t depth = 4000;
+    for (std::size_t index = 0; index < depth; ++index) {
+      auto *array = isolatedHeap.allocateArray();
+      current->fields["next"] = kyna::Value(array);
+      auto *next = isolatedHeap.allocate();
+      array->elements.emplace_back(next);
+      current = next;
+    }
+    current->fields["next"] = graphRoot;
+    isolatedHeap.collect({});
+    const auto retained = isolatedHeap.stats();
+    assert(retained.objects == depth + 1);
+    assert(retained.arrays == depth);
+    assert(retained.live == depth * 2 + 1);
+  }
+  isolatedHeap.collect({});
+  const auto reclaimedGraph = isolatedHeap.stats();
+  assert(reclaimedGraph.live == 0);
+  assert(reclaimedGraph.reclaimed >= 8001);
+  assert(reclaimedGraph.objects == 0 && reclaimedGraph.arrays == 0);
 }

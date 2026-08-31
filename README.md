@@ -12,7 +12,11 @@
   <a href="editors/vscode-kyna/README.md">VS Code extension</a>
 </p>
 
-Kyna is a brace-delimited programming language and C++23 implementation. It combines familiar scripting syntax with static types, structured diagnostics, modules, classes, structural interfaces, lexical closures, and an inspectable compiler pipeline.
+Kyna is a brace-delimited programming language and cross-platform developer platform. Its primary command is `ky`; the earlier `kyna` command remains a supported compatibility alias throughout 1.x. Kyna combines familiar scripting syntax with static types, structured diagnostics, projects, formatting, backend HTTP services, modules, classes, lexical closures, and an inspectable compiler pipeline.
+
+<p align="center">
+  <img src="docs/assets/kyna-cli.png" width="920" alt="Kyna CLI running a program and displaying its bytecode">
+</p>
 
 > [!IMPORTANT]
 > Kyna is under active development toward 1.0. The validated bytecode VM runs the supported lowered subset; a temporary tree-walk compatibility engine handles constructs that have not yet moved to bytecode. See the [implementation status](docs/implementation-status.md) and [roadmap](ROADMAP.md) before depending on Kyna for production work.
@@ -28,7 +32,74 @@ Kyna is a brace-delimited programming language and C++23 implementation. It comb
 
 ## Quick start
 
-### Requirements
+### Install globally
+
+Install a checksum-verified native release for the current user—no repository clone, Docker, CMake, C++ compiler, administrator account, or `sudo` required:
+
+```sh
+curl -fsSL https://github.com/Up-to-code/Kyna/releases/latest/download/install.sh | sh
+```
+
+On Windows PowerShell:
+
+```powershell
+irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | iex
+```
+
+The Unix installer places `ky` and its `kyna` compatibility alias in `~/.local/bin`. Windows uses `%LOCALAPPDATA%\Kyna\bin` and updates the user PATH when necessary. Both installers support an exact `--version`, an alternate `--prefix`, non-interactive use, checksum verification, atomic replacement, and a previous-version backup. Preview releases require an explicit version and never masquerade as stable.
+
+Open a new terminal if the installer changed your PATH, then verify the installation:
+
+```sh
+ky --version
+ky doctor
+```
+
+If a Unix shell cannot find `ky`, add the default installation directory to your shell profile and reopen the terminal:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Create, check, format, and run a complete project without cloning this repository:
+
+```sh
+ky new hello --template minimal
+cd hello
+ky check
+ky fmt --check
+ky run
+```
+
+For a guided, Bun-style setup, run `ky new` with no arguments in an interactive terminal. The wizard asks for the project directory, lets you select `minimal` or `backend` with the arrow keys, initializes Git when available, and prints the exact next commands. Automation remains deterministic: pass the name and template explicitly, or use `--no-interactive`.
+
+Create an HTTP backend instead:
+
+```sh
+ky new hello-api --template backend
+cd hello-api
+ky dev
+```
+
+The generated service binds to `127.0.0.1:3000` by default and exposes `GET /health`. Use `ky serve --host 0.0.0.0 --port 8080` only when an explicit public/container binding is intended.
+
+Pin a particular stable release on Unix:
+
+```sh
+curl -fsSL https://github.com/Up-to-code/Kyna/releases/download/v1.0.0/install.sh | sh -s -- --version 1.0.0
+```
+
+Or in Windows PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm https://github.com/Up-to-code/Kyna/releases/download/v1.0.0/install.ps1))) -Version 1.0.0
+```
+
+Replace `1.0.0` with an available release. Preview builds must use their exact version together with `--channel preview` on Unix or `-Channel preview` on Windows. Release archives, checksums, signatures, provenance, and the VSIX are published on the [Releases page](https://github.com/Up-to-code/Kyna/releases).
+
+### Build from source
+
+#### Requirements
 
 - CMake 3.25 or newer
 - Python 3.10 or newer
@@ -38,7 +109,7 @@ Kyna is a brace-delimited programming language and C++23 implementation. It comb
 
 PostgreSQL support is enabled when libpq is available. For a fully pinned dependency build, use the included [`vcpkg.json`](vcpkg.json); the default developer preset can otherwise fetch CLI11, FTXUI, and utf8proc when they are missing.
 
-### Build and test
+#### Build and test
 
 ```sh
 git clone https://github.com/Up-to-code/Kyna.git
@@ -47,6 +118,22 @@ cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
 ```
+
+#### Install the CLI and VS Code support from source
+
+Install both from source in one command:
+
+```sh
+make install-all
+```
+
+By default, the CLI is installed as `~/.local/bin/ky` with `~/.local/bin/kyna` as its compatibility alias, and the packaged language extension is installed into VS Code. Choose another CLI prefix or VS Code executable when needed:
+
+```sh
+make install-all PREFIX=/usr/local VSCODE=code
+```
+
+Ensure the selected `PREFIX/bin` directory is on your `PATH`. To install only one component, use `make install` for the CLI or `make vscode-install` for the language extension.
 
 CI runs the project on Linux, macOS, and Windows. Release and sanitizer presets are also available:
 
@@ -59,12 +146,12 @@ cmake --build --preset sanitizers
 ctest --preset sanitizers
 ```
 
-### Run Kyna
+#### Run Kyna
 
 ```sh
-./build-debug/bin/kyna run examples/hello.kyna
-./build-debug/bin/kyna check examples/hello.kyna
-./build-debug/bin/kyna repl
+./build-debug/bin/ky run examples/hello.kyna
+./build-debug/bin/ky check examples/hello.kyna
+./build-debug/bin/ky repl
 ```
 
 On Windows, use the executable produced in the selected preset's build directory. Prebuilt platform archives are available on the [Releases page](https://github.com/Up-to-code/Kyna/releases); verify their checksums before running them.
@@ -106,18 +193,24 @@ The language also supports first-class functions, mutable and transitive lexical
 
 ## Command-line tools
 
-```text
-kyna run <file|->
-kyna check <file|->
-kyna repl
-kyna tokens <file|-> [--format text|json]
-kyna ast <file|-> [--format text|json]
-kyna hir <file|-> [--format text|json]
-kyna mir <file|-> [--format text|json]
-kyna bytecode <file|-> [--format text|json]
-```
+| Command | Purpose |
+| --- | --- |
+| `ky new <name> [--template minimal\|backend]` | Create a project; an interactive terminal can select the template. |
+| `ky init [path] [--template minimal\|backend]` | Initialize an empty directory without overwriting unrelated files. |
+| `ky generate route <name>` | Create an Express-style backend route and register it automatically. |
+| `ky run [entry]` / `ky check [entry]` | Run or check an explicit file or the nearest project manifest entry. |
+| `ky fmt [paths...]` | Format recursively; use `--check` in CI or `-` for stdin/stdout. |
+| `ky dev` / `ky serve` | Watch and restart a checked backend, or serve it once. |
+| `ky add`, `ky remove`, `ky install [--locked]` | Manage Git or local-path dependencies and deterministic `kyna.lock`. |
+| `ky doctor` | Diagnose the CLI, PATH, manifest, cache, editor, and server setup. |
+| `ky self update` / `ky self uninstall` | Manage a per-user installation. |
+| `ky repl`, `tokens`, `ast`, `hir`, `mir`, `bytecode`, `inspect` | Use the REPL or inspect compiler stages. |
 
-`kyna program.kyna` is shorthand for `kyna run program.kyna`. Common options include repeatable `--module-path <dir>`, `--diagnostic-format text|json`, and `--color auto|always|never`; `--no-color` is an alias for `--color never`.
+`ky program.kyna` is shorthand for `ky run program.kyna`. Commands search upward for `kyna.toml`, keep stdout scriptable, render interactive UI on stderr, honor `NO_COLOR`, and support `--no-interactive`, `--quiet`, and `--json`. Exit codes are stable: `0` success, `1` program/check failure, `2` usage/configuration/resolution failure, and `130` interruption.
+
+The interactive `ky repl` includes editable Unicode input, left/right and word movement, Home/End, command history with Up/Down or Ctrl+P/N, reverse history search, mouse cursor placement, deletion shortcuts, lossless multi-line paste, and multiline cancellation. A separate animated purple status bar shows the detected workspace or initialized project without moving the editable input row. Type `:` for a live command list and press Tab to complete a command. Use `:project` for the manifest name, version, template, entry point, and root; press F1 or enter `:keys` for controls, `:help` for REPL commands, and `:history` for submitted lines. Rich terminal features are disabled automatically for pipes and with `--no-interactive` so automation remains deterministic.
+
+Project dependencies are pinned in `kyna.lock`, cached per platform, and never execute dependency-provided install scripts. Store secrets in environment variables rather than `kyna.toml`; the backend template includes `.env.example` and ignores `.env`.
 
 ## Standard library and host capabilities
 
@@ -126,7 +219,8 @@ Kyna includes APIs for:
 - Unicode-aware text and mutable collection operations
 - JSON parsing, serialization, and file storage
 - Filesystem and process access
-- HTTP and HTTPS requests through libcurl
+- HTTP and HTTPS client requests through libcurl
+- Loopback-safe HTTP servers and routers through an injected Boost.Asio/Beast host capability
 - In-memory CRUD stores
 - Parameterized PostgreSQL queries through libpq
 - Explicit garbage collection and heap statistics
@@ -147,10 +241,10 @@ Package and install the local extension from the repository root:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.4.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.10.vsix --force
 ```
 
-The extension recognizes `.kyna` files and provides highlighting, snippets, completion, symbols, same-file definitions, hover information, import completion, live diagnostics, CodeLens, and commands for running, checking, and inspecting compiler output. Set `kyna.executable` if the CLI is not installed or cannot be found in a recognized CMake build directory.
+The extension recognizes `.kyna` files and provides highlighting, snippets, completion, symbols, same-file definitions, hover information, import completion, live diagnostics, CodeLens, document formatting, and commands for running, checking, and inspecting compiler output. It prefers `ky`, falls back to `kyna`, and retains `kyna.executable` for configuration compatibility.
 
 See the [extension README](editors/vscode-kyna/README.md) for development and privacy details.
 
@@ -160,8 +254,8 @@ See the [extension README](editors/vscode-kyna/README.md) for development and pr
 | --- | --- |
 | Language | [Specification](docs/language-spec.md) · [Grammar](docs/grammar.md) · [Type system](docs/type-system.md) · [Object model](docs/object-model.md) |
 | Compiler and runtime | [Architecture](docs/architecture.md) · [Source layout](docs/source-layout.md) · [Runtime](docs/runtime.md) · [Garbage collection](docs/garbage-collection.md) |
-| Using Kyna | [Modules](docs/modules.md) · [Standard library](docs/stdlib.md) · [Database](docs/database.md) · [Diagnostics](docs/diagnostics.md) |
-| Development | [Testing](docs/testing.md) · [Distribution](docs/distribution.md) · [Release policy](docs/release-policy.md) |
+| Using Kyna | [Projects](docs/projects.md) · [Modules](docs/modules.md) · [Standard library](docs/stdlib.md) · [Database](docs/database.md) · [Diagnostics](docs/diagnostics.md) |
+| Development | [Testing](docs/testing.md) · [Distribution](docs/distribution.md) · [Release policy](docs/release-policy.md) · [GitHub language recognition](docs/github-language-recognition.md) |
 | Project status | [Implementation status](docs/implementation-status.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) |
 
 ## Repository layout

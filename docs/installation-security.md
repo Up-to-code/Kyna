@@ -28,7 +28,7 @@ First verify the checksum above and make sure the archive came from the Kyna rel
 ```sh
 unzip kyna-1.0.0-Darwin-arm64.zip
 cd kyna-1.0.0-Darwin-arm64
-./bin/kyna --version
+./bin/ky --version
 ```
 
 If Finder still blocks a verified download, Apple documents the temporary **System Settings → Privacy & Security → Open Anyway** approval flow. Do not bypass Gatekeeper for an archive whose checksum or source you cannot verify. Kyna will add signed and notarized macOS artifacts when an Apple Developer ID release process is available.

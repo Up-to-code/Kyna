@@ -1,0 +1,18 @@
+# POST JSON to a public no-key API. Public availability is not required by CI.
+try {
+    set body = jsonStringify({
+        title: "Kyna network example",
+        body: "Created with fetch",
+        userId: 7
+    });
+    set response = fetch("https://jsonplaceholder.typicode.com/posts", {
+        method: "POST",
+        body: body,
+        timeout: 10000,
+        headers: { "Content-Type": "application/json" }
+    });
+    set created = response.json();
+    print("POST", response.status, created.id, created.title);
+} catch (failure) {
+    print("POST failed", failure.code, failure.message);
+}

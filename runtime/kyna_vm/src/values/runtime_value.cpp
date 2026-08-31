@@ -1,7 +1,65 @@
 #include "kyna/execution/runtime_object_model.hpp"
+#include <set>
 #include <sstream>
 
 namespace kyna {
+namespace {
+std::string displayValue(const Value &value, std::set<const void *> &active) {
+  return std::visit(
+      [&](const auto &v) -> std::string {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::nullptr_t>)
+          return "null";
+        else if constexpr (std::is_same_v<T, bool>)
+          return v ? "true" : "false";
+        else if constexpr (std::is_same_v<T, int64_t>)
+          return std::to_string(v);
+        else if constexpr (std::is_same_v<T, double>) {
+          std::ostringstream output;
+          output << v;
+          return output.str();
+        } else if constexpr (std::is_same_v<T, std::string>)
+          return v;
+        else if constexpr (std::is_same_v<T, char>)
+          return std::string(1, v);
+        else if constexpr (std::is_same_v<T, ObjectPtr>)
+          return "<" + (v && v->klass ? v->klass->declaration.name
+                                       : v && !v->vmClassName.empty() ? v->vmClassName
+                                                                      : "object") +
+                 ">";
+        else if constexpr (std::is_same_v<T, ArrayPtr>) {
+          if (!v)
+            return "null";
+          if (!active.insert(v).second)
+            return "<cycle>";
+          std::string output = "[";
+          for (std::size_t index = 0; index < v->elements.size(); ++index) {
+            if (index)
+              output += ", ";
+            output += displayValue(v->elements[index], active);
+          }
+          active.erase(v);
+          return output + "]";
+        } else if constexpr (std::is_same_v<T, FunctionPtr>)
+          return "<func>";
+        else if constexpr (std::is_same_v<T, ModulePtr>)
+          return "<module " + (v ? v->displayName : std::string("unknown")) + ">";
+        else if constexpr (std::is_same_v<T, VmFunctionReference>)
+          return "<func @" + std::to_string(v.function) + ">";
+        else if constexpr (std::is_same_v<T, VmClosure *>)
+          return v ? "<closure @" + std::to_string(v->function) + ">" : "<closure>";
+        else if constexpr (std::is_same_v<T, VmBoundMethod *>)
+          return v ? "<bound method @" + std::to_string(v->function) + ">"
+                   : "<bound method>";
+        else if constexpr (std::is_same_v<T, ErrorPtr>)
+          return v ? v->message : "<error>";
+        else
+          return "<class " + v->declaration.name + ">";
+      },
+      value.data);
+}
+} // namespace
+
 std::string Value::typeName() const {
   return std::visit(
       [](const auto &v) -> std::string {
@@ -40,53 +98,8 @@ std::string Value::typeName() const {
       data);
 }
 std::string Value::display() const {
-  return std::visit(
-      [](const auto &v) -> std::string {
-        using T = std::decay_t<decltype(v)>;
-        if constexpr (std::is_same_v<T, std::nullptr_t>)
-          return "null";
-        else if constexpr (std::is_same_v<T, bool>)
-          return v ? "true" : "false";
-        else if constexpr (std::is_same_v<T, int64_t>)
-          return std::to_string(v);
-        else if constexpr (std::is_same_v<T, double>) {
-          std::ostringstream o;
-          o << v;
-          return o.str();
-        } else if constexpr (std::is_same_v<T, std::string>)
-          return v;
-        else if constexpr (std::is_same_v<T, char>)
-          return std::string(1, v);
-        else if constexpr (std::is_same_v<T, ObjectPtr>)
-          return "<" + (v && v->klass ? v->klass->declaration.name
-                                       : v && !v->vmClassName.empty() ? v->vmClassName
-                                                                      : "object") +
-                 ">";
-        else if constexpr (std::is_same_v<T, ArrayPtr>) {
-          std::string s = "[";
-          for (size_t i = 0; i < v->elements.size(); ++i) {
-            if (i)
-              s += ", ";
-            s += v->elements[i].display();
-          }
-          return s + "]";
-        } else if constexpr (std::is_same_v<T, FunctionPtr>)
-          return "<func>";
-        else if constexpr (std::is_same_v<T, ModulePtr>)
-          return "<module " + (v ? v->displayName : std::string("unknown")) + ">";
-        else if constexpr (std::is_same_v<T, VmFunctionReference>)
-          return "<func @" + std::to_string(v.function) + ">";
-        else if constexpr (std::is_same_v<T, VmClosure *>)
-          return v ? "<closure @" + std::to_string(v->function) + ">" : "<closure>";
-        else if constexpr (std::is_same_v<T, VmBoundMethod *>)
-          return v ? "<bound method @" + std::to_string(v->function) + ">"
-                   : "<bound method>";
-        else if constexpr (std::is_same_v<T, ErrorPtr>)
-          return v ? v->message : "<error>";
-        else
-          return "<class " + v->declaration.name + ">";
-      },
-      data);
+  std::set<const void *> active;
+  return displayValue(*this, active);
 }
 bool Value::isTruthy() const {
   if (std::holds_alternative<std::nullptr_t>(data))

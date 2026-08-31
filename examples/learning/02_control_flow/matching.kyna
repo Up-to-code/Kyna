@@ -1,0 +1,9 @@
+set status = 201;
+set meaning = match (status) {
+    200 => "ok";
+    201 => "created";
+    404 => "missing";
+    _ => "other";
+};
+
+print("match", meaning);

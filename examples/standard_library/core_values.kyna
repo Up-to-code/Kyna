@@ -1,0 +1,14 @@
+# Core values, output, dynamic calls, and explicit errors.
+func add(left: int, right: int): int {
+    return left + right;
+}
+
+print("print", typeOf(42), len("Kyna"));
+log("log", len([1, 2, 3]));
+console.log("call", call(add, [20, 22]));
+
+try {
+    error("expected");
+} catch (failure) {
+    print("caught", failure.code, failure.message);
+}

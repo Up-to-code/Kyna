@@ -1,0 +1,21 @@
+{
+    "name": "Kyna",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "KYNA_VERSION": "1.0.0"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": ["kyna-lang.kyna-language-support"],
+            "settings": {
+                "[kyna]": {
+                    "editor.formatOnSave": true
+                }
+            }
+        }
+    },
+    "forwardPorts": [3000],
+    "remoteUser": "vscode"
+}

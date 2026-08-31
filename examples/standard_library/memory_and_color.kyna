@@ -1,0 +1,6 @@
+# Managed-heap inspection and colored terminal output.
+let temporary = [{ value: 42 }];
+temporary = [];
+collectGarbage();
+logColor("green", "colored output");
+print("memory", typeOf(gcStats()));

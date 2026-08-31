@@ -1,0 +1,9 @@
+# Read the same response as raw text before deciding how to decode it.
+try {
+    set response = fetch("mock://kyna/users", { timeout: 1000 });
+    set rawBody = response.text();
+    set users = jsonParse(rawBody);
+    print("text response", response.status, len(rawBody), users[2].name);
+} catch (failure) {
+    print("response failure", failure.code, failure.message);
+}

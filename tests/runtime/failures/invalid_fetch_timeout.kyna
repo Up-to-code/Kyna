@@ -1,0 +1,1 @@
+set response = fetch("https://example.invalid", { timeout: 0 });

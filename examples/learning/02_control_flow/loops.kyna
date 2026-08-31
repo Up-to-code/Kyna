@@ -1,0 +1,13 @@
+let sum = 0;
+let index = 1;
+while (index <= 4) {
+    sum = sum + index;
+    index = index + 1;
+}
+
+let product = 1;
+loop (let value = 1; value <= 4; value = value + 1) {
+    product = product * value;
+}
+
+print("loops", sum, product);

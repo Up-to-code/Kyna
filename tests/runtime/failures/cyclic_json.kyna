@@ -1,0 +1,3 @@
+let cyclic = [];
+push(cyclic, cyclic);
+set encoded = jsonStringify(cyclic);

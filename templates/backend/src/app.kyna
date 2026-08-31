@@ -1,0 +1,10 @@
+import "./middleware/request_logger.kyna" as requestLogger;
+import "./routes/index.kyna" as routes;
+
+export func createApp(): any {
+    # `ky run`, `ky serve`, and `ky dev` apply [server] from kyna.toml.
+    set app = http.server();
+    app.use(requestLogger.handle);
+    routes.register(app);
+    return app;
+}

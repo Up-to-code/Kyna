@@ -1,0 +1,2 @@
+set maximum = 9223372036854775807;
+set overflow = maximum + 1;

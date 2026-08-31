@@ -1,0 +1,9 @@
+# Native TOML and XML modules convert documents to ordinary Kyna values.
+set settings = tomlParse("title = \"Kyna\"\n[server]\nport = 8080\nenabled = true\n");
+set roundTripSettings = toml.parse(tomlStringify(settings));
+
+set project = xmlParse("<project version=\"1\"><name>Kyna</name><files count=\"2\"/></project>");
+set roundTripProject = xml.parse(xmlStringify(project));
+
+print("formats", roundTripSettings.title, roundTripSettings.server.port,
+      roundTripProject.name, roundTripProject.children[0].text);

@@ -213,7 +213,9 @@ void Heap::setThreshold(std::size_t threshold) {
 }
 
 HeapStats Heap::stats() const {
-  return {live(), allocatedCount, reclaimedCount, collectionCount, peakLiveCount, nextThreshold};
+  return {live(),          allocatedCount, reclaimedCount, collectionCount,
+          peakLiveCount, nextThreshold,   objects.size(), arrays.size(),
+          captureCells.size(), closures.size(), boundMethods.size(), errors.size()};
 }
 
 } // namespace kyna

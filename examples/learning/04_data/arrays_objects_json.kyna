@@ -1,0 +1,10 @@
+let numbers = [3, 1, 2];
+numbers[0] = 4;
+push(numbers, 5);
+
+set project = { name: "Kyna", version: 1, tags: ["language", "backend"] };
+set encoded = json.stringify(project);
+set decoded = json.parse(encoded);
+
+print("array", json.stringify(numbers), pop(numbers), len(numbers));
+print("object", decoded.name, decoded.tags[1], keys(decoded));

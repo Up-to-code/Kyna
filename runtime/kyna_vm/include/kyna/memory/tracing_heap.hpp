@@ -22,6 +22,12 @@ struct HeapStats {
   std::size_t collections{0};
   std::size_t peakLive{0};
   std::size_t nextThreshold{0};
+  std::size_t objects{0};
+  std::size_t arrays{0};
+  std::size_t captureCells{0};
+  std::size_t closures{0};
+  std::size_t boundMethods{0};
+  std::size_t errors{0};
 };
 
 struct HeapRoots {
@@ -70,6 +76,12 @@ public:
            boundMethods.size() + errors.size();
   }
   std::size_t collections() const { return collectionCount; }
+  std::size_t objectCount() const { return objects.size(); }
+  std::size_t arrayCount() const { return arrays.size(); }
+  std::size_t captureCellCount() const { return captureCells.size(); }
+  std::size_t closureCount() const { return closures.size(); }
+  std::size_t boundMethodCount() const { return boundMethods.size(); }
+  std::size_t errorCount() const { return errors.size(); }
   HeapStats stats() const;
   [[nodiscard]] RootScope rootScope() { return RootScope(*this); }
 

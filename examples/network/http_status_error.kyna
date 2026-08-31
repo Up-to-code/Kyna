@@ -1,0 +1,13 @@
+# HTTP 4xx/5xx responses are responses, not transport failures: inspect status/ok.
+try {
+    set response = fetch("https://jsonplaceholder.typicode.com/posts/999999", {
+        timeout: 10000
+    });
+    if (!response.ok) {
+        print("API error", response.status, response.text());
+    } else {
+        print("unexpected success", response.status);
+    }
+} catch (failure) {
+    print("transport error", failure.code, failure.message);
+}

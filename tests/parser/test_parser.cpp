@@ -8,6 +8,17 @@ int main() {
   assert(std::holds_alternative<kyna::ClassDecl>(program[0]->node));
   assert(std::holds_alternative<kyna::VarDecl>(program[1]->node));
 
+  auto quotedFields =
+      kyna::Parser(kyna::lex("set headers = { \"Content-Type\": \"application/json\", "
+                            "\"X-API-Key\": \"test\" };"))
+          .parse();
+  assert(quotedFields.size() == 1);
+  const auto &headersDeclaration = std::get<kyna::VarDecl>(quotedFields.front()->node);
+  const auto &headers = std::get<kyna::ObjectExpr>(headersDeclaration.initializer->node);
+  assert(headers.fields.size() == 2);
+  assert(headers.fields[0].name == "Content-Type");
+  assert(headers.fields[1].name == "X-API-Key");
+
   auto exceptions = kyna::Parser(kyna::lex(
       "try { throw \"failure\"; } catch (failure) { print(failure.message); } "
       "finally { print(\"cleanup\"); } try { print(\"work\"); } finally { print(\"done\"); }"))

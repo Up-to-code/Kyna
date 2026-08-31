@@ -1,0 +1,1 @@
+set contents = readFile("__kyna_missing_runtime_fixture__/missing.txt");

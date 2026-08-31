@@ -1,4 +1,6 @@
+#include "format_value_codec.hpp"
 #include "json_value_codec.hpp"
+#include "kyna/formats/document_formats.hpp"
 #include "kyna/semantics/modifier_query.hpp"
 #include "kyna/execution/runtime_capabilities.hpp"
 #include "kyna/execution/tree_walk_engine.hpp"
@@ -9,6 +11,7 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <sstream>
 
 namespace kyna {
 namespace {
@@ -29,6 +32,53 @@ KynaError networkError(const NetworkRequest &request, const NetworkFailure &fail
   diagnostic.help =
       "check the endpoint, DNS, proxy, certificate trust, and network access; use --trace for native details";
   return KynaError(diagnostic);
+}
+
+struct ServerRoute {
+  std::string method;
+  std::string pattern;
+  FunctionPtr handler;
+};
+
+std::optional<std::map<std::string, std::string>> matchRoute(std::string_view pattern,
+                                                             std::string_view path) {
+  std::map<std::string, std::string> parameters;
+  std::istringstream patterns{std::string(pattern)};
+  std::istringstream paths{std::string(path)};
+  std::string expected, actual;
+  while (true) {
+    const bool hasExpected = static_cast<bool>(std::getline(patterns, expected, '/'));
+    const bool hasActual = static_cast<bool>(std::getline(paths, actual, '/'));
+    if (hasExpected != hasActual) return std::nullopt;
+    if (!hasExpected) break;
+    if (!expected.empty() && expected.front() == ':') parameters.emplace(expected.substr(1), actual);
+    else if (expected != actual) return std::nullopt;
+  }
+  return parameters;
+}
+
+ObjectPtr mapObject(Interpreter &interpreter, const std::map<std::string, std::string> &values) {
+  auto object = interpreter.heap().allocate();
+  for (const auto &[name, value] : values) object->fields[name] = Value(value);
+  return object;
+}
+
+HttpOutgoingResponse runtimeHttpResponse(const Value &value) {
+  if (!std::holds_alternative<ObjectPtr>(value.data))
+    return {200, value.display(), {{"content-type", "text/plain; charset=utf-8"}}};
+  const auto object = std::get<ObjectPtr>(value.data);
+  HttpOutgoingResponse response;
+  if (const auto status = object->fields.find("status"); status != object->fields.end() &&
+      std::holds_alternative<std::int64_t>(status->second.data))
+    response.status = static_cast<int>(std::get<std::int64_t>(status->second.data));
+  if (const auto body = object->fields.find("body"); body != object->fields.end())
+    response.body = std::holds_alternative<std::string>(body->second.data)
+                        ? std::get<std::string>(body->second.data) : body->second.display();
+  if (const auto headers = object->fields.find("headers"); headers != object->fields.end() &&
+      std::holds_alternative<ObjectPtr>(headers->second.data))
+    for (const auto &[name, header] : std::get<ObjectPtr>(headers->second.data)->fields)
+      if (std::holds_alternative<std::string>(header.data)) response.headers[name] = std::get<std::string>(header.data);
+  return response;
 }
 
 } // namespace
@@ -96,8 +146,17 @@ void installStandardLibrary(Interpreter &interpreter) {
   auto stats = std::make_shared<Function>();
   stats->native = true;
   stats->nativeCall = [&interpreter, global](const std::vector<Value> &) {
-    return Value(std::string("heap: ") + std::to_string(interpreter.heap().live()) + " live, " +
-                 std::to_string(interpreter.heap().collections()) + " collections");
+    const auto snapshot = interpreter.heap().stats();
+    return Value(std::string("heap: live=") + std::to_string(snapshot.live) +
+                 " allocated=" + std::to_string(snapshot.allocated) +
+                 " reclaimed=" + std::to_string(snapshot.reclaimed) +
+                 " collections=" + std::to_string(snapshot.collections) +
+                 " objects=" + std::to_string(snapshot.objects) +
+                 " arrays=" + std::to_string(snapshot.arrays) +
+                 " captures=" + std::to_string(snapshot.captureCells) +
+                 " closures=" + std::to_string(snapshot.closures) +
+                 " bound-methods=" + std::to_string(snapshot.boundMethods) +
+                 " errors=" + std::to_string(snapshot.errors));
   };
   global->define("gcStats", Value(stats), false);
   auto length = std::make_shared<Function>();
@@ -385,6 +444,53 @@ void installStandardLibrary(Interpreter &interpreter) {
     return value ? Value(std::move(*value)) : Value();
   };
   global->define("processEnv", Value(environment), false);
+
+  const auto makeHostFunction = [capabilities](std::string name) {
+    auto function = std::make_shared<Function>();
+    function->native = true;
+    function->nativeCall = [capabilities, name = std::move(name)](
+                               const std::vector<Value> &arguments) -> Value {
+      if (!arguments.empty())
+        throw KynaError({name + " expects no arguments", {1, 1}, false, "KHOST2000"});
+      if (!capabilities.host)
+        throw KynaError(
+            {"host information capability is unavailable", {1, 1}, false, "KHOST2000"});
+      if (name == "osName")
+        return Value(capabilities.host->operatingSystem());
+      if (name == "osArchitecture")
+        return Value(capabilities.host->architecture());
+      if (name == "terminalIsInteractive")
+        return Value(capabilities.host->standardOutputIsTerminal());
+      if (name == "terminalSupportsColor")
+        return Value(capabilities.host->supportsColor());
+      std::string message;
+      auto directory = capabilities.host->workingDirectory(message);
+      if (!directory)
+        throw KynaError({std::move(message), {1, 1}, false, "KHOST2001"});
+      return Value(std::move(*directory));
+    };
+    return function;
+  };
+  auto osName = makeHostFunction("osName");
+  auto osArchitecture = makeHostFunction("osArchitecture");
+  auto osWorkingDirectory = makeHostFunction("osWorkingDirectory");
+  auto terminalIsInteractive = makeHostFunction("terminalIsInteractive");
+  auto terminalSupportsColor = makeHostFunction("terminalSupportsColor");
+  global->define("osName", Value(osName), false);
+  global->define("osArchitecture", Value(osArchitecture), false);
+  global->define("osWorkingDirectory", Value(osWorkingDirectory), false);
+  global->define("terminalIsInteractive", Value(terminalIsInteractive), false);
+  global->define("terminalSupportsColor", Value(terminalSupportsColor), false);
+  auto os = interpreter.heap().allocate();
+  os->fields["name"] = Value(osName);
+  os->fields["architecture"] = Value(osArchitecture);
+  os->fields["cwd"] = Value(osWorkingDirectory);
+  global->define("os", Value(os), false);
+  auto terminal = interpreter.heap().allocate();
+  terminal->fields["interactive"] = Value(terminalIsInteractive);
+  terminal->fields["supportsColor"] = Value(terminalSupportsColor);
+  global->define("terminal", Value(terminal), false);
+
   auto sleep = std::make_shared<Function>();
   sleep->native = true;
   sleep->nativeCall = [capabilities](const std::vector<Value> &a) {
@@ -427,6 +533,75 @@ void installStandardLibrary(Interpreter &interpreter) {
     return Value(stringifyJsonValue(arguments[0]));
   };
   global->define("jsonStringify", Value(jsonStringify), false);
+
+  auto json = interpreter.heap().allocate();
+  json->fields["parse"] = Value(jsonParse);
+  json->fields["stringify"] = Value(jsonStringify);
+  global->define("json", Value(json), false);
+
+  auto tomlParse = std::make_shared<Function>();
+  tomlParse->native = true;
+  tomlParse->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+      throw KynaError({"toml.parse expects one TOML string", {1, 1}, false, "KFORMAT1001"});
+    const auto parsed = parseTomlDocument(std::get<std::string>(arguments[0].data));
+    if (!parsed.valid)
+      throw KynaError({parsed.failure.message, {1, 1}, false, parsed.failure.code});
+    return formatValueToRuntime(parsed.value, interpreter.heap());
+  };
+  global->define("tomlParse", Value(tomlParse), false);
+
+  auto tomlStringify = std::make_shared<Function>();
+  tomlStringify->native = true;
+  tomlStringify->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1)
+      throw KynaError({"toml.stringify expects one object", {1, 1}, false, "KFORMAT1002"});
+    std::string conversionError;
+    auto converted = runtimeValueToFormat(arguments[0], conversionError);
+    if (!converted)
+      throw KynaError({std::move(conversionError), {1, 1}, false, "KFORMAT1002"});
+    const auto encoded = stringifyTomlDocument(*converted);
+    if (!encoded.valid)
+      throw KynaError({encoded.failure.message, {1, 1}, false, encoded.failure.code});
+    return Value(std::get<std::string>(encoded.value.data));
+  };
+  global->define("tomlStringify", Value(tomlStringify), false);
+  auto toml = interpreter.heap().allocate();
+  toml->fields["parse"] = Value(tomlParse);
+  toml->fields["stringify"] = Value(tomlStringify);
+  global->define("toml", Value(toml), false);
+
+  auto xmlParse = std::make_shared<Function>();
+  xmlParse->native = true;
+  xmlParse->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+      throw KynaError({"xml.parse expects one XML string", {1, 1}, false, "KFORMAT1101"});
+    const auto parsed = parseXmlDocument(std::get<std::string>(arguments[0].data));
+    if (!parsed.valid)
+      throw KynaError({parsed.failure.message, {1, 1}, false, parsed.failure.code});
+    return formatValueToRuntime(parsed.value, interpreter.heap());
+  };
+  global->define("xmlParse", Value(xmlParse), false);
+
+  auto xmlStringify = std::make_shared<Function>();
+  xmlStringify->native = true;
+  xmlStringify->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1)
+      throw KynaError({"xml.stringify expects one XML node", {1, 1}, false, "KFORMAT1102"});
+    std::string conversionError;
+    auto converted = runtimeValueToFormat(arguments[0], conversionError);
+    if (!converted)
+      throw KynaError({std::move(conversionError), {1, 1}, false, "KFORMAT1102"});
+    const auto encoded = stringifyXmlDocument(*converted);
+    if (!encoded.valid)
+      throw KynaError({encoded.failure.message, {1, 1}, false, encoded.failure.code});
+    return Value(std::get<std::string>(encoded.value.data));
+  };
+  global->define("xmlStringify", Value(xmlStringify), false);
+  auto xml = interpreter.heap().allocate();
+  xml->fields["parse"] = Value(xmlParse);
+  xml->fields["stringify"] = Value(xmlStringify);
+  global->define("xml", Value(xml), false);
 
   auto fetch = std::make_shared<Function>();
   fetch->native = true;
@@ -513,6 +688,161 @@ void installStandardLibrary(Interpreter &interpreter) {
     return Value(response);
   };
   global->define("fetch", Value(fetch), false);
+
+  auto fetchResult = std::make_shared<Function>();
+  fetchResult->native = true;
+  fetchResult->nativeCall = [&interpreter, fetch](const std::vector<Value> &arguments) {
+    try {
+      Value response = fetch->nativeCall(arguments);
+      auto roots = interpreter.heap().rootScope();
+      roots.protect(response);
+      auto result = interpreter.heap().allocate();
+      bool responseOk = true;
+      if (const auto object = std::get_if<ObjectPtr>(&response.data); object && *object) {
+        if (const auto found = (*object)->fields.find("ok");
+            found != (*object)->fields.end() && std::holds_alternative<bool>(found->second.data))
+          responseOk = std::get<bool>(found->second.data);
+      }
+      result->fields["ok"] = Value(responseOk);
+      result->fields["response"] = response;
+      result->fields["error"] = Value();
+      return Value(result);
+    } catch (const KynaError &failure) {
+      Value error(interpreter.heap().allocateError(failure.diagnostic.message,
+                                                    failure.diagnostic.code, Value()));
+      auto roots = interpreter.heap().rootScope();
+      roots.protect(error);
+      auto result = interpreter.heap().allocate();
+      result->fields["ok"] = Value(false);
+      result->fields["response"] = Value();
+      result->fields["error"] = error;
+      return Value(result);
+    }
+  };
+  global->define("fetchResult", Value(fetchResult), false);
+
+  auto http = interpreter.heap().allocate();
+  http->fields["fetch"] = Value(fetch);
+  http->fields["tryFetch"] = Value(fetchResult);
+
+  auto responseHelper = std::make_shared<Function>();
+  responseHelper->native = true;
+  responseHelper->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (arguments.empty() || arguments.size() > 2)
+      throw KynaError({"http.response expects a body and optional options object", {}, false, "KHTTP1001"});
+    auto response = interpreter.heap().allocate();
+    response->fields["body"] = arguments[0]; response->fields["status"] = Value(std::int64_t{200});
+    response->fields["headers"] = Value(interpreter.heap().allocate());
+    if (arguments.size() == 2) {
+      if (!std::holds_alternative<ObjectPtr>(arguments[1].data))
+        throw KynaError({"http.response options must be an object", {}, false, "KHTTP1001"});
+      const auto options = std::get<ObjectPtr>(arguments[1].data);
+      if (const auto status = options->fields.find("status"); status != options->fields.end()) response->fields["status"] = status->second;
+      if (const auto headers = options->fields.find("headers"); headers != options->fields.end()) response->fields["headers"] = headers->second;
+    }
+    return Value(response);
+  };
+  auto jsonResponse = std::make_shared<Function>();
+  jsonResponse->native = true;
+  jsonResponse->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (arguments.empty() || arguments.size() > 2)
+      throw KynaError({"http.json expects a value and optional status", {}, false, "KHTTP1002"});
+    auto response = interpreter.heap().allocate(); response->fields["body"] = Value(stringifyJsonValue(arguments[0]));
+    response->fields["status"] = arguments.size() == 2 ? arguments[1] : Value(std::int64_t{200});
+    auto headers = interpreter.heap().allocate(); headers->fields["content-type"] = Value(std::string("application/json; charset=utf-8"));
+    response->fields["headers"] = Value(headers); return Value(response);
+  };
+  auto redirect = std::make_shared<Function>();
+  redirect->native = true;
+  redirect->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (arguments.empty() || arguments.size() > 2 || !std::holds_alternative<std::string>(arguments[0].data))
+      throw KynaError({"http.redirect expects a URL and optional status", {}, false, "KHTTP1003"});
+    auto response = interpreter.heap().allocate(); response->fields["body"] = Value(std::string{});
+    response->fields["status"] = arguments.size() == 2 ? arguments[1] : Value(std::int64_t{302});
+    auto headers = interpreter.heap().allocate(); headers->fields["location"] = arguments[0]; response->fields["headers"] = Value(headers);
+    return Value(response);
+  };
+  auto createServer = std::make_shared<Function>();
+  createServer->native = true;
+  createServer->nativeCall = [&interpreter, capabilities](const std::vector<Value> &arguments) {
+    if (arguments.size() > 1 || (!arguments.empty() && !std::holds_alternative<ObjectPtr>(arguments[0].data)))
+      throw KynaError({"http.server expects an optional options object", {}, false, "KHTTP1100"});
+    HttpServerOptions serverOptions;
+    if (!arguments.empty()) {
+      const auto options = std::get<ObjectPtr>(arguments[0].data);
+      if (const auto host = options->fields.find("host"); host != options->fields.end() && std::holds_alternative<std::string>(host->second.data)) serverOptions.host = std::get<std::string>(host->second.data);
+      if (const auto port = options->fields.find("port"); port != options->fields.end() && std::holds_alternative<std::int64_t>(port->second.data)) serverOptions.port = static_cast<std::uint16_t>(std::get<std::int64_t>(port->second.data));
+    }
+    if (capabilities.processes) {
+      if (const auto host = capabilities.processes->environment("KYNA_SERVER_HOST")) serverOptions.host = *host;
+      if (const auto port = capabilities.processes->environment("KYNA_SERVER_PORT")) {
+        try { const auto parsed = std::stoul(*port); if (parsed > 0 && parsed <= 65535) serverOptions.port = static_cast<std::uint16_t>(parsed); }
+        catch (...) { throw KynaError({"KYNA_SERVER_PORT must be an integer from 1 to 65535", {}, false, "KHTTP1104"}); }
+      }
+    }
+    auto routes = std::make_shared<std::vector<ServerRoute>>(); auto server = interpreter.heap().allocate();
+    const auto addRoute = [routes](std::string method) {
+      auto function = std::make_shared<Function>(); function->native = true;
+      function->nativeCall = [routes, method = std::move(method)](const std::vector<Value> &values) {
+        if (values.size() != 2 || !std::holds_alternative<std::string>(values[0].data) || !std::holds_alternative<FunctionPtr>(values[1].data))
+          throw KynaError({"route registration expects a path and handler", {}, false, "KHTTP1101"});
+        routes->push_back({method, std::get<std::string>(values[0].data), std::get<FunctionPtr>(values[1].data)}); return Value();
+      }; return function;
+    };
+    for (const auto &method : {"GET", "POST", "PUT", "PATCH", "DELETE"}) {
+      std::string name(method); std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+      server->fields[name] = Value(addRoute(method));
+    }
+    auto use = std::make_shared<Function>(); use->native = true;
+    use->nativeCall = [routes](const std::vector<Value> &values) {
+      if (values.size() != 1 || !std::holds_alternative<FunctionPtr>(values[0].data))
+        throw KynaError({"app.use expects a middleware function", {}, false, "KHTTP1102"});
+      routes->push_back({"*", "*", std::get<FunctionPtr>(values[0].data)}); return Value();
+    }; server->fields["use"] = Value(use);
+    auto listen = std::make_shared<Function>(); listen->native = true;
+    listen->nativeCall = [&interpreter, capabilities, routes, serverOptions](const std::vector<Value> &values) {
+      if (!values.empty()) throw KynaError({"app.listen expects no arguments", {}, false, "KHTTP1103"});
+      if (!capabilities.server) throw KynaError({"the host has not provided HTTP server capability", {}, false, "KHTTP2000"});
+      std::string failure;
+      const bool ok = capabilities.server->listen(serverOptions, [&interpreter, routes](const HttpIncomingRequest &incoming) {
+        const auto queryStart = incoming.target.find('?'); const auto path = incoming.target.substr(0, queryStart);
+        std::map<std::string, std::string> query;
+        if (queryStart != std::string::npos) {
+          std::istringstream pairs(incoming.target.substr(queryStart + 1)); std::string pair;
+          while (std::getline(pairs, pair, '&')) { const auto split = pair.find('='); query[pair.substr(0, split)] = split == std::string::npos ? "" : pair.substr(split + 1); }
+        }
+        auto request = interpreter.heap().allocate(); request->fields["method"] = Value(incoming.method); request->fields["path"] = Value(path);
+        request->fields["query"] = Value(mapObject(interpreter, query)); request->fields["headers"] = Value(mapObject(interpreter, incoming.headers)); request->fields["body"] = Value(incoming.body);
+        auto text = std::make_shared<Function>(); text->native = true; text->nativeCall = [body = incoming.body](const std::vector<Value> &args) { if (!args.empty()) throw KynaError({"request.text expects no arguments", {}, false}); return Value(body); };
+        auto jsonBody = std::make_shared<Function>(); jsonBody->native = true; jsonBody->nativeCall = [&interpreter, body = incoming.body](const std::vector<Value> &args) { if (!args.empty()) throw KynaError({"request.json expects no arguments", {}, false}); return parseJsonValue(body, interpreter); };
+        request->fields["text"] = Value(text); request->fields["json"] = Value(jsonBody);
+        for (const auto &route : *routes) {
+          if (route.method == "*") { const auto value = interpreter.invoke(route.handler, {Value(request)}); if (!std::holds_alternative<std::nullptr_t>(value.data)) return runtimeHttpResponse(value); continue; }
+          if (route.method != incoming.method) continue;
+          const auto parameters = matchRoute(route.pattern, path); if (!parameters) continue;
+          request->fields["params"] = Value(mapObject(interpreter, *parameters)); return runtimeHttpResponse(interpreter.invoke(route.handler, {Value(request)}));
+        }
+        return HttpOutgoingResponse{404, "not found", {{"content-type", "text/plain; charset=utf-8"}}};
+      }, failure);
+      if (!ok) {
+        Diagnostic diagnostic{failure, {}, false,
+                              failure == "interrupted" ? "KHTTP0130" : "KHTTP2001"};
+        diagnostic.category = "http";
+        if (failure.find("Address already in use") != std::string::npos ||
+            failure.find("address already in use") != std::string::npos) {
+          diagnostic.help =
+              "stop the existing Kyna Run/Dev task, or change [server].port in kyna.toml";
+        }
+        throw KynaError(diagnostic);
+      }
+      return Value();
+    }; server->fields["listen"] = Value(listen); return Value(server);
+  };
+  http->fields["response"] = Value(responseHelper);
+  http->fields["json"] = Value(jsonResponse);
+  http->fields["redirect"] = Value(redirect);
+  http->fields["server"] = Value(createServer);
+  global->define("http", Value(http), false);
 
   auto filter = std::make_shared<Function>();
   filter->native = true;

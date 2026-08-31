@@ -1,0 +1,4 @@
+import "./app.kyna" as application;
+
+set app = application.createApp();
+app.listen();
