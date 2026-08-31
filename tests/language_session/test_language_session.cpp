@@ -262,6 +262,23 @@ int main() {
       "if (ordered[0] != 1 || ordered[3] != 3 || len(distinct) != 3 || "
       "names[0] != \"alpha\" || names[1] != \"beta\") { error(\"collections\"); }");
   assert(bytecodeCollections.ok());
+  const auto bytecodeJsonFileWrites = files->writes;
+  const auto bytecodeJsonFileReads = files->reads;
+  const auto bytecodeRemovals = files->removals;
+  const auto bytecodeProcessRuns = processes->runs;
+  const auto bytecodeHostUtilities = deterministicSession.runSource(
+      "bytecode-host-utilities.kyna",
+      "writeJsonFile(\"products.json\", { id: 42, ready: true }); "
+      "set saved = readJsonFile(\"products.json\"); "
+      "set entries = listDirectory(\".\"); "
+      "if (saved.id != 42 || entries[0] != \"products.json\" || "
+      "processRun(\"deterministic\") != 0 || !removePath(\"products.json\")) { "
+      "error(\"host utilities\"); }");
+  assert(bytecodeHostUtilities.ok());
+  assert(files->writes == bytecodeJsonFileWrites + 1);
+  assert(files->reads == bytecodeJsonFileReads + 1);
+  assert(files->removals == bytecodeRemovals + 1);
+  assert(processes->runs == bytecodeProcessRuns + 1);
   auto collectionsResult = deterministicSession.runSource(
       "collections.kyna",
       "func kynaDouble(value: int): int { return value * 2; } "

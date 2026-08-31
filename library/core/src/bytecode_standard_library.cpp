@@ -85,11 +85,70 @@ public:
         return failure("KFS2004", std::move(message), arguments[0]);
       return {RuntimeValue(true), std::nullopt};
     }
+    if (name == "removePath") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KFS2005", "removePath expects exactly one string path");
+      std::string message;
+      const auto removed =
+          capabilities.files->remove(std::get<std::string>(arguments[0].data), message);
+      if (!message.empty())
+        return failure("KFS2005", std::move(message), arguments[0]);
+      return {RuntimeValue(removed), std::nullopt};
+    }
+    if (name == "listDirectory") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KFS2006", "listDirectory expects exactly one string path");
+      std::string message;
+      auto entries =
+          capabilities.files->list(std::get<std::string>(arguments[0].data), message);
+      if (!entries)
+        return failure("KFS2006", std::move(message), arguments[0]);
+      auto *result = heap.allocateArray();
+      for (auto &entry : *entries)
+        result->elements.emplace_back(std::move(entry));
+      return {RuntimeValue(result), std::nullopt};
+    }
+    if (name == "readJsonFile") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KFS2007", "readJsonFile expects exactly one string path");
+      std::string message;
+      auto contents = capabilities.files->read(std::get<std::string>(arguments[0].data), message);
+      if (!contents)
+        return failure("KFS2007", std::move(message), arguments[0]);
+      try {
+        return {parseJsonValue(*contents, heap), std::nullopt};
+      } catch (const KynaError &error) {
+        return failure(error.diagnostic.code.empty() ? "K5100" : error.diagnostic.code,
+                       error.diagnostic.message, arguments[0]);
+      }
+    }
+    if (name == "writeJsonFile") {
+      if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KFS2008", "writeJsonFile expects a string path and value");
+      std::string encoded;
+      try {
+        encoded = stringifyJsonValue(arguments[1]);
+      } catch (const KynaError &error) {
+        return failure(error.diagnostic.code.empty() ? "K5101" : error.diagnostic.code,
+                       error.diagnostic.message, arguments[1]);
+      }
+      std::string message;
+      if (!capabilities.files->write(std::get<std::string>(arguments[0].data), encoded, message))
+        return failure("KFS2008", std::move(message), arguments[0]);
+      return {RuntimeValue(true), std::nullopt};
+    }
     if (name == "processEnv") {
       if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
         return failure("KPROC2001", "processEnv expects exactly one variable name");
       auto value = capabilities.processes->environment(std::get<std::string>(arguments[0].data));
       return {value ? RuntimeValue(std::move(*value)) : RuntimeValue(), std::nullopt};
+    }
+    if (name == "processRun" || name == "build") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("KPROC2002", std::string(name) + " expects one command string");
+      return {RuntimeValue(static_cast<std::int64_t>(
+                  capabilities.processes->run(std::get<std::string>(arguments[0].data)))),
+              std::nullopt};
     }
     if (name == "sleep" || name == "wait") {
       if (arguments.size() != 1 || !std::holds_alternative<std::int64_t>(arguments[0].data))
@@ -212,7 +271,8 @@ private:
 const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
       "print", "log", "typeOf", "len", "error", "readFile", "writeFile", "fileExists",
-      "createDirectory", "processEnv", "sleep", "wait", "httpGet", "jsonParse",
+      "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
+      "processEnv", "processRun", "build", "sleep", "wait", "httpGet", "jsonParse",
       "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort"};
   return names;
 }
