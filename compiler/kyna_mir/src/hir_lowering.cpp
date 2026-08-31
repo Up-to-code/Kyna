@@ -208,6 +208,13 @@ private:
             current().instructions.push_back({MirInstructionKind::LoadMember, target, object, {},
                                                node.member, expression.span, 0, {}});
             return target;
+          } else if constexpr (std::is_same_v<T, HirBoundMethodExpression>) {
+            const auto target = temporary();
+            const auto receiver = lowerExpression(node.receiver);
+            current().instructions.push_back({MirInstructionKind::BindMethod, target, receiver,
+                                               {}, nullptr, expression.span,
+                                               node.function.value + 1, {}});
+            return target;
           } else if constexpr (std::is_same_v<T, HirNativeCallExpression>) {
             const auto target = temporary();
             std::vector<MirTemporary> arguments;
@@ -637,6 +644,7 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::CallIndirect: return "call_indirect";
   case MirInstructionKind::CallNative: return "call_native";
   case MirInstructionKind::LoadMember: return "load_member";
+  case MirInstructionKind::BindMethod: return "bind_method";
   case MirInstructionKind::MakeArray: return "make_array";
   case MirInstructionKind::MakeObject: return "make_object";
   case MirInstructionKind::MakeInstance: return "make_instance";

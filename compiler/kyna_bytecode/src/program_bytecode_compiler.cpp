@@ -31,6 +31,7 @@ OpCode opcodeFor(MirInstructionKind kind) {
   case MirInstructionKind::CallIndirect: return OpCode::CallIndirect;
   case MirInstructionKind::CallNative: return OpCode::CallNative;
   case MirInstructionKind::LoadMember: return OpCode::LoadMember;
+  case MirInstructionKind::BindMethod: return OpCode::BindMethod;
   case MirInstructionKind::MakeArray: return OpCode::MakeArray;
   case MirInstructionKind::MakeObject: return OpCode::MakeObject;
   case MirInstructionKind::MakeInstance: return OpCode::MakeInstance;
@@ -113,6 +114,10 @@ void compileBody(BytecodeModule &module, BytecodeFunction &function,
         function.instructions.push_back(
             {OpCode::LoadMember, instruction.destination.value, instruction.first.value,
              static_cast<std::uint32_t>(module.constants.size() - 1), instruction.span});
+      } else if (instruction.kind == MirInstructionKind::BindMethod) {
+        function.instructions.push_back(
+            {OpCode::BindMethod, instruction.destination.value, instruction.first.value,
+             instruction.function, instruction.span});
       } else if (instruction.kind == MirInstructionKind::MakeArray ||
                  instruction.kind == MirInstructionKind::MakeObject ||
                  instruction.kind == MirInstructionKind::MakeInstance) {

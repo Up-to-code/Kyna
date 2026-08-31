@@ -45,6 +45,7 @@ enum class MirInstructionKind {
   CallIndirect,
   CallNative,
   LoadMember,
+  BindMethod,
   MakeArray,
   MakeObject,
   MakeInstance,

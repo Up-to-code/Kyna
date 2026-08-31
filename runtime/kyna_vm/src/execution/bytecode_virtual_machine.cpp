@@ -546,6 +546,20 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       }
       break;
     }
+    case OpCode::BindMethod: {
+      const auto &receiver = readRegister(frame, instruction.first);
+      const auto instance = std::get_if<ObjectPtr>(&receiver.data);
+      if (!instance || !*instance) {
+        if (auto failure = raise("KVM2203", "method receiver must be an object, got '" +
+                                                receiver.typeName() + "'",
+                                 instruction.span, receiver))
+          return *std::move(failure);
+        continue;
+      }
+      writeRegister(frame, instruction.destination,
+                    RuntimeValue(heap.allocateBoundMethod(*instance, instruction.second)));
+      break;
+    }
     case OpCode::MakeInstance: {
       const auto &klass = module.classes[instruction.first];
       auto *instance = heap.allocate();

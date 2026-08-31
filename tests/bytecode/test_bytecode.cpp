@@ -238,7 +238,7 @@ int main() {
   assert(firstClassMir.ok());
   auto firstClassModule = kyna::compileMirToBytecode(*firstClassMir.program);
   assert(firstClassModule.ok());
-  assert(firstClassModule.module->formatVersion == 6);
+  assert(firstClassModule.module->formatVersion == 7);
   const auto firstClassListing = kyna::disassembleBytecode(*firstClassModule.module);
   assert(firstClassListing.find("load.function") != std::string::npos);
   assert(firstClassListing.find("call.indirect") != std::string::npos);
@@ -272,6 +272,27 @@ int main() {
   const auto classResult = kyna::BytecodeVirtualMachine().execute(*classModule.module);
   assert(classResult.ok());
   assert(std::get<std::string>(classResult.value.data) == "Rex barks");
+
+  const auto superSource = sources.add(
+      "super-dispatch",
+      "class Base { public func value(): int { return 40; } } "
+      "class Derived extends Base { public override func value(): int { "
+      "return super.value() + 2; } } return new Derived().value();");
+  auto superLexed = kyna::tokenize(*sources.find(superSource));
+  auto superParsed =
+      kyna::parseModule(*sources.find(superSource), std::move(superLexed.tokens));
+  auto superHir = kyna::lowerSyntaxToHir("super-dispatch", superParsed.tree);
+  assert(superHir.ok());
+  assert(kyna::renderHir(*superHir.program).find("bind.method") != std::string::npos);
+  auto superMir = kyna::lowerHirToMir(*superHir.program);
+  assert(superMir.ok());
+  auto superModule = kyna::compileMirToBytecode(*superMir.program);
+  assert(superModule.ok());
+  assert(kyna::disassembleBytecode(*superModule.module).find("bind.method") !=
+         std::string::npos);
+  const auto superResult = kyna::BytecodeVirtualMachine().execute(*superModule.module);
+  assert(superResult.ok());
+  assert(std::get<std::int64_t>(superResult.value.data) == 42);
 
   const auto closureSource = sources.add(
       "closures",

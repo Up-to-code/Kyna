@@ -85,6 +85,9 @@ std::string renderHir(const HirProgram &program) {
             output << ')';
           } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
             output << "member %e" << node.object.value << ", " << node.member;
+          } else if constexpr (std::is_same_v<T, HirBoundMethodExpression>) {
+            output << "bind.method %e" << node.receiver.value << ", @f"
+                   << node.function.value;
           } else if constexpr (std::is_same_v<T, HirIndexExpression>) {
             output << "index %e" << node.object.value << ", %e" << node.index.value;
           } else if constexpr (std::is_same_v<T, HirArrayExpression>) {

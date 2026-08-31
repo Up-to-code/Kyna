@@ -145,6 +145,7 @@ private:
   std::vector<bool> responseLocals;
   std::optional<HirFunctionId> currentFunction;
   std::optional<HirLocalId> currentSelf;
+  std::optional<HirClassId> currentClass;
   std::unordered_map<const Stmt *, std::pair<HirFunctionId, HirLocalId>> nestedFunctions;
 
   void unsupported(std::string construct, SourceSpan span) {
@@ -208,6 +209,7 @@ private:
                      std::optional<HirClassId> owningClass = std::nullopt) {
     const auto previousFunction = currentFunction;
     const auto previousSelf = currentSelf;
+    const auto previousClass = currentClass;
     auto previousLoops = std::move(loopLabels);
     std::vector<std::unordered_map<std::string, HirLocalId>> savedScopes;
     if (!preserveOuterScopes) {
@@ -219,9 +221,11 @@ private:
     if (owningClass) {
       const auto receiver = addNamedLocal("self", false, span);
       currentSelf = receiver;
+      currentClass = owningClass;
       program.functions.at(id.value).parameters.push_back(receiver);
     } else if (!preserveOuterScopes) {
       currentSelf.reset();
+      currentClass.reset();
     }
     for (const auto &parameter : declaration.params)
       program.functions.at(id.value).parameters.push_back(addParameter(parameter, span));
@@ -232,6 +236,7 @@ private:
     const auto captures = program.functions.at(id.value).captures;
     currentFunction = previousFunction;
     currentSelf = previousSelf;
+    currentClass = previousClass;
     loopLabels = std::move(previousLoops);
     if (!preserveOuterScopes)
       scopes = std::move(savedScopes);
@@ -445,6 +450,31 @@ private:
             return addExpression(HirBinaryExpression{*left, *operation, *right},
                                  expression->location);
           } else if constexpr (std::is_same_v<T, Member>) {
+            if (node.object && std::holds_alternative<SuperExpr>(node.object->node)) {
+              if (!currentSelf || !currentClass ||
+                  !program.classes[currentClass->value].parent) {
+                unsupported("super member access without a parent class",
+                            expression->location);
+                return std::nullopt;
+              }
+              auto cursor = program.classes[currentClass->value].parent;
+              while (cursor) {
+                const auto &parent = program.classes[cursor->value];
+                for (const auto &method : parent.methods)
+                  if (method.name == node.name) {
+                    captureIfNeeded(*currentSelf);
+                    const auto receiver =
+                        addExpression(HirLocalExpression{*currentSelf}, node.object->location);
+                    return addExpression(
+                        HirBoundMethodExpression{receiver, method.function},
+                        expression->location);
+                  }
+                cursor = parent.parent;
+              }
+              unsupported("parent method '" + node.name + "' does not exist",
+                          expression->location);
+              return std::nullopt;
+            }
             const auto object = lowerExpression(node.object);
             return object ? std::optional{addExpression(
                                 HirMemberExpression{*object, node.name}, expression->location)}

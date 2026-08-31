@@ -108,6 +108,10 @@ struct HirMemberExpression {
   HirExpressionId object;
   std::string member;
 };
+struct HirBoundMethodExpression {
+  HirExpressionId receiver;
+  HirFunctionId function;
+};
 struct HirIndexExpression {
   HirExpressionId object;
   HirExpressionId index;
@@ -145,7 +149,8 @@ struct HirExpression {
                             HirBinaryExpression, HirAssignLocalExpression,
                             HirAssignIndexExpression, HirAssignMemberExpression, HirCallExpression,
                             HirIndirectCallExpression, HirNativeCallExpression,
-                            HirNewExpression, HirMemberExpression, HirIndexExpression, HirArrayExpression,
+                            HirNewExpression, HirMemberExpression, HirBoundMethodExpression,
+                            HirIndexExpression, HirArrayExpression,
                             HirObjectExpression, HirIfExpression, HirMatchExpression>;
   Node node;
   SourceSpan span;

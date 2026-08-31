@@ -39,6 +39,7 @@ enum class OpCode : std::uint8_t {
   CallIndirect,
   CallNative,
   LoadMember,
+  BindMethod,
   MakeArray,
   MakeObject,
   MakeInstance,
@@ -92,7 +93,7 @@ struct BytecodeClass {
 };
 
 struct BytecodeModule {
-  static constexpr std::uint32_t FormatVersion = 6;
+  static constexpr std::uint32_t FormatVersion = 7;
   std::uint32_t formatVersion{FormatVersion};
   std::string name;
   std::vector<BytecodeConstant> constants;

@@ -71,6 +71,8 @@ void renderBody(std::ostringstream &output, const std::vector<MirBasicBlock> &bl
       } else if (instruction.kind == MirInstructionKind::LoadMember) {
         output << " %t" << instruction.first.value << ", "
                << std::get<std::string>(instruction.constant);
+      } else if (instruction.kind == MirInstructionKind::BindMethod) {
+        output << " %t" << instruction.first.value << ", @f" << instruction.function;
       } else if (instruction.kind == MirInstructionKind::MakeArray ||
                  instruction.kind == MirInstructionKind::MakeObject) {
         output << (instruction.kind == MirInstructionKind::MakeArray ? " [" : " {");

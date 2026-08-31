@@ -1,5 +1,5 @@
 {
-  "formatVersion": 6,
+  "formatVersion": 7,
   "opcodes": [
     { "enum": "LoadConstant", "mnemonic": "load.constant" },
     { "enum": "LoadNull", "mnemonic": "load.null" },
@@ -27,6 +27,7 @@
     { "enum": "CallIndirect", "mnemonic": "call.indirect" },
     { "enum": "CallNative", "mnemonic": "call.native" },
     { "enum": "LoadMember", "mnemonic": "load.member" },
+    { "enum": "BindMethod", "mnemonic": "bind.method" },
     { "enum": "MakeArray", "mnemonic": "make.array" },
     { "enum": "MakeObject", "mnemonic": "make.object" },
     { "enum": "MakeInstance", "mnemonic": "make.instance" },

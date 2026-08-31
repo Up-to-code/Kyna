@@ -190,6 +190,17 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
           report(result, "KBC1124", "member name is not a valid string constant",
                  instruction.span);
         break;
+      case OpCode::BindMethod:
+        registerError(instruction.destination, "bound-method destination");
+        registerError(instruction.first, "bound-method receiver");
+        if (instruction.second >= module.functions.size() ||
+            instruction.second == module.entryFunction)
+          report(result, "KBC1209", "bound method function index is invalid",
+                 instruction.span);
+        else if (module.functions[instruction.second].parameterCount == 0)
+          report(result, "KBC1210", "bound method function does not accept a receiver",
+                 instruction.span);
+        break;
       case OpCode::MakeArray:
       case OpCode::MakeObject:
         registerError(instruction.destination, "collection destination");

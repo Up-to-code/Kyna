@@ -54,6 +54,7 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           instruction.kind != MirInstructionKind::CallIndirect &&
           instruction.kind != MirInstructionKind::CallNative &&
           instruction.kind != MirInstructionKind::LoadMember &&
+          instruction.kind != MirInstructionKind::BindMethod &&
           instruction.kind != MirInstructionKind::MakeArray &&
           instruction.kind != MirInstructionKind::MakeObject &&
           instruction.kind != MirInstructionKind::MakeInstance &&
@@ -73,6 +74,15 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
         if (!std::holds_alternative<std::string>(instruction.constant))
           addError(diagnostics, "MIR member load has a non-string member name",
                    instruction.span, "KMIR1130");
+      }
+      if (instruction.kind == MirInstructionKind::BindMethod) {
+        if (!validTemporary(instruction.first))
+          addError(diagnostics, "MIR method binding reads an invalid receiver temporary",
+                   instruction.span, "KMIR1139");
+        if (instruction.function == 0 ||
+            instruction.function >= program.functions.size() + 1)
+          addError(diagnostics, "MIR method binding targets an invalid function",
+                   instruction.span, "KMIR1140");
       }
       if (instruction.kind == MirInstructionKind::CallNative) {
         if (!std::holds_alternative<std::string>(instruction.constant))
