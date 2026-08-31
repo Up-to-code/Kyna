@@ -170,6 +170,23 @@ private:
             instruction.function = node.function.value + 1;
             current().instructions.push_back(std::move(instruction));
             return target;
+          } else if constexpr (std::is_same_v<T, HirAssignIndexExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> operands{lowerExpression(node.object),
+                                               lowerExpression(node.index),
+                                               lowerExpression(node.value)};
+            current().instructions.push_back({MirInstructionKind::StoreIndex, target, {}, {},
+                                               nullptr, expression.span, 0,
+                                               std::move(operands)});
+            return target;
+          } else if constexpr (std::is_same_v<T, HirAssignMemberExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> operands{lowerExpression(node.object),
+                                               lowerExpression(node.value)};
+            current().instructions.push_back({MirInstructionKind::StoreMember, target, {}, {},
+                                               node.member, expression.span, 0,
+                                               std::move(operands)});
+            return target;
           } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
             const auto target = temporary();
             const auto object = lowerExpression(node.object);
@@ -598,6 +615,8 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::MakeArray: return "make_array";
   case MirInstructionKind::MakeObject: return "make_object";
   case MirInstructionKind::LoadIndex: return "load_index";
+  case MirInstructionKind::StoreIndex: return "store_index";
+  case MirInstructionKind::StoreMember: return "store_member";
   }
   return "unknown";
 }

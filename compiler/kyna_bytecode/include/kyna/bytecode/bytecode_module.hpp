@@ -41,6 +41,8 @@ enum class OpCode : std::uint8_t {
   MakeArray,
   MakeObject,
   LoadIndex,
+  StoreIndex,
+  StoreMember,
   Throw,
   Return,
 };

@@ -126,6 +126,12 @@ std::string disassembleBytecode(const BytecodeModule &module) {
         output << " r" << instruction.destination << ", r" << instruction.first << ", r"
                << instruction.second;
         break;
+      case OpCode::StoreIndex:
+      case OpCode::StoreMember:
+        output << " r" << instruction.destination << ", operands[" << instruction.first << ']';
+        if (instruction.opcode == OpCode::StoreMember)
+          output << ", constant[" << instruction.second << ']';
+        break;
       case OpCode::Throw:
         output << " r" << instruction.first;
         break;

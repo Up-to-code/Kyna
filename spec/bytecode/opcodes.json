@@ -30,6 +30,8 @@
     { "enum": "MakeArray", "mnemonic": "make.array" },
     { "enum": "MakeObject", "mnemonic": "make.object" },
     { "enum": "LoadIndex", "mnemonic": "load.index" },
+    { "enum": "StoreIndex", "mnemonic": "store.index" },
+    { "enum": "StoreMember", "mnemonic": "store.member" },
     { "enum": "Throw", "mnemonic": "throw" },
     { "enum": "Return", "mnemonic": "return" }
   ]

@@ -55,7 +55,9 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           instruction.kind != MirInstructionKind::CallNative &&
           instruction.kind != MirInstructionKind::LoadMember &&
           instruction.kind != MirInstructionKind::MakeArray &&
-          instruction.kind != MirInstructionKind::MakeObject) {
+          instruction.kind != MirInstructionKind::MakeObject &&
+          instruction.kind != MirInstructionKind::StoreIndex &&
+          instruction.kind != MirInstructionKind::StoreMember) {
         if (!validTemporary(instruction.first))
           addError(diagnostics, "MIR instruction reads an invalid temporary", instruction.span,
                    "KMIR1103");
@@ -90,6 +92,21 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
             instruction.names.size() != instruction.arguments.size())
           addError(diagnostics, "MIR object field names and values have different lengths",
                    instruction.span, "KMIR1134");
+      }
+      if (instruction.kind == MirInstructionKind::StoreIndex ||
+          instruction.kind == MirInstructionKind::StoreMember) {
+        const auto expected = instruction.kind == MirInstructionKind::StoreIndex ? 3u : 2u;
+        if (instruction.arguments.size() != expected)
+          addError(diagnostics, "MIR mutation operand count is invalid", instruction.span,
+                   "KMIR1135");
+        for (const auto operand : instruction.arguments)
+          if (!validTemporary(operand))
+            addError(diagnostics, "MIR mutation reads an invalid temporary", instruction.span,
+                     "KMIR1136");
+        if (instruction.kind == MirInstructionKind::StoreMember &&
+            !std::holds_alternative<std::string>(instruction.constant))
+          addError(diagnostics, "MIR member store has a non-string member name",
+                   instruction.span, "KMIR1137");
       }
       if (instruction.kind == MirInstructionKind::Call) {
         if (instruction.function == 0 || instruction.function >= program.functions.size() + 1)

@@ -83,6 +83,15 @@ void renderBody(std::ostringstream &output, const std::vector<MirBasicBlock> &bl
         output << (instruction.kind == MirInstructionKind::MakeArray ? ']' : '}');
       } else if (instruction.kind == MirInstructionKind::LoadIndex) {
         output << " %t" << instruction.first.value << ", %t" << instruction.second.value;
+      } else if (instruction.kind == MirInstructionKind::StoreIndex ||
+                 instruction.kind == MirInstructionKind::StoreMember) {
+        output << ' ';
+        for (std::size_t index = 0; index < instruction.arguments.size(); ++index) {
+          if (index) output << ", ";
+          output << "%t" << instruction.arguments[index].value;
+        }
+        if (instruction.kind == MirInstructionKind::StoreMember)
+          output << ", " << std::get<std::string>(instruction.constant);
       } else {
         output << " %t" << instruction.first.value;
         if (instruction.kind != MirInstructionKind::Move &&

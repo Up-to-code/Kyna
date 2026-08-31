@@ -484,6 +484,29 @@ int main() {
   assert(collectionLiteralResult.ok());
   assert(std::get<std::int64_t>(collectionLiteralResult.value.data) == 42);
 
+  const auto collectionMutationSource = sources.add(
+      "collection-mutation",
+      "let values = [1]; values[0] = 40; let record = { answer: 0 }; "
+      "record.answer = values[0] + 2; return record[\"answer\"];");
+  auto collectionMutationLexed = kyna::tokenize(*sources.find(collectionMutationSource));
+  auto collectionMutationParsed = kyna::parseModule(*sources.find(collectionMutationSource),
+                                                     std::move(collectionMutationLexed.tokens));
+  auto collectionMutationHir =
+      kyna::lowerSyntaxToHir("collection-mutation", collectionMutationParsed.tree);
+  assert(collectionMutationHir.ok());
+  auto collectionMutationMir = kyna::lowerHirToMir(*collectionMutationHir.program);
+  assert(collectionMutationMir.ok());
+  auto collectionMutationModule = kyna::compileMirToBytecode(*collectionMutationMir.program);
+  assert(collectionMutationModule.ok());
+  const auto collectionMutationListing =
+      kyna::disassembleBytecode(*collectionMutationModule.module);
+  assert(collectionMutationListing.find("store.index") != std::string::npos);
+  assert(collectionMutationListing.find("store.member") != std::string::npos);
+  const auto collectionMutationResult =
+      kyna::BytecodeVirtualMachine().execute(*collectionMutationModule.module);
+  assert(collectionMutationResult.ok());
+  assert(std::get<std::int64_t>(collectionMutationResult.value.data) == 42);
+
   kyna::BytecodeModule module;
   module.name = "arithmetic";
   module.constants = {std::int64_t{20}, std::int64_t{22}};

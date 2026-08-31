@@ -565,6 +565,84 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         return *std::move(failure);
       continue;
     }
+    case OpCode::StoreIndex: {
+      const auto &operands = module.callArguments[instruction.first];
+      const auto &object = readRegister(frame, operands[0]);
+      const auto &index = readRegister(frame, operands[1]);
+      const auto value = readRegister(frame, operands[2]);
+      if (const auto array = std::get_if<ArrayPtr>(&object.data); array && *array) {
+        const auto position = std::get_if<std::int64_t>(&index.data);
+        if (!position) {
+          if (auto failure = raise("KRT2103", "array index must be an integer, got '" +
+                                                  index.typeName() + "'",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        if (*position < 0 || static_cast<std::size_t>(*position) >= (*array)->elements.size()) {
+          if (auto failure = raise("KRT2104", "array index " + std::to_string(*position) +
+                                                  " is out of bounds for length " +
+                                                  std::to_string((*array)->elements.size()),
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        (*array)->elements[static_cast<std::size_t>(*position)] = value;
+        writeRegister(frame, instruction.destination, value);
+        break;
+      }
+      if (const auto instance = std::get_if<ObjectPtr>(&object.data); instance && *instance) {
+        const auto key = std::get_if<std::string>(&index.data);
+        if (!key) {
+          if (auto failure = raise("KRT2103", "object key must be a string, got '" +
+                                                  index.typeName() + "'",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        const auto found = (*instance)->fields.find(*key);
+        if (found == (*instance)->fields.end()) {
+          if (auto failure = raise("KRT2105", "unknown field '" + *key +
+                                                  "' on closed object",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        found->second = value;
+        writeRegister(frame, instruction.destination, value);
+        break;
+      }
+      if (auto failure = raise("KRT2102", "cannot assign through value of type '" +
+                                              object.typeName() + "'",
+                               instruction.span, object))
+        return *std::move(failure);
+      continue;
+    }
+    case OpCode::StoreMember: {
+      const auto &operands = module.callArguments[instruction.first];
+      const auto &object = readRegister(frame, operands[0]);
+      const auto value = readRegister(frame, operands[1]);
+      const auto &member = std::get<std::string>(module.constants[instruction.second]);
+      const auto instance = std::get_if<ObjectPtr>(&object.data);
+      if (!instance || !*instance) {
+        if (auto failure = raise("KRT2003", "member assignment requires an object, got '" +
+                                                object.typeName() + "'",
+                                 instruction.span, object))
+          return *std::move(failure);
+        continue;
+      }
+      const auto found = (*instance)->fields.find(member);
+      if (found == (*instance)->fields.end()) {
+        if (auto failure = raise("KRT2004", "unknown field '" + member +
+                                                "' on closed object",
+                                 instruction.span, object))
+          return *std::move(failure);
+        continue;
+      }
+      found->second = value;
+      writeRegister(frame, instruction.destination, value);
+      break;
+    }
     case OpCode::Throw: {
       const auto &thrown = readRegister(frame, instruction.first);
       ErrorObject *error = nullptr;

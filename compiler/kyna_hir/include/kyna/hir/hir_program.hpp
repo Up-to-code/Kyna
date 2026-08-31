@@ -73,6 +73,16 @@ struct HirAssignLocalExpression {
   HirLocalId local;
   HirExpressionId value;
 };
+struct HirAssignIndexExpression {
+  HirExpressionId object;
+  HirExpressionId index;
+  HirExpressionId value;
+};
+struct HirAssignMemberExpression {
+  HirExpressionId object;
+  std::string member;
+  HirExpressionId value;
+};
 struct HirCallExpression {
   HirFunctionId function;
   std::vector<HirExpressionId> arguments;
@@ -123,7 +133,8 @@ struct HirExpression {
   using Node = std::variant<HirConstantExpression, HirLocalExpression,
                             HirFunctionReferenceExpression, HirClosureExpression,
                             HirUnaryExpression,
-                            HirBinaryExpression, HirAssignLocalExpression, HirCallExpression,
+                            HirBinaryExpression, HirAssignLocalExpression,
+                            HirAssignIndexExpression, HirAssignMemberExpression, HirCallExpression,
                             HirIndirectCallExpression, HirNativeCallExpression,
                             HirMemberExpression, HirIndexExpression, HirArrayExpression,
                             HirObjectExpression, HirIfExpression, HirMatchExpression>;

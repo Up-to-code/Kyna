@@ -49,6 +49,12 @@ std::string renderHir(const HirProgram &program) {
                    << node.right.value;
           else if constexpr (std::is_same_v<T, HirAssignLocalExpression>)
             output << "assign %l" << node.local.value << ", %e" << node.value.value;
+          else if constexpr (std::is_same_v<T, HirAssignIndexExpression>)
+            output << "assign.index %e" << node.object.value << ", %e" << node.index.value
+                   << ", %e" << node.value.value;
+          else if constexpr (std::is_same_v<T, HirAssignMemberExpression>)
+            output << "assign.member %e" << node.object.value << ", " << node.member
+                   << ", %e" << node.value.value;
           else if constexpr (std::is_same_v<T, HirCallExpression>) {
             output << "call @f" << node.function.value << '(';
             for (std::size_t argument = 0; argument < node.arguments.size(); ++argument) {

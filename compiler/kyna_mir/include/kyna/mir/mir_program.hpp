@@ -47,7 +47,9 @@ enum class MirInstructionKind {
   LoadMember,
   MakeArray,
   MakeObject,
-  LoadIndex
+  LoadIndex,
+  StoreIndex,
+  StoreMember
 };
 
 struct MirCaptureSource {

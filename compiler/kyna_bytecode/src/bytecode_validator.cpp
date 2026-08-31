@@ -211,6 +211,26 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
         registerError(instruction.first, "indexed value");
         registerError(instruction.second, "index");
         break;
+      case OpCode::StoreIndex:
+      case OpCode::StoreMember: {
+        registerError(instruction.destination, "mutation result");
+        if (instruction.first >= module.callArguments.size()) {
+          report(result, "KBC1128", "mutation operand-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        const auto expected = instruction.opcode == OpCode::StoreIndex ? 3u : 2u;
+        if (module.callArguments[instruction.first].size() != expected)
+          report(result, "KBC1129", "mutation operand count is invalid", instruction.span);
+        for (const auto operand : module.callArguments[instruction.first])
+          registerError(operand, "mutation operand");
+        if (instruction.opcode == OpCode::StoreMember &&
+            (instruction.second >= module.constants.size() ||
+             !std::holds_alternative<std::string>(module.constants[instruction.second])))
+          report(result, "KBC1130", "member store name is not a string constant",
+                 instruction.span);
+        break;
+      }
       case OpCode::Throw:
         registerError(instruction.first, "thrown value");
         break;

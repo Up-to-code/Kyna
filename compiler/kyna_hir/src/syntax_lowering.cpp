@@ -370,13 +370,30 @@ private:
           } else if constexpr (std::is_same_v<T, Assign>) {
             const auto *target = node.target ? std::get_if<Variable>(&node.target->node) : nullptr;
             const auto local = target ? findLocal(target->name) : std::nullopt;
+            const auto value = lowerExpression(node.value);
+            if (!value)
+              return std::nullopt;
+            if (const auto *index = node.target ? std::get_if<Index>(&node.target->node) : nullptr) {
+              const auto object = lowerExpression(index->object);
+              const auto key = lowerExpression(index->index);
+              return object && key
+                         ? std::optional{addExpression(
+                               HirAssignIndexExpression{*object, *key, *value},
+                               expression->location)}
+                         : std::nullopt;
+            }
+            if (const auto *member =
+                    node.target ? std::get_if<Member>(&node.target->node) : nullptr) {
+              const auto object = lowerExpression(member->object);
+              return object ? std::optional{addExpression(
+                                  HirAssignMemberExpression{*object, member->name, *value},
+                                  expression->location)}
+                            : std::nullopt;
+            }
             if (!local) {
               unsupported("non-local assignment", expression->location);
               return std::nullopt;
             }
-            const auto value = lowerExpression(node.value);
-            if (!value)
-              return std::nullopt;
             captureIfNeeded(*local);
             return addExpression(HirAssignLocalExpression{*local, *value}, expression->location);
           } else if constexpr (std::is_same_v<T, IfExpr>) {

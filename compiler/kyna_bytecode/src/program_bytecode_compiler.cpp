@@ -34,6 +34,8 @@ OpCode opcodeFor(MirInstructionKind kind) {
   case MirInstructionKind::MakeArray: return OpCode::MakeArray;
   case MirInstructionKind::MakeObject: return OpCode::MakeObject;
   case MirInstructionKind::LoadIndex: return OpCode::LoadIndex;
+  case MirInstructionKind::StoreIndex: return OpCode::StoreIndex;
+  case MirInstructionKind::StoreMember: return OpCode::StoreMember;
   }
   return OpCode::LoadNull;
 }
@@ -127,6 +129,23 @@ void compileBody(BytecodeModule &module, BytecodeFunction &function,
                                                                : OpCode::MakeObject,
              instruction.destination.value,
              static_cast<std::uint32_t>(module.callArguments.size() - 1), names,
+             instruction.span});
+      } else if (instruction.kind == MirInstructionKind::StoreIndex ||
+                 instruction.kind == MirInstructionKind::StoreMember) {
+        std::vector<std::uint32_t> operands;
+        for (const auto operand : instruction.arguments)
+          operands.push_back(operand.value);
+        module.callArguments.push_back(std::move(operands));
+        std::uint32_t memberName = 0;
+        if (instruction.kind == MirInstructionKind::StoreMember) {
+          module.constants.push_back(instruction.constant);
+          memberName = static_cast<std::uint32_t>(module.constants.size() - 1);
+        }
+        function.instructions.push_back(
+            {instruction.kind == MirInstructionKind::StoreIndex ? OpCode::StoreIndex
+                                                                : OpCode::StoreMember,
+             instruction.destination.value,
+             static_cast<std::uint32_t>(module.callArguments.size() - 1), memberName,
              instruction.span});
       } else {
         function.instructions.push_back(
