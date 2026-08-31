@@ -39,10 +39,18 @@ def main() -> int:
             f"manifest commands and registered commands differ: manifest={sorted(commands)}, "
             f"implementation={sorted(registered)}"
         )
-    if "shellPath: program" not in implementation or "shellArgs: arguments" not in implementation:
-        failures.append("Run/Check must launch the Kyna executable directly in its terminal")
+    if "new vscode.ProcessExecution(program, arguments" not in implementation:
+        failures.append("Run/Check must launch Kyna through direct process execution")
+    if "vscode.tasks.executeTask(task)" not in implementation:
+        failures.append("Run/Check must retain process output in a managed task terminal")
     if "terminal.sendText(" in implementation:
         failures.append("Run/Check must not route commands through the user's login shell")
+    if "vscode.window.terminals.filter" not in implementation or "existing.dispose()" not in implementation:
+        failures.append("Run/Check must replace stale terminals from older extension versions")
+    first_preset = implementation.find("'build-debug'")
+    first_legacy = implementation.find("'build', 'bin', 'kyna'")
+    if first_preset < 0 or first_legacy < 0 or first_preset > first_legacy:
+        failures.append("preset build directories must be preferred over the legacy build directory")
 
     for language in languages:
         for icon in language.get("icon", {}).values():

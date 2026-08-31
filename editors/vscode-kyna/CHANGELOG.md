@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3
+
+- Capture CLI stdout/stderr through VS Code `ProcessExecution` without invoking the user's shell.
+- Dispose stale shell-backed Run/Check terminals before every launch.
+- Prefer the CLI produced by the selected CMake preset over legacy build directories.
+- Stop with an explicit editor error when a modified source file cannot be saved.
+
 ## 1.0.2
 
 - Launch Run and Check as direct Kyna terminal processes so login-shell and Node manager warnings do not obscure program output.

@@ -1,6 +1,6 @@
 # Kyna VS Code support
 
-Provides canonical `.kyna` language registration, syntax highlighting, Python-style `#` line comments, snippets, keyword and declaration completion, import-path and exported-member completion, symbols, same-file definitions, hover, CodeLens, live compiler diagnostics, Run/Check, and token/AST/HIR/MIR/bytecode inspection commands. A Run button appears in the editor title and status bar. Version 1.0.2 launches Kyna directly in the terminal, avoiding unrelated login-shell and Node-version-manager startup output.
+Provides canonical `.kyna` language registration, syntax highlighting, Python-style `#` line comments, snippets, keyword and declaration completion, import-path and exported-member completion, symbols, same-file definitions, hover, CodeLens, live compiler diagnostics, Run/Check, and token/AST/HIR/MIR/bytecode inspection commands. A Run button appears in the editor title and status bar. Version 1.0.3 launches Kyna directly, replaces stale Run/Check terminals, and prefers the selected CMake preset build, avoiding unrelated login-shell and Node-version-manager startup output.
 
 The extension uses the purple Kyna K as its marketplace icon and matching purple light/dark `.kyna` file icons. The black-and-white icon remains under `assets/legacy/`; it is preserved for branding outside the installed extension. Run and Check toolbar icons remain theme-adaptive.
 
@@ -26,7 +26,7 @@ From the repository root:
 This opens a VS Code extension-development window. To package and install permanently, run `make vscode-package`, then:
 
 ```sh
-"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension editors/vscode-kyna/kyna-language-support-1.0.2.vsix --force
+"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension editors/vscode-kyna/kyna-language-support-1.0.3.vsix --force
 ```
 
 Set `kyna.executable` if the CLI is not installed or available in a recognized CMake build directory. Live checking sends the unsaved buffer to the CLI together with its real file path, so relative imports resolve without writing temporary source files. The extension deliberately delegates language behavior to the CLI instead of duplicating the compiler.

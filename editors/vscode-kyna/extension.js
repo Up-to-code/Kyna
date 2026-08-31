@@ -75,18 +75,18 @@ function executable(document) {
   const folder = document ? vscode.workspace.getWorkspaceFolder(document.uri) : undefined;
   const candidates = [];
   if (folder) {
-    candidates.push(path.join(folder.uri.fsPath, 'build', 'bin', 'kyna'));
-    candidates.push(path.join(folder.uri.fsPath, 'build', 'tools', 'kyna_cli', 'kyna'));
     for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
       candidates.push(path.join(folder.uri.fsPath, buildName, 'bin', 'kyna'));
+    candidates.push(path.join(folder.uri.fsPath, 'build', 'bin', 'kyna'));
+    candidates.push(path.join(folder.uri.fsPath, 'build', 'tools', 'kyna_cli', 'kyna'));
   }
   if (document) {
     let directory = path.dirname(document.fileName);
     for (;;) {
-      candidates.push(path.join(directory, 'build', 'bin', 'kyna'));
-      candidates.push(path.join(directory, 'build', 'tools', 'kyna_cli', 'kyna'));
       for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
         candidates.push(path.join(directory, buildName, 'bin', 'kyna'));
+      candidates.push(path.join(directory, 'build', 'bin', 'kyna'));
+      candidates.push(path.join(directory, 'build', 'tools', 'kyna_cli', 'kyna'));
       const parent = path.dirname(directory);
       if (parent === directory) break;
       directory = parent;
@@ -98,17 +98,33 @@ function executable(document) {
 async function runActive(command) {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== 'kyna') return;
-  await editor.document.save();
+  if (!await editor.document.save()) {
+    vscode.window.showErrorMessage(`Kyna ${command} stopped because the active file could not be saved.`);
+    return;
+  }
   const program = executable(editor.document);
   const arguments = [command, editor.document.fileName, '--no-color'];
-  const terminal = vscode.window.createTerminal({
-    name: command === 'run' ? 'Kyna Run' : 'Kyna Check',
-    cwd: path.dirname(editor.document.fileName),
-    shellPath: program,
-    shellArgs: arguments,
-    message: `${program} ${arguments.join(' ')}`
-  });
-  terminal.show(true);
+  const name = command === 'run' ? 'Kyna Run' : 'Kyna Check';
+  for (const existing of vscode.window.terminals.filter(terminal => terminal.name.includes(name)))
+    existing.dispose();
+  const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+  const task = new vscode.Task(
+    { type: 'kyna', command },
+    folder || vscode.TaskScope.Workspace,
+    name,
+    'Kyna',
+    new vscode.ProcessExecution(program, arguments, {
+      cwd: path.dirname(editor.document.fileName)
+    })
+  );
+  task.presentationOptions = {
+    reveal: vscode.TaskRevealKind.Always,
+    panel: vscode.TaskPanelKind.Dedicated,
+    clear: true,
+    focus: true,
+    showReuseMessage: false
+  };
+  await vscode.tasks.executeTask(task);
 }
 
 async function inspectActive(command, title) {
