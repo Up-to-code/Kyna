@@ -13,7 +13,12 @@ struct HirLoweringResult {
   [[nodiscard]] bool ok() const { return program.has_value() && diagnostics.empty(); }
 };
 
+struct HirLoweringOptions {
+  std::vector<std::string> nativeFunctions;
+};
+
 [[nodiscard]] HirLoweringResult lowerSyntaxToHir(const std::string &moduleName,
-                                                 const SyntaxTree &tree);
+                                                 const SyntaxTree &tree,
+                                                 HirLoweringOptions options = {});
 
 } // namespace kyna

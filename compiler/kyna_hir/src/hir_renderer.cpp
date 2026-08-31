@@ -63,6 +63,13 @@ std::string renderHir(const HirProgram &program) {
               output << "%e" << node.arguments[argument].value;
             }
             output << ')';
+          } else if constexpr (std::is_same_v<T, HirNativeCallExpression>) {
+            output << "call.native " << node.name << '(';
+            for (std::size_t argument = 0; argument < node.arguments.size(); ++argument) {
+              if (argument) output << ", ";
+              output << "%e" << node.arguments[argument].value;
+            }
+            output << ')';
           } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
             output << "member %e" << node.object.value << ", " << node.member;
           } else if constexpr (std::is_same_v<T, HirIfExpression>) {

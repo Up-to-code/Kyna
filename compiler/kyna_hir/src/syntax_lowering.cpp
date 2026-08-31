@@ -34,7 +34,10 @@ std::string decodeQuotedLiteral(const std::string &literal) {
 
 class SyntaxLowerer {
 public:
-  explicit SyntaxLowerer(std::string moduleName) { program.name = std::move(moduleName); }
+  explicit SyntaxLowerer(std::string moduleName, HirLoweringOptions loweringOptions)
+      : options(std::move(loweringOptions)) {
+    program.name = std::move(moduleName);
+  }
 
   HirLoweringResult lower(const SyntaxTree &tree) {
     for (const auto &statement : tree.module.declarations)
@@ -76,6 +79,7 @@ public:
 
 private:
   HirProgram program;
+  HirLoweringOptions options;
   std::vector<Diagnostic> diagnostics;
   std::vector<std::unordered_map<std::string, HirLocalId>> scopes;
   std::unordered_map<std::string, HirFunctionId> functions;
@@ -304,6 +308,11 @@ private:
                 return std::nullopt;
               arguments.push_back(*lowered);
             }
+            if (callee && !findLocal(callee->name) && !functions.contains(callee->name) &&
+                std::find(options.nativeFunctions.begin(), options.nativeFunctions.end(),
+                          callee->name) != options.nativeFunctions.end())
+              return addExpression(HirNativeCallExpression{callee->name, std::move(arguments)},
+                                   expression->location);
             if (callee && !findLocal(callee->name) && functions.contains(callee->name))
               return addExpression(HirCallExpression{functions.at(callee->name),
                                                      std::move(arguments)},
@@ -542,8 +551,9 @@ const char *hirUnaryOperatorName(HirUnaryOperator operation) {
   return operation == HirUnaryOperator::Negate ? "negate" : "not";
 }
 
-HirLoweringResult lowerSyntaxToHir(const std::string &moduleName, const SyntaxTree &tree) {
-  return SyntaxLowerer(moduleName).lower(tree);
+HirLoweringResult lowerSyntaxToHir(const std::string &moduleName, const SyntaxTree &tree,
+                                   HirLoweringOptions options) {
+  return SyntaxLowerer(moduleName, std::move(options)).lower(tree);
 }
 
 } // namespace kyna

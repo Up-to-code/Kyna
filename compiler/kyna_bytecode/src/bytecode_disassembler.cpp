@@ -100,6 +100,16 @@ std::string disassembleBytecode(const BytecodeModule &module) {
           }
         output << ')';
         break;
+      case OpCode::CallNative:
+        output << " r" << instruction.destination << ", native[" << instruction.first << "](";
+        if (instruction.second < module.callArguments.size())
+          for (std::size_t argument = 0;
+               argument < module.callArguments[instruction.second].size(); ++argument) {
+            if (argument) output << ", ";
+            output << 'r' << module.callArguments[instruction.second][argument];
+          }
+        output << ')';
+        break;
       case OpCode::LoadMember:
         output << " r" << instruction.destination << ", r" << instruction.first
                << ", constant[" << instruction.second << ']';

@@ -52,6 +52,7 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           !unary &&
           instruction.kind != MirInstructionKind::Call &&
           instruction.kind != MirInstructionKind::CallIndirect &&
+          instruction.kind != MirInstructionKind::CallNative &&
           instruction.kind != MirInstructionKind::LoadMember) {
         if (!validTemporary(instruction.first))
           addError(diagnostics, "MIR instruction reads an invalid temporary", instruction.span,
@@ -67,6 +68,15 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
         if (!std::holds_alternative<std::string>(instruction.constant))
           addError(diagnostics, "MIR member load has a non-string member name",
                    instruction.span, "KMIR1130");
+      }
+      if (instruction.kind == MirInstructionKind::CallNative) {
+        if (!std::holds_alternative<std::string>(instruction.constant))
+          addError(diagnostics, "MIR native call has a non-string function name",
+                   instruction.span, "KMIR1131");
+        for (const auto argument : instruction.arguments)
+          if (!validTemporary(argument))
+            addError(diagnostics, "MIR native call reads an invalid argument temporary",
+                     instruction.span, "KMIR1132");
       }
       if (instruction.kind == MirInstructionKind::Call) {
         if (instruction.function == 0 || instruction.function >= program.functions.size() + 1)

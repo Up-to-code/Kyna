@@ -176,6 +176,16 @@ private:
             current().instructions.push_back({MirInstructionKind::LoadMember, target, object, {},
                                                node.member, expression.span, 0, {}});
             return target;
+          } else if constexpr (std::is_same_v<T, HirNativeCallExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> arguments;
+            arguments.reserve(node.arguments.size());
+            for (const auto argument : node.arguments)
+              arguments.push_back(lowerExpression(argument));
+            current().instructions.push_back({MirInstructionKind::CallNative, target, {}, {},
+                                               node.name, expression.span, 0,
+                                               std::move(arguments)});
+            return target;
           } else if constexpr (std::is_same_v<T, HirClosureExpression>) {
             const auto target = temporary();
             MirInstruction instruction;
@@ -552,6 +562,7 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::GreaterEqual: return "greater_equal";
   case MirInstructionKind::Call: return "call";
   case MirInstructionKind::CallIndirect: return "call_indirect";
+  case MirInstructionKind::CallNative: return "call_native";
   case MirInstructionKind::LoadMember: return "load_member";
   }
   return "unknown";

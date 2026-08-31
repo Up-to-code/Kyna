@@ -11,6 +11,21 @@
 #include <cassert>
 #include <string>
 
+namespace {
+class DeterministicNativeAdapter final : public kyna::BytecodeNativeAdapter {
+public:
+  kyna::NativeCallResult invoke(std::string_view name,
+                                std::span<const kyna::RuntimeValue> arguments,
+                                kyna::Heap &) override {
+    if (name == "nativeAdd" && arguments.size() == 2)
+      return {kyna::RuntimeValue(std::get<std::int64_t>(arguments[0].data) +
+                                std::get<std::int64_t>(arguments[1].data)),
+              std::nullopt};
+    return {{}, kyna::NativeCallFailure{"KTEST9001", "deterministic native failure", {}}};
+  }
+};
+} // namespace
+
 int main() {
   kyna::SourceManager sources;
   const auto source = sources.add("pipeline", "set left = 20; set right = 22; return left + right;");
@@ -417,6 +432,33 @@ int main() {
   assert(inspectedErrorResult.ok());
   assert(std::get<std::string>(inspectedErrorResult.value.data) ==
          "KVM2003::division by zero");
+
+  const auto nativeSource = sources.add(
+      "native-call", "return nativeAdd(20, 22);");
+  auto nativeLexed = kyna::tokenize(*sources.find(nativeSource));
+  auto nativeParsed =
+      kyna::parseModule(*sources.find(nativeSource), std::move(nativeLexed.tokens));
+  auto nativeHir = kyna::lowerSyntaxToHir(
+      "native-call", nativeParsed.tree, kyna::HirLoweringOptions{{"nativeAdd"}});
+  assert(nativeHir.ok());
+  assert(kyna::renderHir(*nativeHir.program).find("call.native nativeAdd") !=
+         std::string::npos);
+  auto nativeMir = kyna::lowerHirToMir(*nativeHir.program);
+  assert(nativeMir.ok());
+  auto nativeModule = kyna::compileMirToBytecode(*nativeMir.program);
+  assert(nativeModule.ok());
+  assert(kyna::disassembleBytecode(*nativeModule.module).find("call.native") !=
+         std::string::npos);
+  DeterministicNativeAdapter nativeAdapter;
+  const auto nativeResult =
+      kyna::BytecodeVirtualMachine().execute(*nativeModule.module, &nativeAdapter);
+  assert(nativeResult.ok());
+  assert(std::get<std::int64_t>(nativeResult.value.data) == 42);
+
+  const auto missingNativeResult =
+      kyna::BytecodeVirtualMachine().execute(*nativeModule.module);
+  assert(!missingNativeResult.ok());
+  assert(missingNativeResult.diagnostics.front().code == "KVM2021");
 
   kyna::BytecodeModule module;
   module.name = "arithmetic";

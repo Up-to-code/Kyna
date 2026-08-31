@@ -61,6 +61,13 @@ void renderBody(std::ostringstream &output, const std::vector<MirBasicBlock> &bl
           output << "%t" << instruction.arguments[argument].value;
         }
         output << ')';
+      } else if (instruction.kind == MirInstructionKind::CallNative) {
+        output << ' ' << std::get<std::string>(instruction.constant) << '(';
+        for (std::size_t argument = 0; argument < instruction.arguments.size(); ++argument) {
+          if (argument) output << ", ";
+          output << "%t" << instruction.arguments[argument].value;
+        }
+        output << ')';
       } else if (instruction.kind == MirInstructionKind::LoadMember) {
         output << " %t" << instruction.first.value << ", "
                << std::get<std::string>(instruction.constant);

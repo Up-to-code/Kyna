@@ -29,6 +29,7 @@ OpCode opcodeFor(MirInstructionKind kind) {
   case MirInstructionKind::Constant: return OpCode::LoadConstant;
   case MirInstructionKind::Call: return OpCode::Call;
   case MirInstructionKind::CallIndirect: return OpCode::CallIndirect;
+  case MirInstructionKind::CallNative: return OpCode::CallNative;
   case MirInstructionKind::LoadMember: return OpCode::LoadMember;
   }
   return OpCode::LoadNull;
@@ -81,21 +82,26 @@ void compileBody(BytecodeModule &module, BytecodeFunction &function,
                                          instruction.capture, instruction.first.value,
                                          instruction.span});
       } else if (instruction.kind == MirInstructionKind::Call ||
-                 instruction.kind == MirInstructionKind::CallIndirect) {
+                 instruction.kind == MirInstructionKind::CallIndirect ||
+                 instruction.kind == MirInstructionKind::CallNative) {
         std::vector<std::uint32_t> arguments;
         arguments.reserve(instruction.arguments.size());
         for (const auto argument : instruction.arguments)
           arguments.push_back(argument.value);
         module.callArguments.push_back(std::move(arguments));
-        function.instructions.push_back({instruction.kind == MirInstructionKind::Call
-                                             ? OpCode::Call
-                                             : OpCode::CallIndirect,
-                                         instruction.destination.value,
-                                         instruction.kind == MirInstructionKind::Call
-                                             ? instruction.function
-                                             : instruction.first.value,
-                                         static_cast<std::uint32_t>(module.callArguments.size() - 1),
-                                         instruction.span});
+        std::uint32_t target = instruction.first.value;
+        auto opcode = OpCode::CallIndirect;
+        if (instruction.kind == MirInstructionKind::Call) {
+          opcode = OpCode::Call;
+          target = instruction.function;
+        } else if (instruction.kind == MirInstructionKind::CallNative) {
+          opcode = OpCode::CallNative;
+          module.nativeFunctions.push_back(std::get<std::string>(instruction.constant));
+          target = static_cast<std::uint32_t>(module.nativeFunctions.size() - 1);
+        }
+        function.instructions.push_back(
+            {opcode, instruction.destination.value, target,
+             static_cast<std::uint32_t>(module.callArguments.size() - 1), instruction.span});
       } else if (instruction.kind == MirInstructionKind::LoadMember) {
         module.constants.push_back(instruction.constant);
         function.instructions.push_back(

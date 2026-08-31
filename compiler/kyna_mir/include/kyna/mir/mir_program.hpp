@@ -43,6 +43,7 @@ enum class MirInstructionKind {
   GreaterEqual,
   Call,
   CallIndirect,
+  CallNative,
   LoadMember
 };
 

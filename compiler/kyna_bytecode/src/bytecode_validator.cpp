@@ -169,6 +169,18 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
         for (const auto argument : module.callArguments[instruction.second])
           registerError(argument, "indirect-call argument");
         break;
+      case OpCode::CallNative:
+        registerError(instruction.destination, "native-call destination");
+        if (instruction.first >= module.nativeFunctions.size())
+          report(result, "KBC1125", "native function index is out of range", instruction.span);
+        if (instruction.second >= module.callArguments.size()) {
+          report(result, "KBC1109", "native-call argument-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        for (const auto argument : module.callArguments[instruction.second])
+          registerError(argument, "native-call argument");
+        break;
       case OpCode::LoadMember:
         registerError(instruction.destination, "member destination");
         registerError(instruction.first, "member object");

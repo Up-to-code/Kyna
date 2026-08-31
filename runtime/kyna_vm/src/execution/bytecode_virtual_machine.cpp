@@ -85,7 +85,9 @@ bool checkedIntegerArithmetic(OpCode opcode, std::int64_t left, std::int64_t rig
 }
 } // namespace
 
-BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &module) const {
+BytecodeExecutionResult
+BytecodeVirtualMachine::execute(const BytecodeModule &module,
+                                BytecodeNativeAdapter *nativeAdapter) const {
   auto validation = validateBytecode(module);
   if (!validation.ok())
     return {{}, std::move(validation.diagnostics)};
@@ -429,6 +431,31 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
       ++frame.instructionPointer;
       frames.push_back(std::move(called));
       continue;
+    }
+    case OpCode::CallNative: {
+      const auto &name = module.nativeFunctions[instruction.first];
+      if (!nativeAdapter) {
+        if (auto failure = raise("KVM2021", "native function '" + name +
+                                                "' is unavailable in this execution environment",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
+      }
+      std::vector<RuntimeValue> arguments;
+      arguments.reserve(module.callArguments[instruction.second].size());
+      for (const auto argument : module.callArguments[instruction.second])
+        arguments.push_back(readRegister(frame, argument));
+      auto result = nativeAdapter->invoke(name, arguments, heap);
+      if (result.failure) {
+        if (auto failure = raise(std::move(result.failure->code),
+                                 std::move(result.failure->message), instruction.span,
+                                 std::move(result.failure->cause)))
+          return *std::move(failure);
+        continue;
+      }
+      writeRegister(frame, instruction.destination, std::move(result.value));
+      collectAtSafepoint();
+      break;
     }
     case OpCode::LoadMember: {
       const auto &object = readRegister(frame, instruction.first);

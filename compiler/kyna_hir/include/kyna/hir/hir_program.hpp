@@ -81,6 +81,10 @@ struct HirIndirectCallExpression {
   HirExpressionId callee;
   std::vector<HirExpressionId> arguments;
 };
+struct HirNativeCallExpression {
+  std::string name;
+  std::vector<HirExpressionId> arguments;
+};
 struct HirMemberExpression {
   HirExpressionId object;
   std::string member;
@@ -106,8 +110,8 @@ struct HirExpression {
                             HirFunctionReferenceExpression, HirClosureExpression,
                             HirUnaryExpression,
                             HirBinaryExpression, HirAssignLocalExpression, HirCallExpression,
-                            HirIndirectCallExpression, HirMemberExpression, HirIfExpression,
-                            HirMatchExpression>;
+                            HirIndirectCallExpression, HirNativeCallExpression,
+                            HirMemberExpression, HirIfExpression, HirMatchExpression>;
   Node node;
   SourceSpan span;
 };
