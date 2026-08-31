@@ -112,5 +112,6 @@ struct ModuleNamespace {
   std::shared_ptr<Environment> environment;
   std::set<std::string> exports;
   std::string displayName;
+  std::string defaultExport;
 };
 } // namespace kyna

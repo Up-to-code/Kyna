@@ -2,6 +2,7 @@
 #include "best_practice_checker.hpp"
 #include "kyna/semantics/program_analyzer.hpp"
 #include <algorithm>
+#include <optional>
 
 namespace kyna {
 namespace {
@@ -59,6 +60,19 @@ std::vector<ClassDecl> exportedClasses(const ModuleRecord &module) {
   return result;
 }
 
+// The single default-exported class of a module, if any. JavaScript-style
+// `import Name from "..."` of a class must resolve `Name` as a type so `new
+// Name(...)` and `Name.member` work across modules, exactly like named-export
+// classes. The local alias may differ from the canonical class name, so the
+// importer registers a renamed copy under the alias.
+std::optional<ClassDecl> defaultClass(const ModuleRecord &module) {
+  for (const auto &statement : module.syntax.module.declarations)
+    if (const auto *klass = std::get_if<ClassDecl>(&statement->node);
+        klass && klass->isDefault)
+      return *klass;
+  return std::nullopt;
+}
+
 bool AnalysisResult::ok() const {
   return program.has_value() &&
          std::none_of(diagnostics.begin(), diagnostics.end(),
@@ -73,12 +87,14 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
       continue;
     std::map<std::string, TypeRef> imports;
     std::map<std::string, std::map<std::string, TypeRef>> moduleExports;
+    std::map<std::string, const ModuleRecord *> dependencyModules;
     std::vector<InterfaceDecl> externalInterfaces;
     std::vector<ClassDecl> externalClasses;
     for (const auto &dependency : found->second.dependencies) {
       imports[dependency.alias] = TypeRef{"module:" + dependency.alias, false, {}};
       if (const auto module = graph.modules.find(dependency.canonicalPath);
           module != graph.modules.end()) {
+        dependencyModules[dependency.alias] = &module->second;
         moduleExports[dependency.alias] = exportedTypes(module->second);
         auto ambient = ambientInterfaces(module->second);
         externalInterfaces.insert(externalInterfaces.end(), ambient.begin(), ambient.end());
@@ -99,6 +115,18 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
       if (!importDecl->namespaceAlias.empty())
         imports[importDecl->namespaceAlias] =
             TypeRef{"module:" + importDecl->alias, false, {}};
+      // A default import of a class resolves the alias as a type as well as a
+      // value, so `new Alias(...)` and `Alias.member` work across modules. The
+      // canonical class name may differ from the local alias, so register a
+      // renamed copy under the alias.
+      if (!importDecl->defaultName.empty()) {
+        const auto dep = dependencyModules.find(importDecl->alias);
+        if (dep != dependencyModules.end())
+          if (auto klass = defaultClass(*dep->second)) {
+            klass->name = importDecl->defaultName;
+            externalClasses.push_back(std::move(*klass));
+          }
+      }
       // Validate JavaScript-style named imports: the imported symbol must be
       // exported by the target module. A missing or non-exported name is a
       // compile error, matching module semantics.
