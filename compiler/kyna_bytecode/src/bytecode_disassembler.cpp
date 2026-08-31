@@ -100,6 +100,10 @@ std::string disassembleBytecode(const BytecodeModule &module) {
           }
         output << ')';
         break;
+      case OpCode::LoadMember:
+        output << " r" << instruction.destination << ", r" << instruction.first
+               << ", constant[" << instruction.second << ']';
+        break;
       case OpCode::Throw:
         output << " r" << instruction.first;
         break;

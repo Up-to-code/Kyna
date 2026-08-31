@@ -430,6 +430,31 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
       frames.push_back(std::move(called));
       continue;
     }
+    case OpCode::LoadMember: {
+      const auto &object = readRegister(frame, instruction.first);
+      const auto &member = std::get<std::string>(module.constants[instruction.second]);
+      if (const auto error = std::get_if<ErrorPtr>(&object.data); error && *error) {
+        if (member == "message")
+          writeRegister(frame, instruction.destination, RuntimeValue((*error)->message));
+        else if (member == "code")
+          writeRegister(frame, instruction.destination, RuntimeValue((*error)->code));
+        else if (member == "cause")
+          writeRegister(frame, instruction.destination, (*error)->cause);
+        else {
+          if (auto failure = raise("KVM2302", "Error has no member '" + member + "'",
+                                   instruction.span, object))
+            return *std::move(failure);
+          continue;
+        }
+      } else {
+        if (auto failure = raise("KVM2020", "value of type '" + object.typeName() +
+                                                "' has no member '" + member + "'",
+                                 instruction.span, object))
+          return *std::move(failure);
+        continue;
+      }
+      break;
+    }
     case OpCode::Throw: {
       const auto &thrown = readRegister(frame, instruction.first);
       ErrorObject *error = nullptr;

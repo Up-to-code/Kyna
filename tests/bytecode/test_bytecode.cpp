@@ -395,6 +395,29 @@ int main() {
   assert(caughtRuntimeResult.ok());
   assert(std::get<std::int64_t>(caughtRuntimeResult.value.data) == 42);
 
+  const auto inspectedErrorSource = sources.add(
+      "inspected-error",
+      "try { set impossible = 1 / 0; return \"missed\"; } "
+      "catch (failure) { return failure.code + \"::\" + failure.message; }");
+  auto inspectedErrorLexed = kyna::tokenize(*sources.find(inspectedErrorSource));
+  auto inspectedErrorParsed = kyna::parseModule(*sources.find(inspectedErrorSource),
+                                                 std::move(inspectedErrorLexed.tokens));
+  auto inspectedErrorHir =
+      kyna::lowerSyntaxToHir("inspected-error", inspectedErrorParsed.tree);
+  assert(inspectedErrorHir.ok());
+  auto inspectedErrorMir = kyna::lowerHirToMir(*inspectedErrorHir.program);
+  assert(inspectedErrorMir.ok());
+  auto inspectedErrorModule = kyna::compileMirToBytecode(*inspectedErrorMir.program);
+  assert(inspectedErrorModule.ok());
+  const auto inspectedErrorListing =
+      kyna::disassembleBytecode(*inspectedErrorModule.module);
+  assert(inspectedErrorListing.find("load.member") != std::string::npos);
+  const auto inspectedErrorResult =
+      kyna::BytecodeVirtualMachine().execute(*inspectedErrorModule.module);
+  assert(inspectedErrorResult.ok());
+  assert(std::get<std::string>(inspectedErrorResult.value.data) ==
+         "KVM2003::division by zero");
+
   kyna::BytecodeModule module;
   module.name = "arithmetic";
   module.constants = {std::int64_t{20}, std::int64_t{22}};
@@ -402,7 +425,8 @@ int main() {
                               {{kyna::OpCode::LoadConstant, 0, 0, 0, {1, 1}},
                                {kyna::OpCode::LoadConstant, 1, 1, 0, {1, 6}},
                                {kyna::OpCode::Add, 2, 0, 1, {1, 4}},
-                               {kyna::OpCode::Return, 0, 2, 0, {1, 9}}}});
+                               {kyna::OpCode::Return, 0, 2, 0, {1, 9}}},
+                              0, 0, {}});
 
   assert(kyna::validateBytecode(module).ok());
   const auto listing = kyna::disassembleBytecode(module);

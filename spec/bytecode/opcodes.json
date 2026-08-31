@@ -25,6 +25,7 @@
     { "enum": "JumpIfFalse", "mnemonic": "jump.false" },
     { "enum": "Call", "mnemonic": "call" },
     { "enum": "CallIndirect", "mnemonic": "call.indirect" },
+    { "enum": "LoadMember", "mnemonic": "load.member" },
     { "enum": "Throw", "mnemonic": "throw" },
     { "enum": "Return", "mnemonic": "return" }
   ]

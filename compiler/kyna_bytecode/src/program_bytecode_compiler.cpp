@@ -29,6 +29,7 @@ OpCode opcodeFor(MirInstructionKind kind) {
   case MirInstructionKind::Constant: return OpCode::LoadConstant;
   case MirInstructionKind::Call: return OpCode::Call;
   case MirInstructionKind::CallIndirect: return OpCode::CallIndirect;
+  case MirInstructionKind::LoadMember: return OpCode::LoadMember;
   }
   return OpCode::LoadNull;
 }
@@ -95,6 +96,11 @@ void compileBody(BytecodeModule &module, BytecodeFunction &function,
                                              : instruction.first.value,
                                          static_cast<std::uint32_t>(module.callArguments.size() - 1),
                                          instruction.span});
+      } else if (instruction.kind == MirInstructionKind::LoadMember) {
+        module.constants.push_back(instruction.constant);
+        function.instructions.push_back(
+            {OpCode::LoadMember, instruction.destination.value, instruction.first.value,
+             static_cast<std::uint32_t>(module.constants.size() - 1), instruction.span});
       } else {
         function.instructions.push_back(
             {opcodeFor(instruction.kind), instruction.destination.value, instruction.first.value,
@@ -143,11 +149,11 @@ BytecodeCompileResult compileMirToBytecode(const MirProgram &program) {
   BytecodeModule module;
   module.name = program.name;
   module.functions.reserve(program.functions.size() + 1);
-  module.functions.push_back({"<module>", program.temporaryCount, {}, 0});
+  module.functions.push_back({"<module>", program.temporaryCount, {}, 0, 0, {}});
   for (const auto &function : program.functions)
     module.functions.push_back(
         {function.name, function.temporaryCount, {}, function.parameterCount,
-         static_cast<std::uint32_t>(function.captures.size())});
+         static_cast<std::uint32_t>(function.captures.size()), {}});
 
   compileBody(module, module.functions.front(), program.blocks, program.exceptionRegions);
   for (std::size_t index = 0; index < program.functions.size(); ++index)

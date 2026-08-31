@@ -169,6 +169,14 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
         for (const auto argument : module.callArguments[instruction.second])
           registerError(argument, "indirect-call argument");
         break;
+      case OpCode::LoadMember:
+        registerError(instruction.destination, "member destination");
+        registerError(instruction.first, "member object");
+        if (instruction.second >= module.constants.size() ||
+            !std::holds_alternative<std::string>(module.constants[instruction.second]))
+          report(result, "KBC1124", "member name is not a valid string constant",
+                 instruction.span);
+        break;
       case OpCode::Throw:
         registerError(instruction.first, "thrown value");
         break;

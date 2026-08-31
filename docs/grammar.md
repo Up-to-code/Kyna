@@ -14,13 +14,14 @@ class-member  ::= modifiers* ("init" | "func" IDENT) "(" parameters? ")" (":" ty
                 | modifiers* IDENT ":" type ("=" expression)? ";" ;
 interface     ::= "intf" IDENT "{" interface-member* "}" ;
 block         ::= "{" (declaration | statement | expression ";")* expression? "}" ;
-statement     ::= block | if-statement | while | loop | break | continue | return | try-catch | expression ";" ;
+statement     ::= block | if-statement | while | loop | break | continue | return | throw | try-statement | expression ";" ;
 if-statement  ::= "if" "(" expression ")" block ("else" (if-statement | block))? ;
 while         ::= "while" "(" expression ")" block ;
 loop          ::= (IDENT ":")? "loop" ("(" variable-or-expression ";" expression? ";" expression? ")")? block ;
 break         ::= "break" IDENT? ";" ; continue ::= "continue" IDENT? ";" ;
 return        ::= "return" expression? ";" ;
-try-catch     ::= "try" block "catch" "(" IDENT ")" block ;
+throw         ::= "throw" expression ";" ;
+try-statement ::= "try" block (("catch" "(" IDENT ")" block ("finally" block)?) | ("finally" block)) ;
 type          ::= IDENT | primitive ("?")? ("|" type)* ;
 expression    ::= assignment ;
 assignment    ::= logic-or ("=" assignment)? ;

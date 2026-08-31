@@ -326,6 +326,11 @@ private:
               return std::nullopt;
             return addExpression(HirBinaryExpression{*left, *operation, *right},
                                  expression->location);
+          } else if constexpr (std::is_same_v<T, Member>) {
+            const auto object = lowerExpression(node.object);
+            return object ? std::optional{addExpression(
+                                HirMemberExpression{*object, node.name}, expression->location)}
+                          : std::nullopt;
           } else if constexpr (std::is_same_v<T, Assign>) {
             const auto *target = node.target ? std::get_if<Variable>(&node.target->node) : nullptr;
             const auto local = target ? findLocal(target->name) : std::nullopt;

@@ -51,13 +51,22 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           instruction.kind != MirInstructionKind::Move &&
           !unary &&
           instruction.kind != MirInstructionKind::Call &&
-          instruction.kind != MirInstructionKind::CallIndirect) {
+          instruction.kind != MirInstructionKind::CallIndirect &&
+          instruction.kind != MirInstructionKind::LoadMember) {
         if (!validTemporary(instruction.first))
           addError(diagnostics, "MIR instruction reads an invalid temporary", instruction.span,
                    "KMIR1103");
         if (!validTemporary(instruction.second))
           addError(diagnostics, "MIR instruction reads an invalid second temporary",
                    instruction.span, "KMIR1104");
+      }
+      if (instruction.kind == MirInstructionKind::LoadMember) {
+        if (!validTemporary(instruction.first))
+          addError(diagnostics, "MIR member load reads an invalid object temporary",
+                   instruction.span, "KMIR1129");
+        if (!std::holds_alternative<std::string>(instruction.constant))
+          addError(diagnostics, "MIR member load has a non-string member name",
+                   instruction.span, "KMIR1130");
       }
       if (instruction.kind == MirInstructionKind::Call) {
         if (instruction.function == 0 || instruction.function >= program.functions.size() + 1)

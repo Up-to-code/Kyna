@@ -42,7 +42,8 @@ enum class MirInstructionKind {
   Greater,
   GreaterEqual,
   Call,
-  CallIndirect
+  CallIndirect,
+  LoadMember
 };
 
 struct MirCaptureSource {

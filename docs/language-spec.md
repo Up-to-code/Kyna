@@ -1,4 +1,4 @@
-# Kyna language specification (v0.3)
+# Kyna language specification (1.0 development)
 
 ## Lexical rules
 
@@ -18,7 +18,7 @@ Objects are closed: an assignment to a field not present in the object/class sha
 
 ## Functions and control flow
 
-Parameters always have types and calls always use parentheses. Return annotations are optional for safely inferred functions and mandatory contracts when present. `if` requires a parenthesized condition and braced branches. `while` and `loop (init; condition; increment)` are statements. `break` and `continue` may name a loop label. `match` currently accepts literal and `_` arms; arms use `=>` and terminate with `;`. `try { ... } catch (message) { ... }` catches language/runtime errors as a string binding; `error(message)` raises one. `if` is expression-capable; loops are not.
+Parameters always have types and calls always use parentheses. Return annotations are optional for safely inferred functions and mandatory contracts when present. `if` requires a parenthesized condition and braced branches. `while` and `loop (init; condition; increment)` are statements. `break` and `continue` may name a loop label. `match` currently accepts literal and `_` arms; arms use `=>` and terminate with `;`. `throw value;` raises a typed `Error`; non-Error values become an Error whose `cause` is the original value. `catch (failure)` receives that Error and may inspect `failure.code`, `failure.message`, and `failure.cause`. `finally` runs on normal completion, return, caught failure, and rethrow. VM-generated failures use the same exception path and are catchable. `if` is expression-capable; loops are not.
 
 ## Objects and classes
 

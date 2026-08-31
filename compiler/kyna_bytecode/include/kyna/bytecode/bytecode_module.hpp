@@ -36,6 +36,7 @@ enum class OpCode : std::uint8_t {
   JumpIfFalse,
   Call,
   CallIndirect,
+  LoadMember,
   Throw,
   Return,
 };

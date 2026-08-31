@@ -170,6 +170,12 @@ private:
             instruction.function = node.function.value + 1;
             current().instructions.push_back(std::move(instruction));
             return target;
+          } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
+            const auto target = temporary();
+            const auto object = lowerExpression(node.object);
+            current().instructions.push_back({MirInstructionKind::LoadMember, target, object, {},
+                                               node.member, expression.span, 0, {}});
+            return target;
           } else if constexpr (std::is_same_v<T, HirClosureExpression>) {
             const auto target = temporary();
             MirInstruction instruction;
@@ -546,6 +552,7 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::GreaterEqual: return "greater_equal";
   case MirInstructionKind::Call: return "call";
   case MirInstructionKind::CallIndirect: return "call_indirect";
+  case MirInstructionKind::LoadMember: return "load_member";
   }
   return "unknown";
 }

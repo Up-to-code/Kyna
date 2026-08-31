@@ -63,6 +63,8 @@ std::string renderHir(const HirProgram &program) {
               output << "%e" << node.arguments[argument].value;
             }
             output << ')';
+          } else if constexpr (std::is_same_v<T, HirMemberExpression>) {
+            output << "member %e" << node.object.value << ", " << node.member;
           } else if constexpr (std::is_same_v<T, HirIfExpression>) {
             output << "if %e" << node.condition.value << " then %s"
                    << node.thenPrelude.value << " => %e" << node.thenValue.value << " else %s"
