@@ -95,20 +95,20 @@ function executable(document) {
   return candidates.find(candidate => fs.existsSync(candidate)) || 'kyna';
 }
 
-function quoteShell(value) {
-  return `'${value.replace(/'/g, `'"'"'`)}'`;
-}
-
 async function runActive(command) {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== 'kyna') return;
   await editor.document.save();
+  const program = executable(editor.document);
+  const arguments = [command, editor.document.fileName, '--no-color'];
   const terminal = vscode.window.createTerminal({
     name: command === 'run' ? 'Kyna Run' : 'Kyna Check',
-    cwd: path.dirname(editor.document.fileName)
+    cwd: path.dirname(editor.document.fileName),
+    shellPath: program,
+    shellArgs: arguments,
+    message: `${program} ${arguments.join(' ')}`
   });
   terminal.show(true);
-  terminal.sendText(`${quoteShell(executable(editor.document))} ${command} ${quoteShell(editor.document.fileName)} --no-color`);
 }
 
 async function inspectActive(command, title) {

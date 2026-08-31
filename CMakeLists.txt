@@ -161,6 +161,9 @@ if(KYNA_BUILD_TESTS)
            COMMAND kyna run
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/closures.kyna"
                    --no-color)
+  set_tests_properties(kyna_vm_closures PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "addForty 42.*firstCounter 1 2.*secondCounter 11.*factorial 120.*nestedAdder 42")
   add_test(NAME kyna_cli_closure_bytecode
            COMMAND kyna bytecode
                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/closures.kyna"

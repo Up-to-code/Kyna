@@ -41,7 +41,12 @@ set secondCounter = makeCounter(10);
 set factorial = makeFactorial();
 set nestedAdder = makeNestedAdder(40);
 
-firstCounter();
-firstCounter();
-secondCounter();
-addForty(2) + firstCounter() + secondCounter() + factorial(5) + nestedAdder(2);
+set firstValue = firstCounter();
+set secondValue = firstCounter();
+set independentValue = secondCounter();
+
+print("addForty", addForty(2));
+print("firstCounter", firstValue, secondValue);
+print("secondCounter", independentValue);
+print("factorial", factorial(5));
+print("nestedAdder", nestedAdder(2));

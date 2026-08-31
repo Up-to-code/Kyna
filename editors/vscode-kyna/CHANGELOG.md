@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Launch Run and Check as direct Kyna terminal processes so login-shell and Node manager warnings do not obscure program output.
+- Make the closure example print its calculated results.
+
 ## 1.0.1
 
 - Adds document symbols, same-file definitions, hover details, and Run/Check CodeLens.

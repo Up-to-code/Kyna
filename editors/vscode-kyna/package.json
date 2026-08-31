@@ -2,7 +2,7 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
