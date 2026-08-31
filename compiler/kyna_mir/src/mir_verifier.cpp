@@ -53,7 +53,9 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           instruction.kind != MirInstructionKind::Call &&
           instruction.kind != MirInstructionKind::CallIndirect &&
           instruction.kind != MirInstructionKind::CallNative &&
-          instruction.kind != MirInstructionKind::LoadMember) {
+          instruction.kind != MirInstructionKind::LoadMember &&
+          instruction.kind != MirInstructionKind::MakeArray &&
+          instruction.kind != MirInstructionKind::MakeObject) {
         if (!validTemporary(instruction.first))
           addError(diagnostics, "MIR instruction reads an invalid temporary", instruction.span,
                    "KMIR1103");
@@ -77,6 +79,17 @@ void verifyBody(const MirProgram &program, std::string_view name, std::uint32_t 
           if (!validTemporary(argument))
             addError(diagnostics, "MIR native call reads an invalid argument temporary",
                      instruction.span, "KMIR1132");
+      }
+      if (instruction.kind == MirInstructionKind::MakeArray ||
+          instruction.kind == MirInstructionKind::MakeObject) {
+        for (const auto element : instruction.arguments)
+          if (!validTemporary(element))
+            addError(diagnostics, "MIR collection literal reads an invalid temporary",
+                     instruction.span, "KMIR1133");
+        if (instruction.kind == MirInstructionKind::MakeObject &&
+            instruction.names.size() != instruction.arguments.size())
+          addError(diagnostics, "MIR object field names and values have different lengths",
+                   instruction.span, "KMIR1134");
       }
       if (instruction.kind == MirInstructionKind::Call) {
         if (instruction.function == 0 || instruction.function >= program.functions.size() + 1)

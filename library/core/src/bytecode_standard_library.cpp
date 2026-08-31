@@ -1,4 +1,6 @@
 #include "kyna/stdlib/bytecode_standard_library.hpp"
+#include "json_value_codec.hpp"
+#include <algorithm>
 #include <ostream>
 
 namespace kyna {
@@ -14,7 +16,7 @@ public:
       : capabilities(std::move(hostCapabilities)), standardOutput(output) {}
 
   NativeCallResult invoke(std::string_view name, std::span<const RuntimeValue> arguments,
-                          Heap &) override {
+                          Heap &heap) override {
     if (name == "print" || name == "log") {
       for (std::size_t index = 0; index < arguments.size(); ++index) {
         if (index)
@@ -113,6 +115,90 @@ public:
                        arguments[0]);
       return {RuntimeValue(std::move(response->body)), std::nullopt};
     }
+    if (name == "jsonParse") {
+      if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+        return failure("K5100", "jsonParse expects exactly one JSON string");
+      try {
+        return {parseJsonValue(std::get<std::string>(arguments[0].data), heap), std::nullopt};
+      } catch (const KynaError &error) {
+        return failure(error.diagnostic.code.empty() ? "K5100" : error.diagnostic.code,
+                       error.diagnostic.message, arguments[0]);
+      }
+    }
+    if (name == "jsonStringify") {
+      if (arguments.size() != 1)
+        return failure("K5101", "jsonStringify expects exactly one value");
+      try {
+        return {RuntimeValue(stringifyJsonValue(arguments[0])), std::nullopt};
+      } catch (const KynaError &error) {
+        return failure(error.diagnostic.code.empty() ? "K5101" : error.diagnostic.code,
+                       error.diagnostic.message, arguments[0]);
+      }
+    }
+    if (name == "push") {
+      if (arguments.size() != 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+        return failure("KCOL1004", "push expects an array and a value");
+      std::get<ArrayPtr>(arguments[0].data)->elements.push_back(arguments[1]);
+      return {};
+    }
+    if (name == "pop") {
+      if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+        return failure("KCOL1005", "pop expects exactly one array");
+      auto *array = std::get<ArrayPtr>(arguments[0].data);
+      if (array->elements.empty())
+        return {};
+      auto value = array->elements.back();
+      array->elements.pop_back();
+      return {std::move(value), std::nullopt};
+    }
+    if (name == "keys") {
+      if (arguments.size() != 1 || !std::holds_alternative<ObjectPtr>(arguments[0].data))
+        return failure("KCOL1006", "keys expects exactly one object");
+      auto *result = heap.allocateArray();
+      for (const auto &[key, value] : std::get<ObjectPtr>(arguments[0].data)->fields)
+        result->elements.emplace_back(key);
+      return {RuntimeValue(result), std::nullopt};
+    }
+    if (name == "unique") {
+      if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+        return failure("KCOL1003", "unique expects exactly one array");
+      auto *result = heap.allocateArray();
+      for (const auto &candidate : std::get<ArrayPtr>(arguments[0].data)->elements) {
+        const auto duplicate =
+            std::any_of(result->elements.begin(), result->elements.end(),
+                        [&](const RuntimeValue &accepted) { return accepted.equals(candidate); });
+        if (!duplicate)
+          result->elements.push_back(candidate);
+      }
+      return {RuntimeValue(result), std::nullopt};
+    }
+    if (name == "sort" || name == "bubbleSort") {
+      if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+        return failure("KCOL1007", std::string(name) +
+                                       " currently expects one array in bytecode execution");
+      auto *result = heap.allocateArray();
+      result->elements = std::get<ArrayPtr>(arguments[0].data)->elements;
+      const auto less = [](const RuntimeValue &left, const RuntimeValue &right) {
+        if (const auto leftInteger = std::get_if<std::int64_t>(&left.data)) {
+          if (const auto rightInteger = std::get_if<std::int64_t>(&right.data))
+            return *leftInteger < *rightInteger;
+          if (const auto rightFloat = std::get_if<double>(&right.data))
+            return static_cast<double>(*leftInteger) < *rightFloat;
+        }
+        if (const auto leftFloat = std::get_if<double>(&left.data)) {
+          if (const auto rightInteger = std::get_if<std::int64_t>(&right.data))
+            return *leftFloat < static_cast<double>(*rightInteger);
+          if (const auto rightFloat = std::get_if<double>(&right.data))
+            return *leftFloat < *rightFloat;
+        }
+        if (const auto leftString = std::get_if<std::string>(&left.data))
+          if (const auto rightString = std::get_if<std::string>(&right.data))
+            return *leftString < *rightString;
+        return left.typeName() < right.typeName();
+      };
+      std::stable_sort(result->elements.begin(), result->elements.end(), less);
+      return {RuntimeValue(result), std::nullopt};
+    }
     return failure("KSTD2099", "unknown standard-library native '" + std::string(name) + "'");
   }
 
@@ -126,7 +212,8 @@ private:
 const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
       "print", "log", "typeOf", "len", "error", "readFile", "writeFile", "fileExists",
-      "createDirectory", "processEnv", "sleep", "wait", "httpGet"};
+      "createDirectory", "processEnv", "sleep", "wait", "httpGet", "jsonParse",
+      "jsonStringify", "push", "pop", "keys", "unique", "sort", "bubbleSort"};
   return names;
 }
 

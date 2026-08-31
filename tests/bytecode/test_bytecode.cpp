@@ -460,6 +460,30 @@ int main() {
   assert(!missingNativeResult.ok());
   assert(missingNativeResult.diagnostics.front().code == "KVM2021");
 
+  const auto collectionLiteralSource = sources.add(
+      "collection-literals",
+      "set values = [20, 22]; set record = { answer: values[0] + values[1] }; "
+      "return record.answer;");
+  auto collectionLiteralLexed = kyna::tokenize(*sources.find(collectionLiteralSource));
+  auto collectionLiteralParsed = kyna::parseModule(*sources.find(collectionLiteralSource),
+                                                    std::move(collectionLiteralLexed.tokens));
+  auto collectionLiteralHir =
+      kyna::lowerSyntaxToHir("collection-literals", collectionLiteralParsed.tree);
+  assert(collectionLiteralHir.ok());
+  auto collectionLiteralMir = kyna::lowerHirToMir(*collectionLiteralHir.program);
+  assert(collectionLiteralMir.ok());
+  auto collectionLiteralModule = kyna::compileMirToBytecode(*collectionLiteralMir.program);
+  assert(collectionLiteralModule.ok());
+  const auto collectionLiteralListing =
+      kyna::disassembleBytecode(*collectionLiteralModule.module);
+  assert(collectionLiteralListing.find("make.array") != std::string::npos);
+  assert(collectionLiteralListing.find("make.object") != std::string::npos);
+  assert(collectionLiteralListing.find("load.index") != std::string::npos);
+  const auto collectionLiteralResult =
+      kyna::BytecodeVirtualMachine().execute(*collectionLiteralModule.module);
+  assert(collectionLiteralResult.ok());
+  assert(std::get<std::int64_t>(collectionLiteralResult.value.data) == 42);
+
   kyna::BytecodeModule module;
   module.name = "arithmetic";
   module.constants = {std::int64_t{20}, std::int64_t{22}};

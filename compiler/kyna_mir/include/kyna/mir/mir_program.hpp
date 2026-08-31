@@ -44,7 +44,10 @@ enum class MirInstructionKind {
   Call,
   CallIndirect,
   CallNative,
-  LoadMember
+  LoadMember,
+  MakeArray,
+  MakeObject,
+  LoadIndex
 };
 
 struct MirCaptureSource {
@@ -64,6 +67,7 @@ struct MirInstruction {
   std::vector<MirTemporary> arguments;
   std::uint32_t capture{0};
   std::vector<MirCaptureSource> captureSources;
+  std::vector<std::string> names;
 
   MirInstruction() = default;
   MirInstruction(MirInstructionKind instructionKind, MirTemporary result,
@@ -72,11 +76,12 @@ struct MirInstruction {
                  std::uint32_t targetFunction = 0,
                  std::vector<MirTemporary> callArguments = {},
                  std::uint32_t captureIndex = 0,
-                 std::vector<MirCaptureSource> sources = {})
+                 std::vector<MirCaptureSource> sources = {},
+                 std::vector<std::string> fieldNames = {})
       : kind(instructionKind), destination(result), first(left), second(right),
         constant(std::move(value)), span(source), function(targetFunction),
         arguments(std::move(callArguments)), capture(captureIndex),
-        captureSources(std::move(sources)) {}
+        captureSources(std::move(sources)), names(std::move(fieldNames)) {}
 };
 
 struct MirReturnTerminator {

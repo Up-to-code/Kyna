@@ -12,7 +12,7 @@ namespace {
 
 class JsonParser {
 public:
-  JsonParser(std::string_view input, Interpreter &runtime) : source(input), interpreter(runtime) {}
+  JsonParser(std::string_view input, Heap &managedHeap) : source(input), heap(managedHeap) {}
 
   Value parse() {
     auto value = parseValue();
@@ -24,7 +24,7 @@ public:
 
 private:
   std::string_view source;
-  Interpreter &interpreter;
+  Heap &heap;
   std::size_t position{0};
 
   [[noreturn]] void fail(const std::string &message) const {
@@ -181,7 +181,7 @@ private:
 
   Value parseArray() {
     take('[');
-    auto *array = interpreter.heap().allocateArray();
+    auto *array = heap.allocateArray();
     if (take(']'))
       return Value(array);
     do {
@@ -194,7 +194,7 @@ private:
 
   Value parseObject() {
     take('{');
-    auto *object = interpreter.heap().allocate();
+    auto *object = heap.allocate();
     if (take('}'))
       return Value(object);
     do {
@@ -338,7 +338,11 @@ std::string stringify(const Value &value, std::set<const void *> &active) {
 } // namespace
 
 Value parseJsonValue(std::string_view source, Interpreter &interpreter) {
-  return JsonParser(source, interpreter).parse();
+  return parseJsonValue(source, interpreter.heap());
+}
+
+Value parseJsonValue(std::string_view source, Heap &heap) {
+  return JsonParser(source, heap).parse();
 }
 
 std::string stringifyJsonValue(const Value &value) {

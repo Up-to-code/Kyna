@@ -186,6 +186,37 @@ private:
                                                node.name, expression.span, 0,
                                                std::move(arguments)});
             return target;
+          } else if constexpr (std::is_same_v<T, HirIndexExpression>) {
+            const auto target = temporary();
+            const auto object = lowerExpression(node.object);
+            const auto index = lowerExpression(node.index);
+            current().instructions.push_back({MirInstructionKind::LoadIndex, target, object, index,
+                                               nullptr, expression.span, 0, {}});
+            return target;
+          } else if constexpr (std::is_same_v<T, HirArrayExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> elements;
+            elements.reserve(node.elements.size());
+            for (const auto element : node.elements)
+              elements.push_back(lowerExpression(element));
+            current().instructions.push_back({MirInstructionKind::MakeArray, target, {}, {},
+                                               nullptr, expression.span, 0,
+                                               std::move(elements)});
+            return target;
+          } else if constexpr (std::is_same_v<T, HirObjectExpression>) {
+            const auto target = temporary();
+            std::vector<MirTemporary> values;
+            std::vector<std::string> names;
+            values.reserve(node.fields.size());
+            names.reserve(node.fields.size());
+            for (const auto &field : node.fields) {
+              names.push_back(field.name);
+              values.push_back(lowerExpression(field.value));
+            }
+            current().instructions.push_back(
+                {MirInstructionKind::MakeObject, target, {}, {}, nullptr, expression.span, 0,
+                 std::move(values), 0, {}, std::move(names)});
+            return target;
           } else if constexpr (std::is_same_v<T, HirClosureExpression>) {
             const auto target = temporary();
             MirInstruction instruction;
@@ -564,6 +595,9 @@ const char *mirInstructionName(MirInstructionKind kind) {
   case MirInstructionKind::CallIndirect: return "call_indirect";
   case MirInstructionKind::CallNative: return "call_native";
   case MirInstructionKind::LoadMember: return "load_member";
+  case MirInstructionKind::MakeArray: return "make_array";
+  case MirInstructionKind::MakeObject: return "make_object";
+  case MirInstructionKind::LoadIndex: return "load_index";
   }
   return "unknown";
 }

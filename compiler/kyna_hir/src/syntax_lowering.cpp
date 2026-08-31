@@ -340,6 +340,33 @@ private:
             return object ? std::optional{addExpression(
                                 HirMemberExpression{*object, node.name}, expression->location)}
                           : std::nullopt;
+          } else if constexpr (std::is_same_v<T, Index>) {
+            const auto object = lowerExpression(node.object);
+            const auto index = lowerExpression(node.index);
+            return object && index
+                       ? std::optional{addExpression(HirIndexExpression{*object, *index},
+                                                     expression->location)}
+                       : std::nullopt;
+          } else if constexpr (std::is_same_v<T, ArrayExpr>) {
+            std::vector<HirExpressionId> elements;
+            elements.reserve(node.elements.size());
+            for (const auto &element : node.elements) {
+              const auto lowered = lowerExpression(element);
+              if (!lowered)
+                return std::nullopt;
+              elements.push_back(*lowered);
+            }
+            return addExpression(HirArrayExpression{std::move(elements)}, expression->location);
+          } else if constexpr (std::is_same_v<T, ObjectExpr>) {
+            std::vector<HirObjectField> fields;
+            fields.reserve(node.fields.size());
+            for (const auto &field : node.fields) {
+              const auto lowered = lowerExpression(field.value);
+              if (!lowered)
+                return std::nullopt;
+              fields.push_back({field.name, *lowered});
+            }
+            return addExpression(HirObjectExpression{std::move(fields)}, expression->location);
           } else if constexpr (std::is_same_v<T, Assign>) {
             const auto *target = node.target ? std::get_if<Variable>(&node.target->node) : nullptr;
             const auto local = target ? findLocal(target->name) : std::nullopt;

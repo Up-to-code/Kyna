@@ -241,6 +241,27 @@ int main() {
   assert(files->directories == bytecodeDirectories + 1);
   assert(network->requests == bytecodeRequests + 1);
   assert(clock->sleeps == bytecodeSleeps + 1);
+  const auto bytecodeJson = deterministicSession.runSource(
+      "bytecode-json.kyna",
+      "set decoded = jsonParse(\"{\\\"items\\\":[20,22],\\\"ready\\\":true}\"); "
+      "if (decoded.items[1] != 22 || decoded.ready != true) { error(\"decode\"); } "
+      "set encoded = jsonStringify(decoded); "
+      "if (encoded != \"{\\\"items\\\":[20,22],\\\"ready\\\":true}\") { error(\"encode\"); }");
+  assert(bytecodeJson.ok());
+  const auto caughtJsonFailure = deterministicSession.runSource(
+      "bytecode-json-failure.kyna",
+      "try { jsonParse(\"{broken}\"); } catch (failure) { "
+      "if (failure.code != \"K5100\") { throw failure; } }");
+  assert(caughtJsonFailure.ok());
+  const auto bytecodeCollections = deterministicSession.runSource(
+      "bytecode-collections.kyna",
+      "let values = [3,1,2,2]; push(values, 4); "
+      "if (pop(values) != 4) { error(\"pop\"); } "
+      "set ordered = sort(values); set distinct = unique(ordered); "
+      "set names = keys({ beta: 2, alpha: 1 }); "
+      "if (ordered[0] != 1 || ordered[3] != 3 || len(distinct) != 3 || "
+      "names[0] != \"alpha\" || names[1] != \"beta\") { error(\"collections\"); }");
+  assert(bytecodeCollections.ok());
   auto collectionsResult = deterministicSession.runSource(
       "collections.kyna",
       "func kynaDouble(value: int): int { return value * 2; } "

@@ -89,6 +89,20 @@ struct HirMemberExpression {
   HirExpressionId object;
   std::string member;
 };
+struct HirIndexExpression {
+  HirExpressionId object;
+  HirExpressionId index;
+};
+struct HirArrayExpression {
+  std::vector<HirExpressionId> elements;
+};
+struct HirObjectField {
+  std::string name;
+  HirExpressionId value;
+};
+struct HirObjectExpression {
+  std::vector<HirObjectField> fields;
+};
 struct HirIfExpression {
   HirExpressionId condition;
   HirStatementId thenPrelude;
@@ -111,7 +125,8 @@ struct HirExpression {
                             HirUnaryExpression,
                             HirBinaryExpression, HirAssignLocalExpression, HirCallExpression,
                             HirIndirectCallExpression, HirNativeCallExpression,
-                            HirMemberExpression, HirIfExpression, HirMatchExpression>;
+                            HirMemberExpression, HirIndexExpression, HirArrayExpression,
+                            HirObjectExpression, HirIfExpression, HirMatchExpression>;
   Node node;
   SourceSpan span;
 };

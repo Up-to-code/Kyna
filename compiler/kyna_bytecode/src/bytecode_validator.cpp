@@ -189,6 +189,28 @@ BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
           report(result, "KBC1124", "member name is not a valid string constant",
                  instruction.span);
         break;
+      case OpCode::MakeArray:
+      case OpCode::MakeObject:
+        registerError(instruction.destination, "collection destination");
+        if (instruction.first >= module.callArguments.size()) {
+          report(result, "KBC1126", "collection element-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        for (const auto element : module.callArguments[instruction.first])
+          registerError(element, "collection element");
+        if (instruction.opcode == OpCode::MakeObject &&
+            (instruction.second >= module.objectFieldNames.size() ||
+             module.objectFieldNames[instruction.second].size() !=
+                 module.callArguments[instruction.first].size()))
+          report(result, "KBC1127", "object field names do not match object values",
+                 instruction.span);
+        break;
+      case OpCode::LoadIndex:
+        registerError(instruction.destination, "index destination");
+        registerError(instruction.first, "indexed value");
+        registerError(instruction.second, "index");
+        break;
       case OpCode::Throw:
         registerError(instruction.first, "thrown value");
         break;

@@ -38,6 +38,9 @@ enum class OpCode : std::uint8_t {
   CallIndirect,
   CallNative,
   LoadMember,
+  MakeArray,
+  MakeObject,
+  LoadIndex,
   Throw,
   Return,
 };
@@ -78,6 +81,7 @@ struct BytecodeModule {
   std::vector<BytecodeConstant> constants;
   std::vector<std::vector<std::uint32_t>> callArguments;
   std::vector<std::string> nativeFunctions;
+  std::vector<std::vector<std::string>> objectFieldNames;
   std::vector<std::vector<BytecodeCaptureSource>> closureCaptures;
   std::vector<BytecodeFunction> functions;
   std::uint32_t entryFunction{0};

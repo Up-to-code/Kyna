@@ -114,6 +114,18 @@ std::string disassembleBytecode(const BytecodeModule &module) {
         output << " r" << instruction.destination << ", r" << instruction.first
                << ", constant[" << instruction.second << ']';
         break;
+      case OpCode::MakeArray:
+      case OpCode::MakeObject:
+        output << " r" << instruction.destination
+               << (instruction.opcode == OpCode::MakeArray ? ", elements[" : ", fields[")
+               << instruction.first << ']';
+        if (instruction.opcode == OpCode::MakeObject)
+          output << ", names[" << instruction.second << ']';
+        break;
+      case OpCode::LoadIndex:
+        output << " r" << instruction.destination << ", r" << instruction.first << ", r"
+               << instruction.second;
+        break;
       case OpCode::Throw:
         output << " r" << instruction.first;
         break;

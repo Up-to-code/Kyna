@@ -460,7 +460,17 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     case OpCode::LoadMember: {
       const auto &object = readRegister(frame, instruction.first);
       const auto &member = std::get<std::string>(module.constants[instruction.second]);
-      if (const auto error = std::get_if<ErrorPtr>(&object.data); error && *error) {
+      if (const auto instance = std::get_if<ObjectPtr>(&object.data); instance && *instance) {
+        const auto found = (*instance)->fields.find(member);
+        if (found != (*instance)->fields.end())
+          writeRegister(frame, instruction.destination, found->second);
+        else {
+          if (auto failure = raise("KRT2002", "object has no member '" + member + "'",
+                                   instruction.span, object))
+            return *std::move(failure);
+          continue;
+        }
+      } else if (const auto error = std::get_if<ErrorPtr>(&object.data); error && *error) {
         if (member == "message")
           writeRegister(frame, instruction.destination, RuntimeValue((*error)->message));
         else if (member == "code")
@@ -481,6 +491,79 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         continue;
       }
       break;
+    }
+    case OpCode::MakeArray: {
+      auto *array = heap.allocateArray();
+      array->elements.reserve(module.callArguments[instruction.first].size());
+      for (const auto element : module.callArguments[instruction.first])
+        array->elements.push_back(readRegister(frame, element));
+      writeRegister(frame, instruction.destination, RuntimeValue(array));
+      collectAtSafepoint();
+      break;
+    }
+    case OpCode::MakeObject: {
+      auto *object = heap.allocate();
+      const auto &values = module.callArguments[instruction.first];
+      const auto &names = module.objectFieldNames[instruction.second];
+      for (std::size_t index = 0; index < names.size(); ++index)
+        object->fields.insert_or_assign(names[index], readRegister(frame, values[index]));
+      writeRegister(frame, instruction.destination, RuntimeValue(object));
+      collectAtSafepoint();
+      break;
+    }
+    case OpCode::LoadIndex: {
+      const auto &object = readRegister(frame, instruction.first);
+      const auto &index = readRegister(frame, instruction.second);
+      if (std::holds_alternative<std::nullptr_t>(object.data)) {
+        if (auto failure = raise("KRT2101", "cannot index null", instruction.span))
+          return *std::move(failure);
+        continue;
+      }
+      if (const auto array = std::get_if<ArrayPtr>(&object.data); array && *array) {
+        const auto position = std::get_if<std::int64_t>(&index.data);
+        if (!position) {
+          if (auto failure = raise("KRT2103", "array index must be an integer, got '" +
+                                                  index.typeName() + "'",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        if (*position < 0 || static_cast<std::size_t>(*position) >= (*array)->elements.size()) {
+          if (auto failure = raise("KRT2104", "array index " + std::to_string(*position) +
+                                                  " is out of bounds for length " +
+                                                  std::to_string((*array)->elements.size()),
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        writeRegister(frame, instruction.destination,
+                      (*array)->elements[static_cast<std::size_t>(*position)]);
+        break;
+      }
+      if (const auto instance = std::get_if<ObjectPtr>(&object.data); instance && *instance) {
+        const auto key = std::get_if<std::string>(&index.data);
+        if (!key) {
+          if (auto failure = raise("KRT2103", "object key must be a string, got '" +
+                                                  index.typeName() + "'",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        const auto found = (*instance)->fields.find(*key);
+        if (found == (*instance)->fields.end()) {
+          if (auto failure = raise("KRT2105", "object has no field '" + *key + "'",
+                                   instruction.span, index))
+            return *std::move(failure);
+          continue;
+        }
+        writeRegister(frame, instruction.destination, found->second);
+        break;
+      }
+      if (auto failure = raise("KRT2102", "cannot index value of type '" + object.typeName() +
+                                              "'",
+                               instruction.span, object))
+        return *std::move(failure);
+      continue;
     }
     case OpCode::Throw: {
       const auto &thrown = readRegister(frame, instruction.first);
