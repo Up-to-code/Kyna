@@ -1,0 +1,18 @@
+# Timing instrumentation and logging API.
+# `clockMs()` returns monotonic milliseconds, `profileLog(label, value)` prints a
+# profiling line, and `measure(fn)` runs a zero-argument function and returns the
+# elapsed milliseconds so any computation can be timed and logged.
+func accumulate(): int {
+    let total = 0;
+    loop (let i = 0; i < 20000; i = i + 1) {
+        total = total + i;
+    }
+    return total;
+}
+
+let start = clockMs();
+let result = accumulate();
+profileLog("accumulate-by-clock", clockMs() - start);
+
+let elapsed = measure(accumulate);
+print("result", result, "measure-ms", elapsed);

@@ -1,0 +1,202 @@
+#include "bytecode_compiler_private.hpp"
+#include <type_traits>
+
+namespace kyna::bytecode_generation_detail {
+namespace {
+
+OpCode opcodeFor(MirInstructionKind kind) {
+  switch (kind) {
+  case MirInstructionKind::Move: return OpCode::Move;
+  case MirInstructionKind::FunctionReference: return OpCode::LoadFunction;
+  case MirInstructionKind::Closure: return OpCode::MakeClosure;
+  case MirInstructionKind::LoadCapture: return OpCode::LoadCapture;
+  case MirInstructionKind::StoreCapture: return OpCode::StoreCapture;
+  case MirInstructionKind::Negate: return OpCode::Negate;
+  case MirInstructionKind::Not: return OpCode::Not;
+  case MirInstructionKind::Add: return OpCode::Add;
+  case MirInstructionKind::Subtract: return OpCode::Subtract;
+  case MirInstructionKind::Multiply: return OpCode::Multiply;
+  case MirInstructionKind::Divide: return OpCode::Divide;
+  case MirInstructionKind::Remainder: return OpCode::Remainder;
+  case MirInstructionKind::Equal: return OpCode::Equal;
+  case MirInstructionKind::NotEqual: return OpCode::NotEqual;
+  case MirInstructionKind::Less: return OpCode::Less;
+  case MirInstructionKind::LessEqual: return OpCode::LessEqual;
+  case MirInstructionKind::Greater: return OpCode::Greater;
+  case MirInstructionKind::GreaterEqual: return OpCode::GreaterEqual;
+  case MirInstructionKind::Constant: return OpCode::LoadConstant;
+  case MirInstructionKind::Call: return OpCode::Call;
+  case MirInstructionKind::CallIndirect: return OpCode::CallIndirect;
+  case MirInstructionKind::CallNative: return OpCode::CallNative;
+  case MirInstructionKind::LoadMember: return OpCode::LoadMember;
+  case MirInstructionKind::BindMethod: return OpCode::BindMethod;
+  case MirInstructionKind::MakeArray: return OpCode::MakeArray;
+  case MirInstructionKind::MakeObject: return OpCode::MakeObject;
+  case MirInstructionKind::MakeInstance: return OpCode::MakeInstance;
+  case MirInstructionKind::LoadIndex: return OpCode::LoadIndex;
+  case MirInstructionKind::StoreIndex: return OpCode::StoreIndex;
+  case MirInstructionKind::StoreMember: return OpCode::StoreMember;
+  }
+  return OpCode::LoadNull;
+}
+
+std::size_t terminatorSize(const MirTerminator &terminator) {
+  return std::holds_alternative<MirBranchTerminator>(terminator.node) ? 2 : 1;
+}
+
+} // namespace
+
+void compileBody(BytecodeModule &module, BytecodeFunction &function,
+                 const std::vector<MirBasicBlock> &blocks,
+                 const std::vector<MirExceptionRegion> &exceptionRegions) {
+  std::vector<std::uint32_t> blockOffsets(blocks.size());
+  std::size_t offset = 0;
+  for (std::size_t index = 0; index < blocks.size(); ++index) {
+    blockOffsets[index] = static_cast<std::uint32_t>(offset);
+    offset += blocks[index].instructions.size();
+    offset += terminatorSize(*blocks[index].terminator);
+  }
+
+  for (const auto &block : blocks) {
+    for (const auto &instruction : block.instructions) {
+      if (instruction.kind == MirInstructionKind::Constant) {
+        module.constants.push_back(instruction.constant);
+        function.instructions.push_back(
+            {OpCode::LoadConstant, instruction.destination.value,
+             static_cast<std::uint32_t>(module.constants.size() - 1), 0, instruction.span});
+      } else if (instruction.kind == MirInstructionKind::FunctionReference) {
+        function.instructions.push_back(
+            {OpCode::LoadFunction, instruction.destination.value, instruction.function, 0,
+             instruction.span});
+      } else if (instruction.kind == MirInstructionKind::Closure) {
+        std::vector<BytecodeCaptureSource> captures;
+        captures.reserve(instruction.captureSources.size());
+        for (const auto &source : instruction.captureSources)
+          captures.push_back(
+              {source.kind == MirCaptureSource::Kind::Local
+                   ? BytecodeCaptureSource::Kind::Local
+                   : BytecodeCaptureSource::Kind::Capture,
+               source.index});
+        module.closureCaptures.push_back(std::move(captures));
+        function.instructions.push_back(
+            {OpCode::MakeClosure, instruction.destination.value, instruction.function,
+             static_cast<std::uint32_t>(module.closureCaptures.size() - 1), instruction.span});
+      } else if (instruction.kind == MirInstructionKind::LoadCapture) {
+        function.instructions.push_back({OpCode::LoadCapture, instruction.destination.value,
+                                         instruction.capture, 0, instruction.span});
+      } else if (instruction.kind == MirInstructionKind::StoreCapture) {
+        function.instructions.push_back({OpCode::StoreCapture, instruction.destination.value,
+                                         instruction.capture, instruction.first.value,
+                                         instruction.span});
+      } else if (instruction.kind == MirInstructionKind::Call ||
+                 instruction.kind == MirInstructionKind::CallIndirect ||
+                 instruction.kind == MirInstructionKind::CallNative) {
+        std::vector<std::uint32_t> arguments;
+        arguments.reserve(instruction.arguments.size());
+        for (const auto argument : instruction.arguments)
+          arguments.push_back(argument.value);
+        module.callArguments.push_back(std::move(arguments));
+        std::uint32_t target = instruction.first.value;
+        auto opcode = OpCode::CallIndirect;
+        if (instruction.kind == MirInstructionKind::Call) {
+          opcode = OpCode::Call;
+          target = instruction.function;
+        } else if (instruction.kind == MirInstructionKind::CallNative) {
+          opcode = OpCode::CallNative;
+          module.nativeFunctions.push_back(std::get<std::string>(instruction.constant));
+          target = static_cast<std::uint32_t>(module.nativeFunctions.size() - 1);
+        }
+        function.instructions.push_back(
+            {opcode, instruction.destination.value, target,
+             static_cast<std::uint32_t>(module.callArguments.size() - 1), instruction.span});
+      } else if (instruction.kind == MirInstructionKind::LoadMember) {
+        module.constants.push_back(instruction.constant);
+        function.instructions.push_back(
+            {OpCode::LoadMember, instruction.destination.value, instruction.first.value,
+             static_cast<std::uint32_t>(module.constants.size() - 1), instruction.span});
+      } else if (instruction.kind == MirInstructionKind::BindMethod) {
+        function.instructions.push_back(
+            {OpCode::BindMethod, instruction.destination.value, instruction.first.value,
+             instruction.function, instruction.span});
+      } else if (instruction.kind == MirInstructionKind::MakeArray ||
+                 instruction.kind == MirInstructionKind::MakeObject ||
+                 instruction.kind == MirInstructionKind::MakeInstance) {
+        std::vector<std::uint32_t> elements;
+        elements.reserve(instruction.arguments.size());
+        for (const auto element : instruction.arguments)
+          elements.push_back(element.value);
+        module.callArguments.push_back(std::move(elements));
+        std::uint32_t names = 0;
+        if (instruction.kind == MirInstructionKind::MakeObject) {
+          module.objectFieldNames.push_back(instruction.names);
+          names = static_cast<std::uint32_t>(module.objectFieldNames.size() - 1);
+        }
+        const auto opcode = instruction.kind == MirInstructionKind::MakeArray
+                                ? OpCode::MakeArray
+                            : instruction.kind == MirInstructionKind::MakeObject
+                                ? OpCode::MakeObject
+                                : OpCode::MakeInstance;
+        function.instructions.push_back(
+            {opcode, instruction.destination.value,
+             instruction.kind == MirInstructionKind::MakeInstance
+                 ? instruction.function
+                 : static_cast<std::uint32_t>(module.callArguments.size() - 1),
+             instruction.kind == MirInstructionKind::MakeInstance
+                 ? static_cast<std::uint32_t>(module.callArguments.size() - 1)
+                 : names,
+             instruction.span});
+      } else if (instruction.kind == MirInstructionKind::StoreIndex ||
+                 instruction.kind == MirInstructionKind::StoreMember) {
+        std::vector<std::uint32_t> operands;
+        for (const auto operand : instruction.arguments)
+          operands.push_back(operand.value);
+        module.callArguments.push_back(std::move(operands));
+        std::uint32_t memberName = 0;
+        if (instruction.kind == MirInstructionKind::StoreMember) {
+          module.constants.push_back(instruction.constant);
+          memberName = static_cast<std::uint32_t>(module.constants.size() - 1);
+        }
+        function.instructions.push_back(
+            {instruction.kind == MirInstructionKind::StoreIndex ? OpCode::StoreIndex
+                                                                : OpCode::StoreMember,
+             instruction.destination.value,
+             static_cast<std::uint32_t>(module.callArguments.size() - 1), memberName,
+             instruction.span});
+      } else {
+        function.instructions.push_back(
+            {opcodeFor(instruction.kind), instruction.destination.value, instruction.first.value,
+             instruction.second.value, instruction.span});
+      }
+    }
+    std::visit(
+        [&](const auto &terminator) {
+          using T = std::decay_t<decltype(terminator)>;
+          const auto span = block.terminator->span;
+          if constexpr (std::is_same_v<T, MirReturnTerminator>)
+            function.instructions.push_back({OpCode::Return, 0, terminator.value.value, 0, span});
+          else if constexpr (std::is_same_v<T, MirGotoTerminator>)
+            function.instructions.push_back(
+                {OpCode::Jump, 0, blockOffsets[terminator.target.value], 0, span});
+          else if constexpr (std::is_same_v<T, MirBranchTerminator>) {
+            function.instructions.push_back(
+                {OpCode::JumpIfFalse, 0, terminator.condition.value,
+                 blockOffsets[terminator.falseBlock.value], span});
+            function.instructions.push_back(
+                {OpCode::Jump, 0, blockOffsets[terminator.trueBlock.value], 0, span});
+          } else
+            function.instructions.push_back({OpCode::Throw, 0, terminator.value.value, 0, span});
+        },
+        block.terminator->node);
+  }
+  for (const auto &region : exceptionRegions)
+    for (const auto block : region.protectedBlocks) {
+      const auto begin = blockOffsets[block.value];
+      const auto end = block.value + 1 < blockOffsets.size()
+                           ? blockOffsets[block.value + 1]
+                           : static_cast<std::uint32_t>(function.instructions.size());
+      function.exceptionHandlers.push_back(
+          {begin, end - begin, blockOffsets[region.handler.value], region.errorDestination.value});
+    }
+}
+
+} // namespace kyna::bytecode_generation_detail

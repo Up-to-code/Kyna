@@ -175,6 +175,9 @@ BUILTIN_COVERAGE = {
     "gcStats": "examples/standard_library/memory_and_color.kyna",
     "logColor": "examples/standard_library/memory_and_color.kyna",
     "createApiStore": "examples/standard_library/api_store.kyna",
+    "clockMs": "examples/standard_library/timing.kyna",
+    "profileLog": "examples/standard_library/timing.kyna",
+    "measure": "examples/standard_library/timing.kyna",
 }
 
 # These examples must compile through every production compiler representation.
@@ -225,7 +228,9 @@ def main() -> int:
     failures: list[str] = []
     examples = sorted((root / "examples").rglob("*.kyna"))
 
-    symbol_source = (root / "compiler/kyna_symbols/src/standard_library_symbols.cpp").read_text()
+    symbol_source = (
+        root / "compiler/kyna_symbols/src/catalog/standard_library_symbols.cpp"
+    ).read_text()
     callable_symbols = set(
         re.findall(r'StandardLibrarySymbol\{"([A-Za-z][A-Za-z0-9]*)", true,', symbol_source)
     )

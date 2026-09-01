@@ -42,7 +42,6 @@ private:
   Value eval(const ExprPtr &);
   void exec(const StmtPtr &);
   void execBlock(const BlockStmt &, std::shared_ptr<Environment>);
-  Value binary(TokenKind, const Value &, const Value &, SourceSpan);
   Value call(const Call &, const ExprPtr &);
   Value getMember(const Member &);
   void setMember(const ExprPtr &, const std::string &, Value);

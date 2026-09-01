@@ -1,19 +1,31 @@
 add_executable(kyna
-  src/kyna_main.cpp
-  src/cli_argument_parser.cpp
-  src/command_dispatcher.cpp
-  src/source_run_command.cpp
-  src/source_check_command.cpp
-  src/repl_command.cpp
-  src/token_dump_command.cpp
-  src/syntax_dump_command.cpp
-  src/hir_dump_command.cpp
-  src/mir_dump_command.cpp
-  src/bytecode_dump_command.cpp
-  src/source_inspect_command.cpp
-  src/project_commands.cpp
-  src/kyna_formatter.cpp
-  src/rich_diagnostic_renderer.cpp)
+  src/entry/kyna_main.cpp
+  src/parser/cli_argument_parser.cpp
+  src/dispatcher/command_dispatcher.cpp
+  src/commands/source_run_command.cpp
+  src/commands/source_check_command.cpp
+  src/commands/source_inspect_command.cpp
+  src/commands/token_dump_command.cpp
+  src/commands/syntax_dump_command.cpp
+  src/commands/hir_dump_command.cpp
+  src/commands/mir_dump_command.cpp
+  src/commands/bytecode_dump_command.cpp
+  src/commands/repl/project.cpp
+  src/commands/repl/editor.cpp
+  src/commands/repl/run.cpp
+  src/commands/project_dispatcher.cpp
+  src/commands/project_discovery.cpp
+  src/commands/project_fs.cpp
+  src/commands/project_new.cpp
+  src/commands/project_generate.cpp
+  src/commands/project_format.cpp
+  src/commands/project_dependencies.cpp
+  src/commands/project_doctor.cpp
+  src/commands/project_serve.cpp
+  src/commands/project_dev.cpp
+  src/commands/project_self.cpp
+  src/formatting/kyna_formatter.cpp
+  src/rendering/rich_diagnostic_renderer.cpp)
 target_link_libraries(kyna PRIVATE kyna_embedding CLI11::CLI11 tomlplusplus::tomlplusplus
   ftxui::component ftxui::dom ftxui::screen)
 kyna_configure_target(kyna)

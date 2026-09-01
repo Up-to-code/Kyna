@@ -1,52 +1,8 @@
 #include "kyna/semantics/modifier_query.hpp"
+#include "expression_operations.hpp"
 #include "kyna/execution/tree_walk_engine.hpp"
-#include <limits>
 
 namespace kyna {
-namespace {
-
-std::string decodeQuotedLiteral(const std::string &literal) {
-  std::string value;
-  const auto end = literal.size() > 1 ? literal.size() - 1 : literal.size();
-  for (std::size_t index = 1; index < end; ++index) {
-    if (literal[index] != '\\' || index + 1 >= end) {
-      value.push_back(literal[index]);
-      continue;
-    }
-    switch (literal[++index]) {
-    case 'n':
-      value.push_back('\n');
-      break;
-    case 'r':
-      value.push_back('\r');
-      break;
-    case 't':
-      value.push_back('\t');
-      break;
-    case 'b':
-      value.push_back('\b');
-      break;
-    case 'f':
-      value.push_back('\f');
-      break;
-    case '\\':
-      value.push_back('\\');
-      break;
-    case '"':
-      value.push_back('"');
-      break;
-    case '\'':
-      value.push_back('\'');
-      break;
-    default:
-      value.push_back(literal[index]);
-      break;
-    }
-  }
-  return value;
-}
-
-} // namespace
 
 Value Interpreter::eval(const ExprPtr &e) {
   return std::visit(
@@ -63,10 +19,10 @@ Value Interpreter::eval(const ExprPtr &e) {
           case Literal::Kind::Float:
             return Value(std::stod(n.value));
           case Literal::Kind::String: {
-            return Value(decodeQuotedLiteral(n.value));
+            return Value(decodeExpressionLiteral(n.value));
           }
           case Literal::Kind::Char: {
-            const auto value = decodeQuotedLiteral(n.value);
+            const auto value = decodeExpressionLiteral(n.value);
             return Value(value.empty() ? '\0' : value.front());
           }
           }
@@ -94,7 +50,7 @@ Value Interpreter::eval(const ExprPtr &e) {
             auto l = eval(n.left);
             return l.isTruthy() ? Value(true) : Value(eval(n.right).isTruthy());
           }
-          return binary(n.op, eval(n.left), eval(n.right), e->location);
+          return evaluateExpressionBinary(n.op, eval(n.left), eval(n.right), e->location);
         } else if constexpr (std::is_same_v<T, Assign>) {
           Value v = eval(n.value);
           if (auto x = std::get_if<Variable>(&n.target->node))
@@ -208,63 +164,6 @@ Value Interpreter::eval(const ExprPtr &e) {
           return Value();
       },
       e->node);
-}
-Value Interpreter::binary(TokenKind op, const Value &a, const Value &b, SourceSpan span) {
-  if (op == TokenKind::EqualEqual)
-    return Value(a.equals(b));
-  if (op == TokenKind::BangEqual)
-    return Value(!a.equals(b));
-  if (op == TokenKind::Plus) {
-    if (std::holds_alternative<std::string>(a.data) || std::holds_alternative<std::string>(b.data))
-      return Value(a.display() + b.display());
-    if (std::holds_alternative<int64_t>(a.data) && std::holds_alternative<int64_t>(b.data))
-      return Value(std::get<int64_t>(a.data) + std::get<int64_t>(b.data));
-    if ((std::holds_alternative<int64_t>(a.data) || std::holds_alternative<double>(a.data)) &&
-        (std::holds_alternative<int64_t>(b.data) || std::holds_alternative<double>(b.data)))
-      return Value((std::holds_alternative<int64_t>(a.data) ? std::get<int64_t>(a.data)
-                                                            : std::get<double>(a.data)) +
-                   (std::holds_alternative<int64_t>(b.data) ? std::get<int64_t>(b.data)
-                                                            : std::get<double>(b.data)));
-    throw KynaError({"'+' requires numbers or strings", span, false, "KRT2200"});
-  }
-  if (op == TokenKind::Percent &&
-      (!std::holds_alternative<int64_t>(a.data) || !std::holds_alternative<int64_t>(b.data)))
-    throw KynaError({"'%' requires integer operands", span, false, "KRT2202"});
-  bool nums = (std::holds_alternative<int64_t>(a.data) || std::holds_alternative<double>(a.data)) &&
-              (std::holds_alternative<int64_t>(b.data) || std::holds_alternative<double>(b.data));
-  if (!nums)
-    throw KynaError({"numeric operator requires numbers", span, false, "KRT2200"});
-  double x = std::holds_alternative<int64_t>(a.data) ? std::get<int64_t>(a.data)
-                                                     : std::get<double>(a.data),
-         y = std::holds_alternative<int64_t>(b.data) ? std::get<int64_t>(b.data)
-                                                     : std::get<double>(b.data);
-  switch (op) {
-  case TokenKind::Minus:
-    return Value(x - y);
-  case TokenKind::Star:
-    return Value(x * y);
-  case TokenKind::Slash:
-    if (y == 0)
-      throw KynaError({"division by zero", span, false, "KRT2201"});
-    return Value(x / y);
-  case TokenKind::Percent:
-    if (std::get<int64_t>(b.data) == 0)
-      throw KynaError({"remainder by zero", span, false, "KRT2201"});
-    if (std::get<int64_t>(a.data) == std::numeric_limits<int64_t>::min() &&
-        std::get<int64_t>(b.data) == -1)
-      return Value(std::int64_t{0});
-    return Value(std::get<int64_t>(a.data) % std::get<int64_t>(b.data));
-  case TokenKind::Less:
-    return Value(x < y);
-  case TokenKind::LessEqual:
-    return Value(x <= y);
-  case TokenKind::Greater:
-    return Value(x > y);
-  case TokenKind::GreaterEqual:
-    return Value(x >= y);
-  default:
-    throw KynaError({"unsupported numeric operator", span, false, "KRT2203"});
-  }
 }
 Value Interpreter::call(const Call &c, const ExprPtr &callee) {
   Value v = eval(callee);

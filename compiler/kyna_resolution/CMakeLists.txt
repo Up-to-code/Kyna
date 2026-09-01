@@ -1,5 +1,4 @@
 kyna_add_module(kyna_resolution SOURCES
-  src/filesystem_module_loader.cpp
-  src/module_graph_builder.cpp
-  src/module_cycle_detector.cpp
+  src/loading/filesystem_module_loader.cpp
+  src/loading/module_path_resolver.cpp
   PUBLIC_DEPENDENCIES kyna_parsing kyna_diagnostics)

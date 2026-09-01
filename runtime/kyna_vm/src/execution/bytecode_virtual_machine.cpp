@@ -1,89 +1,13 @@
 #include "kyna/execution/bytecode_virtual_machine.hpp"
 #include "kyna/bytecode/bytecode_validator.hpp"
 #include "kyna/memory/tracing_heap.hpp"
-#include <cmath>
-#include <limits>
+#include "../rendering/bytecode_runtime_diagnostic.hpp"
+#include "../types/bytecode_call_frame.hpp"
+#include "../validators/bytecode_numeric_operations.hpp"
 #include <optional>
 
 namespace kyna {
 namespace {
-RuntimeValue fromConstant(const BytecodeConstant &constant) {
-  return std::visit([](const auto &value) { return RuntimeValue(value); }, constant);
-}
-
-struct CallFrame {
-  std::uint32_t function{0};
-  std::vector<RuntimeValue> registers;
-  std::size_t instructionPointer{0};
-  std::optional<std::uint32_t> returnDestination;
-  std::optional<RuntimeValue> returnOverride;
-  SourceSpan callSite;
-  std::vector<VmCaptureCell *> captures;
-  std::vector<VmCaptureCell *> registerCells;
-};
-
-Diagnostic runtimeDiagnostic(std::string code, std::string message, SourceSpan span,
-                             const BytecodeModule &module,
-                             const std::vector<CallFrame> &frames) {
-  Diagnostic diagnostic{std::move(message), span, false, std::move(code)};
-  diagnostic.category = "runtime";
-  for (std::size_t offset = 0; offset < frames.size(); ++offset) {
-    const auto index = frames.size() - 1 - offset;
-    const auto frameSpan = index + 1 == frames.size() ? span : frames[index + 1].callSite;
-    diagnostic.callFrames.push_back({module.functions[frames[index].function].name, frameSpan});
-  }
-  return diagnostic;
-}
-
-bool number(const RuntimeValue &value, double &result, bool &integer) {
-  if (const auto item = std::get_if<std::int64_t>(&value.data)) {
-    result = static_cast<double>(*item);
-    integer = true;
-    return true;
-  }
-  if (const auto item = std::get_if<double>(&value.data)) {
-    result = *item;
-    integer = false;
-    return true;
-  }
-  return false;
-}
-
-bool checkedIntegerArithmetic(OpCode opcode, std::int64_t left, std::int64_t right,
-                              std::int64_t &result) {
-  const auto minimum = std::numeric_limits<std::int64_t>::min();
-  const auto maximum = std::numeric_limits<std::int64_t>::max();
-  switch (opcode) {
-  case OpCode::Add:
-    if ((right > 0 && left > maximum - right) || (right < 0 && left < minimum - right))
-      return false;
-    result = left + right;
-    return true;
-  case OpCode::Subtract:
-    if ((right < 0 && left > maximum + right) || (right > 0 && left < minimum + right))
-      return false;
-    result = left - right;
-    return true;
-  case OpCode::Multiply:
-    if (left == 0 || right == 0) {
-      result = 0;
-      return true;
-    }
-    if ((left == -1 && right == minimum) || (right == -1 && left == minimum))
-      return false;
-    if (left > 0) {
-      if ((right > 0 && left > maximum / right) ||
-          (right < 0 && right < minimum / left))
-        return false;
-    } else if ((right > 0 && left < minimum / right) ||
-               (right < 0 && left < maximum / right))
-      return false;
-    result = left * right;
-    return true;
-  default:
-    return false;
-  }
-}
 } // namespace
 
 BytecodeExecutionResult
@@ -95,18 +19,18 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
 
   constexpr std::size_t MaximumCallFrames = 4096;
   Heap heap;
-  std::vector<CallFrame> frames;
+  std::vector<BytecodeCallFrame> frames;
   const auto &entry = module.functions[module.entryFunction];
   frames.push_back(
       {module.entryFunction, std::vector<RuntimeValue>(entry.registerCount), 0, std::nullopt,
        std::nullopt, {}, {}, std::vector<VmCaptureCell *>(entry.registerCount, nullptr)});
 
-  const auto readRegister = [](const CallFrame &frame, std::uint32_t index)
+  const auto readRegister = [](const BytecodeCallFrame &frame, std::uint32_t index)
       -> const RuntimeValue & {
     return frame.registerCells[index] ? frame.registerCells[index]->value
                                       : frame.registers[index];
   };
-  const auto writeRegister = [](CallFrame &frame, std::uint32_t index, RuntimeValue value) {
+  const auto writeRegister = [](BytecodeCallFrame &frame, std::uint32_t index, RuntimeValue value) {
     frame.registers[index] = value;
     if (frame.registerCells[index])
       frame.registerCells[index]->value = std::move(value);
@@ -177,8 +101,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     }
 
     if (!handledFrame) {
-      auto diagnostic = runtimeDiagnostic(error->code.empty() ? "KVM2301" : error->code,
-                                          error->message, span, module, frames);
+      auto diagnostic = makeBytecodeRuntimeDiagnostic(error->code.empty() ? "KVM2301" : error->code,
+                                                      error->message, span, module, frames);
       if (!std::holds_alternative<std::nullptr_t>(error->cause.data))
         diagnostic.notes.push_back("cause: " + error->cause.display());
       diagnostic.help = "catch this error with 'try/catch' or fix the failing operation";
@@ -201,15 +125,15 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     auto &frame = frames.back();
     const auto &function = module.functions[frame.function];
     if (frame.instructionPointer >= function.instructions.size())
-      return {{}, {runtimeDiagnostic("KVM2099", "instruction pointer escaped function '" +
+      return {{}, {makeBytecodeRuntimeDiagnostic("KVM2099", "instruction pointer escaped function '" +
                                                    function.name + "'",
-                                     function.instructions.back().span, module, frames)}};
+                                                 function.instructions.back().span, module, frames)}};
 
     const auto &instruction = function.instructions[frame.instructionPointer];
     switch (instruction.opcode) {
     case OpCode::LoadConstant:
       writeRegister(frame, instruction.destination,
-                    fromConstant(module.constants[instruction.first]));
+                    bytecodeConstantValue(module.constants[instruction.first]));
       break;
     case OpCode::LoadNull:
       writeRegister(frame, instruction.destination, RuntimeValue());
@@ -299,8 +223,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       double right = 0.0;
       bool leftInteger = false;
       bool rightInteger = false;
-      if (!number(readRegister(frame, instruction.first), left, leftInteger) ||
-          !number(readRegister(frame, instruction.second), right, rightInteger)) {
+      if (!bytecodeNumber(readRegister(frame, instruction.first), left, leftInteger) ||
+          !bytecodeNumber(readRegister(frame, instruction.second), right, rightInteger)) {
         if (auto failure = raise("KRT2200", std::string(opcodeName(instruction.opcode)) +
                                                " requires numeric operands",
                                  instruction.span))
@@ -333,8 +257,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
           const auto integerRight =
               std::get<std::int64_t>(readRegister(frame, instruction.second).data);
           std::int64_t integerResult = 0;
-          if (!checkedIntegerArithmetic(instruction.opcode, integerLeft, integerRight,
-                                        integerResult)) {
+          if (!checkedBytecodeIntegerArithmetic(instruction.opcode, integerLeft, integerRight,
+                                                integerResult)) {
             if (auto failure = raise(
                     "KRT2204", "integer overflow while evaluating '" +
                                    std::string(opcodeName(instruction.opcode)) + "'",
@@ -460,7 +384,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
           return *std::move(failure);
         continue;
       }
-      CallFrame called{targetFunction, std::vector<RuntimeValue>(target.registerCount), 0,
+      BytecodeCallFrame called{targetFunction, std::vector<RuntimeValue>(target.registerCount), 0,
                        instruction.destination, std::nullopt, instruction.span,
                        std::move(calledCaptures),
                        std::vector<VmCaptureCell *>(target.registerCount, nullptr)};
@@ -602,7 +526,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
           return *std::move(failure);
         continue;
       }
-      CallFrame called{*constructorIndex,
+      BytecodeCallFrame called{*constructorIndex,
                        std::vector<RuntimeValue>(constructor.registerCount), 0,
                        instruction.destination, RuntimeValue(instance), instruction.span, {},
                        std::vector<VmCaptureCell *>(constructor.registerCount, nullptr)};

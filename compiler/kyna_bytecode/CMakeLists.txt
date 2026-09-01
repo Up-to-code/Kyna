@@ -1,7 +1,9 @@
 kyna_add_module(kyna_bytecode SOURCES
-  src/bytecode_validator.cpp
-  src/bytecode_disassembler.cpp
-  src/program_bytecode_compiler.cpp
+  src/validators/bytecode_validator.cpp
+  src/rendering/bytecode_disassembler.cpp
+  src/generators/program_bytecode_compiler.cpp
+  src/generators/body_compiler.cpp
+  src/types/opcode_description.cpp
   PUBLIC_DEPENDENCIES kyna_diagnostics kyna_mir)
 
 set(KYNA_GENERATED_OPCODE_NAMES
