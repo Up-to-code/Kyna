@@ -3,15 +3,19 @@
 The Kyna runtime exposes standard-library functions through the global environment rather than special-casing them in the parser:
 
 - `print(value, ...)`, `log(value, ...)`, `console.log(value, ...)`, `logColor(color, message)`, and `typeOf(value)`
+- Structured backend logging: `slogInfo(message, fields?)`, `slogWarn`, `slogError`, and the `slog.info` / `slog.warn` / `slog.error` object (JSON lines). Prefer these over `print` in services.
 - `len`, `push`, `pop`, and `keys` for arrays, strings, and closed objects
+- Queue helpers: `createQueue()`, `enqueue(queue, value)`, `dequeue(queue)`, `peekQueue(queue)`, `queueIsEmpty(queue)`
 - `textContains`, `textFind`, `textSlice`, `textReplace`, `textSplit`, `textTrim`, `textLower`, and `textUpper` for UTF-8 text; indices and `len(string)` count Unicode code points rather than bytes
 - `readFile(path)`, `writeFile(path, content)`, `readJsonFile(path)`, and `writeJsonFile(path, value)`
+- `copyFile(source, destination)` streams bytes in 64KiB chunks (does not load the whole file)
 - `createDirectory(path)`, `fileExists(path)`, `removePath(path)`, and `listDirectory(path)`
 - `fs.read`, `fs.write`, `fs.readJson`, `fs.writeJson`, `fs.createDirectory`, `fs.exists`, `fs.remove`, and `fs.list`
 - `processRun(command)`, `build(command)`, `processEnv(name)`, `sleep(milliseconds)`, `wait(milliseconds)`, and `timeSleep(milliseconds)`
 - `clockMs()` and `timeNow()` for monotonic millisecond and nanosecond timestamps, plus `measure(fn)` and `profileLog(label, value)` for timing code
 - `os.name()`, `os.architecture()`, `os.cwd()`, `terminal.interactive()`, and `terminal.supportsColor()` through the injected host-information capability
 - `httpGet(url)` for a raw response body and `fetch(url)` for a response object with `ok`, `status`, `url`, `text()`, and `json()`
+- `parseIP(text)` returns a canonical IPv4 string or `null` when the text is not a valid address
 - `jsonParse`, `jsonStringify`, `process.json`, `process.stringify`, `process.run`, and `process.env`
 - `toml.parse`, `toml.stringify`, `xml.parse`, and `xml.stringify`, with canonical
   `tomlParse`, `tomlStringify`, `xmlParse`, and `xmlStringify` aliases

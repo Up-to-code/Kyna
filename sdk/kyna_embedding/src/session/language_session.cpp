@@ -15,7 +15,7 @@ AnalysisResult LanguageSession::compile(const std::filesystem::path &entry,
   auto loaded = loadModuleGraph(sources, entry, ModuleLoadOptions{options.modulePaths});
   frontEnd = loaded.diagnostics;
   if (!loaded.ok())
-    return {std::nullopt, {}};
+    return {std::nullopt, {}, {}};
   return analyzeModuleGraph(std::move(loaded.graph));
 }
 

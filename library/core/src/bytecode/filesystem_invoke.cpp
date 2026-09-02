@@ -1,5 +1,7 @@
 #include "bytecode_private.hpp"
 #include "../codecs/json/json_value_codec.hpp"
+#include <array>
+#include <cstdint>
 #include <string>
 
 namespace kyna::detail {
@@ -94,6 +96,29 @@ std::optional<NativeCallResult> filesystemBytecodeInvoke(
     if (!ctx.capabilities.files->write(std::get<std::string>(arguments[0].data), encoded, message))
       return bytecodeFailure("KFS2008", std::move(message), arguments[0]);
     return NativeCallResult{RuntimeValue(true), std::nullopt};
+  }
+  if (name == "copyFile") {
+    if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data) ||
+        !std::holds_alternative<std::string>(arguments[1].data))
+      return bytecodeFailure("KFS2010", "copyFile expects source and destination path strings");
+    std::string message;
+    auto reader = ctx.capabilities.files->openRead(std::get<std::string>(arguments[0].data), message);
+    if (!reader)
+      return bytecodeFailure("KFS2010", std::move(message), arguments[0]);
+    auto writer = ctx.capabilities.files->openWrite(std::get<std::string>(arguments[1].data), message);
+    if (!writer)
+      return bytecodeFailure("KFS2010", std::move(message), arguments[1]);
+    std::array<std::uint8_t, 65536> buffer{};
+    std::int64_t total = 0;
+    for (;;) {
+      const auto got = reader->read(buffer.data(), buffer.size());
+      if (got == 0)
+        break;
+      total += static_cast<std::int64_t>(writer->write(buffer.data(), got));
+    }
+    reader->close();
+    writer->close();
+    return NativeCallResult{RuntimeValue(total), std::nullopt};
   }
   return std::nullopt;
 }

@@ -40,7 +40,12 @@ int main() {
                         "if (len(sort([])) != 0) { throw \"empty sort wrong\"; } "
                         "var single = sort([42]); "
                         "if (len(single) != 1 || single[0] != 42) "
-                        "{ throw \"single sort wrong\"; } "))
+                        "{ throw \"single sort wrong\"; } "
+                        "var q = createQueue(); "
+                        "enqueue(q, 1); enqueue(q, 2); "
+                        "if (queueIsEmpty(q) || peekQueue(q) != 1) { throw \"queue peek\"; } "
+                        "if (dequeue(q) != 1 || dequeue(q) != 2 || !queueIsEmpty(q)) "
+                        "{ throw \"queue drain\"; } "))
           .parse();
   assert(kyna::validate(sortProgram).empty());
   kyna::Interpreter sortInterpreter(kyna::productionRuntimeCapabilities(),

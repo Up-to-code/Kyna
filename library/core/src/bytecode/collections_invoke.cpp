@@ -71,6 +71,41 @@ std::optional<NativeCallResult> collectionsBytecodeInvoke(
     std::stable_sort(result->elements.begin(), result->elements.end(), less);
     return NativeCallResult{RuntimeValue(result), std::nullopt};
   }
+  if (name == "createQueue") {
+    if (!arguments.empty())
+      return bytecodeFailure("KCOL1020", "createQueue expects no arguments");
+    return NativeCallResult{RuntimeValue(ctx.heap.allocateArray()), std::nullopt};
+  }
+  if (name == "enqueue") {
+    if (arguments.size() != 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      return bytecodeFailure("KCOL1021", "enqueue expects a queue and a value");
+    std::get<ArrayPtr>(arguments[0].data)->elements.push_back(arguments[1]);
+    return NativeCallResult{};
+  }
+  if (name == "dequeue") {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      return bytecodeFailure("KCOL1022", "dequeue expects a queue");
+    auto *queue = std::get<ArrayPtr>(arguments[0].data);
+    if (queue->elements.empty())
+      return NativeCallResult{};
+    auto value = queue->elements.front();
+    queue->elements.erase(queue->elements.begin());
+    return NativeCallResult{std::move(value), std::nullopt};
+  }
+  if (name == "peekQueue") {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      return bytecodeFailure("KCOL1023", "peekQueue expects a queue");
+    auto *queue = std::get<ArrayPtr>(arguments[0].data);
+    if (queue->elements.empty())
+      return NativeCallResult{};
+    return NativeCallResult{queue->elements.front(), std::nullopt};
+  }
+  if (name == "queueIsEmpty") {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      return bytecodeFailure("KCOL1024", "queueIsEmpty expects a queue");
+    return NativeCallResult{
+        RuntimeValue(std::get<ArrayPtr>(arguments[0].data)->elements.empty()), std::nullopt};
+  }
 
   if (name == "push" || name == "pop" || name == "len" || name == "size" ||
       name == "length" || name == "first" || name == "last" || name == "get" ||

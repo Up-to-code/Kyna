@@ -519,5 +519,21 @@ int main() {
   assert(productionFileSession.runSource("persistence.kyna", persistenceSource).ok());
   assert(!std::filesystem::exists(persistedDirectory));
 
+  const auto packageDir = directory / "pkg";
+  std::filesystem::create_directories(packageDir);
+  {
+    std::ofstream helpers(packageDir / "helpers.kyna");
+    helpers << "fn add(a: int, b: int): int { return a + b; }\n";
+  }
+  {
+    std::ofstream entry(packageDir / "main.kyna");
+    entry << "print(add(20, 22));\n";
+  }
+  kyna::LanguageSession packageSession;
+  const auto packageCheck = packageSession.check(packageDir);
+  assert(packageCheck.ok());
+  const auto packageRun = packageSession.run(packageDir);
+  assert(packageRun.ok());
+
   std::filesystem::remove_all(directory);
 }

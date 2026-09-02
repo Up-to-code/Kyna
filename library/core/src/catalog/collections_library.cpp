@@ -129,6 +129,60 @@ void installCollectionLibrary(Interpreter &interpreter) {
     return std::get<FunctionPtr>(arguments[0].data)->call(invocationArguments, interpreter);
   };
   global->define("call", Value(call), false);
+
+  auto createQueue = std::make_shared<Function>();
+  createQueue->native = true;
+  createQueue->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+    if (!arguments.empty())
+      throw KynaError({"createQueue expects no arguments", {1, 1}, false});
+    return Value(interpreter.heap().allocateArray());
+  };
+  global->define("createQueue", Value(createQueue), false);
+
+  auto enqueue = std::make_shared<Function>();
+  enqueue->native = true;
+  enqueue->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      throw KynaError({"enqueue expects a queue and a value", {1, 1}, false});
+    std::get<ArrayPtr>(arguments[0].data)->elements.push_back(arguments[1]);
+    return Value();
+  };
+  global->define("enqueue", Value(enqueue), false);
+
+  auto dequeue = std::make_shared<Function>();
+  dequeue->native = true;
+  dequeue->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      throw KynaError({"dequeue expects a queue", {1, 1}, false});
+    auto queue = std::get<ArrayPtr>(arguments[0].data);
+    if (queue->elements.empty())
+      return Value();
+    auto value = queue->elements.front();
+    queue->elements.erase(queue->elements.begin());
+    return value;
+  };
+  global->define("dequeue", Value(dequeue), false);
+
+  auto peekQueue = std::make_shared<Function>();
+  peekQueue->native = true;
+  peekQueue->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      throw KynaError({"peekQueue expects a queue", {1, 1}, false});
+    auto queue = std::get<ArrayPtr>(arguments[0].data);
+    if (queue->elements.empty())
+      return Value();
+    return queue->elements.front();
+  };
+  global->define("peekQueue", Value(peekQueue), false);
+
+  auto queueIsEmpty = std::make_shared<Function>();
+  queueIsEmpty->native = true;
+  queueIsEmpty->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+      throw KynaError({"queueIsEmpty expects a queue", {1, 1}, false});
+    return Value(std::get<ArrayPtr>(arguments[0].data)->elements.empty());
+  };
+  global->define("queueIsEmpty", Value(queueIsEmpty), false);
 }
 
 } // namespace kyna::detail

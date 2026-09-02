@@ -54,6 +54,12 @@ private:
   };
   std::optional<ValueBlock> lowerValueBlock(const StmtPtr &statement);
   std::optional<HirExpressionId> lowerExpression(const ExprPtr &expression);
+  std::optional<HirExpressionId> lowerCall(const Call &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerAssign(const Assign &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerNew(const NewExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerObject(const ObjectExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerIfExpr(const IfExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerMatch(const MatchExpr &node, SourceSpan span);
   std::optional<HirStatementId> lowerScopedStatement(const StmtPtr &statement);
   std::optional<HirStatementId> lowerStatement(const StmtPtr &statement);
 };

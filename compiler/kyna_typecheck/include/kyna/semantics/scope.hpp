@@ -16,10 +16,7 @@ namespace kyna::semantics {
 // order.
 class Scope {
 public:
-  explicit Scope(Scope *parent = nullptr) : parent_(parent) {
-    if (parent_)
-      parent_->children_.emplace_back(this);
-  }
+  explicit Scope(Scope *parent = nullptr) : parent_(parent) {}
 
   Scope(const Scope &) = delete;
   Scope &operator=(const Scope &) = delete;
@@ -27,9 +24,11 @@ public:
 
   Scope *parent() const { return parent_; }
   Scope *createChild(SourceSpan extent = {}) {
-    auto *child = new Scope(this);
+    auto child = std::make_unique<Scope>(this);
     child->extent_ = extent;
-    return child;
+    auto *raw = child.get();
+    children_.push_back(std::move(child));
+    return raw;
   }
 
   // Inserts `symbol` into this scope. Returns the previously existing symbol

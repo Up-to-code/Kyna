@@ -50,6 +50,9 @@ private:
   MirInstructionKind instructionFor(HirBinaryOperator operation) const;
 
   MirTemporary lowerExpression(HirExpressionId id);
+  MirTemporary lowerInvocation(const HirExpression &expression);
+  MirTemporary lowerIfExpression(const HirIfExpression &node, SourceSpan span);
+  MirTemporary lowerMatchExpression(const HirMatchExpression &node, SourceSpan span);
   void lowerStatement(HirStatementId id);
 };
 

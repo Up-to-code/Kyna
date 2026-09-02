@@ -1,0 +1,16 @@
+# Stream a file copy with bounded memory (Go io.Copy style).
+const directory = "kyna-stream-example";
+const sourcePath = directory + "/source.txt";
+const destPath = directory + "/dest.txt";
+
+try {
+    createDirectory(directory);
+    writeFile(sourcePath, "streamed");
+    const copied = copyFile(sourcePath, destPath);
+    print(copied, readFile(destPath));
+    removePath(sourcePath);
+    removePath(destPath);
+    removePath(directory);
+} catch (failure) {
+    print("copy failure", failure.code, failure.message);
+}

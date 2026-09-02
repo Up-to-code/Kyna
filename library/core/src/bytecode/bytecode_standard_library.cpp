@@ -44,16 +44,17 @@ private:
 const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
       "print", "log", "typeOf", "toString", "clockMs", "timeNow", "timeSleep", "profileLog", "len", "error", "readFile", "writeFile", "fileExists",
-      "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
+      "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile", "copyFile",
       "processEnv", "processRun", "build", "osName", "osArchitecture",
       "osWorkingDirectory", "terminalIsInteractive", "terminalSupportsColor",
       "sleep", "wait", "httpGet", "fetch",
-      "fetchResult",
+      "fetchResult", "parseIP",
       "responseJson", "responseText", "jsonParse",
       "jsonStringify", "tomlParse", "tomlStringify", "xmlParse", "xmlStringify",
       "push", "pop", "keys", "unique", "sort", "bubbleSort",
+      "createQueue", "enqueue", "dequeue", "peekQueue", "queueIsEmpty",
       "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
-      "textLower", "textUpper", "cryptoSha256"};
+      "textLower", "textUpper", "cryptoSha256", "slogInfo", "slogWarn", "slogError"};
   return names;
 }
 

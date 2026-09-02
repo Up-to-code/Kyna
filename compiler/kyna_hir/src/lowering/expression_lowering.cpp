@@ -134,55 +134,9 @@ return addExpression(
             if (!operand)
               return std::nullopt;
             return addExpression(HirAwaitExpression{*operand}, expression->location);
-          } else if constexpr (std::is_same_v<T, Call>) {
-            const auto *callee = node.callee ? std::get_if<Variable>(&node.callee->node) : nullptr;
-            const auto *member = node.callee ? std::get_if<Member>(&node.callee->node) : nullptr;
-            std::vector<HirExpressionId> arguments;
-            arguments.reserve(node.args.size());
-            for (const auto &argument : node.args) {
-              const auto lowered = lowerExpression(argument);
-              if (!lowered)
-                return std::nullopt;
-              arguments.push_back(*lowered);
-            }
-            if (member && (member->name == "json" || member->name == "text") &&
-                isResponseExpression(member->object)) {
-              const auto receiver = lowerExpression(member->object);
-              if (!receiver)
-                return std::nullopt;
-              arguments.insert(arguments.begin(), *receiver);
-              return addExpression(
-                  HirNativeCallExpression{member->name == "json" ? "responseJson"
-                                                                  : "responseText",
-                                          std::move(arguments)},
-                  expression->location);
-            }
-            if (member && member->object) {
-              if (const auto *namespaceName = std::get_if<Variable>(&member->object->node)) {
-                const auto qualifiedName = namespaceName->name + "." + member->name;
-                if (const auto native = options.nativeMemberFunctions.find(qualifiedName);
-                    native != options.nativeMemberFunctions.end())
-                  return addExpression(
-                      HirNativeCallExpression{native->second, std::move(arguments)},
-                      expression->location);
-              }
-            }
-            if (callee && !findLocal(callee->name) && !functions.contains(callee->name) &&
-                std::find(options.nativeFunctions.begin(), options.nativeFunctions.end(),
-                          callee->name) != options.nativeFunctions.end())
-              return addExpression(HirNativeCallExpression{callee->name, std::move(arguments)},
-                                   expression->location);
-            if (callee && !findLocal(callee->name) && functions.contains(callee->name))
-              return addExpression(HirCallExpression{functions.at(callee->name),
-                                                     std::move(arguments)},
-                                   expression->location);
-            const auto loweredCallee = lowerExpression(node.callee);
-            if (!loweredCallee)
-              return std::nullopt;
-            return addExpression(
-                HirIndirectCallExpression{*loweredCallee, std::move(arguments)},
-                expression->location);
-          } else if constexpr (std::is_same_v<T, Binary>) {
+          } else if constexpr (std::is_same_v<T, Call>)
+            return lowerCall(node, expression->location);
+          else if constexpr (std::is_same_v<T, Binary>) {
             const auto operation = lowerOperator(node.op);
             if (!operation) {
               unsupported("binary operator '" + tokenName(node.op) + "'", expression->location);
@@ -241,89 +195,17 @@ return addExpression(
               elements.push_back(*lowered);
             }
             return addExpression(HirArrayExpression{std::move(elements)}, expression->location);
-          } else if constexpr (std::is_same_v<T, NewExpr>) {
-            const auto klass = classes.find(node.className);
-            if (klass == classes.end()) {
-              unsupported("construction of unknown class '" + node.className + "'",
-                          expression->location);
-              return std::nullopt;
-            }
-            std::vector<HirExpressionId> arguments;
-            arguments.reserve(node.args.size());
-            for (const auto &argument : node.args) {
-              const auto lowered = lowerExpression(argument);
-              if (!lowered)
-                return std::nullopt;
-              arguments.push_back(*lowered);
-            }
-            return addExpression(HirNewExpression{klass->second, std::move(arguments)},
-                                 expression->location);
-          } else if constexpr (std::is_same_v<T, ObjectExpr>) {
-            std::vector<HirObjectField> fields;
-            fields.reserve(node.fields.size());
-            for (const auto &field : node.fields) {
-              const auto lowered = lowerExpression(field.value);
-              if (!lowered)
-                return std::nullopt;
-              fields.push_back({field.name, *lowered});
-            }
-            return addExpression(HirObjectExpression{std::move(fields)}, expression->location);
-          } else if constexpr (std::is_same_v<T, Assign>) {
-            const auto *target = node.target ? std::get_if<Variable>(&node.target->node) : nullptr;
-            const auto local = target ? findLocal(target->name) : std::nullopt;
-            const auto value = lowerExpression(node.value);
-            if (!value)
-              return std::nullopt;
-            if (const auto *index = node.target ? std::get_if<Index>(&node.target->node) : nullptr) {
-              const auto object = lowerExpression(index->object);
-              const auto key = lowerExpression(index->index);
-              return object && key
-                         ? std::optional{addExpression(
-                               HirAssignIndexExpression{*object, *key, *value},
-                               expression->location)}
-                         : std::nullopt;
-            }
-            if (const auto *member =
-                    node.target ? std::get_if<Member>(&node.target->node) : nullptr) {
-              const auto object = lowerExpression(member->object);
-              return object ? std::optional{addExpression(
-                                  HirAssignMemberExpression{*object, member->name, *value},
-                                  expression->location)}
-                            : std::nullopt;
-            }
-            if (!local) {
-              unsupported("non-local assignment", expression->location);
-              return std::nullopt;
-            }
-            captureIfNeeded(*local);
-            return addExpression(HirAssignLocalExpression{*local, *value}, expression->location);
-          } else if constexpr (std::is_same_v<T, IfExpr>) {
-            const auto condition = lowerExpression(node.condition);
-            const auto thenBranch = lowerValueBlock(node.thenBranch);
-            const auto elseBranch = lowerValueBlock(node.elseBranch);
-            if (!condition || !thenBranch || !elseBranch)
-              return std::nullopt;
-            return addExpression(HirIfExpression{*condition, thenBranch->prelude,
-                                                 thenBranch->value, elseBranch->prelude,
-                                                 elseBranch->value},
-                                 expression->location);
-          } else if constexpr (std::is_same_v<T, MatchExpr>) {
-            const auto subject = lowerExpression(node.subject);
-            if (!subject)
-              return std::nullopt;
-            std::vector<HirMatchArm> arms;
-            arms.reserve(node.arms.size());
-            for (const auto &arm : node.arms) {
-              const auto pattern = arm.wildcard ? std::optional<HirExpressionId>{}
-                                                : lowerExpression(arm.pattern);
-              const auto value = lowerExpression(arm.value);
-              if ((!arm.wildcard && !pattern) || !value)
-                return std::nullopt;
-              arms.push_back({pattern, *value});
-            }
-            return addExpression(HirMatchExpression{*subject, std::move(arms)},
-                                 expression->location);
-          } else {
+          } else if constexpr (std::is_same_v<T, NewExpr>)
+            return lowerNew(node, expression->location);
+          else if constexpr (std::is_same_v<T, ObjectExpr>)
+            return lowerObject(node, expression->location);
+          else if constexpr (std::is_same_v<T, Assign>)
+            return lowerAssign(node, expression->location);
+          else if constexpr (std::is_same_v<T, IfExpr>)
+            return lowerIfExpr(node, expression->location);
+          else if constexpr (std::is_same_v<T, MatchExpr>)
+            return lowerMatch(node, expression->location);
+          else {
             unsupported("this expression", expression->location);
             return std::nullopt;
           }

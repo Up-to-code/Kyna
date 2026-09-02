@@ -3,6 +3,7 @@
 #include "kyna/types/signature_type.hpp"
 #include "kyna/types/named_type.hpp"
 #include "kyna/types/compound_type.hpp"
+#include "kyna/types/type_bridge.hpp"
 
 #include <cassert>
 
@@ -101,6 +102,19 @@ void test_union_and_nullable() {
   assert(!n->isAssignableTo(Universe::Int()));
 }
 
+void test_type_bridge_and_analyzer_assignability() {
+  kyna::TypeRef integer{"int", false, {}};
+  kyna::TypeRef nullableInt{"int", true, {}};
+  kyna::TypeRef any{"any", false, {}};
+  assert(typeFromRef(integer) == Universe::Int());
+  assert(isAssignable(Universe::Int(), Universe::Num()));
+  assert(isAssignable(Universe::Int(), typeFromRef(nullableInt)));
+  assert(isAssignable(Universe::Null(), typeFromRef(nullableInt)));
+  assert(!isAssignable(typeFromRef(nullableInt), Universe::Int()));
+  assert(isAssignable(Universe::Int(), typeFromRef(any)));
+  assert(isAssignable(typeFromRef(any), Universe::Int()));
+}
+
 } // namespace
 
 int main() {
@@ -109,5 +123,6 @@ int main() {
   test_signature_type();
   test_named_type();
   test_union_and_nullable();
+  test_type_bridge_and_analyzer_assignability();
   return 0;
 }

@@ -1,4 +1,5 @@
 #include "bytecode_private.hpp"
+#include "../codecs/json/json_value_codec.hpp"
 #include <chrono>
 
 namespace kyna::detail {
@@ -59,6 +60,17 @@ std::optional<NativeCallResult> consoleBytecodeInvoke(
     if (arguments.size() != 1)
       return bytecodeFailure("KSTD2004", "error expects exactly one argument");
     return bytecodeFailure("KRT2300", arguments.front().display(), arguments.front());
+  }
+  if (name == "slogInfo" || name == "slogWarn" || name == "slogError") {
+    if (arguments.empty() || !std::holds_alternative<std::string>(arguments[0].data))
+      return bytecodeFailure("KLOG1001", "structured log expects a message string");
+    const char *level = name == "slogWarn" ? "warn" : name == "slogError" ? "error" : "info";
+    ctx.output << "{\"level\":\"" << level
+               << "\",\"msg\":" << stringifyJsonValue(arguments[0]);
+    if (arguments.size() >= 2)
+      ctx.output << ",\"fields\":" << stringifyJsonValue(arguments[1]);
+    ctx.output << "}\n";
+    return NativeCallResult{};
   }
   return std::nullopt;
 }

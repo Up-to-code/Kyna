@@ -87,6 +87,22 @@ Rules:
   added to the owning module's `CMakeLists.txt`; do not use `file(GLOB ...)` or
   `file(GLOB_RECURSE ...)` to discover sources.
 
+### C++ file anatomy (Go-inspired)
+
+Implementation files follow a stable top-to-bottom order so a reader can open
+any checker or catalog and find the same shape:
+
+1. Purpose comment (what this file owns, not a changelog).
+2. Includes.
+3. File-local helpers.
+4. Public/entry functions.
+5. Private helpers.
+
+Split a pass when a single `std::visit` or `invoke()` grows past one
+responsibility (operators vs calls vs members). Do not flatten the C++ tree
+into a Go-style `src/cmd`; keep `compiler/kyna_*` modules and split *inside*
+`src/<domain>/`.
+
 ### How to register new things
 
 New token type  -> declare `TokenKind` in `kyna/lexing/token.hpp`, name it in

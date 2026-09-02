@@ -20,6 +20,9 @@ struct ModuleRecord {
   // True for ambient type-definition files (.kyna.d, .d.ky, .ky.d): their
   // declarations contribute types only and never emit runtime code.
   bool isDeclaration{false};
+  // Source files that constitute this module (one file, or every file in a
+  // directory package). Used to stamp `.kyc` export-cache files.
+  std::vector<std::filesystem::path> sourceFiles;
 };
 
 struct ParsedModuleGraph {

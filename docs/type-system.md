@@ -1,6 +1,6 @@
 # Type system
 
-The analyzer uses nominal primitive names with explicit nullable and union components. It checks declarations before execution. Compatibility is directional: `int` and `float` fit `num`; `any` bypasses static compatibility only where explicitly written; a value fits a union if it fits one arm; `null` fits nullable types. Unrelated inferred types do not widen to `any`.
+The analyzer uses a polymorphic type graph (`kyna::types::Type`, Universe singletons for primitives, signatures, named types, unions, and nullability). Parser annotations remain `TypeRef` values and are converted at check time. Compatibility is directional: `int` and `float` fit `num`; `any` bypasses static compatibility only where explicitly written; a value fits a union if it fits one arm; `null` fits nullable types. Unrelated inferred types do not widen to `any`.
 
 Binding mutability is independent of type. The analyzer records `var`/`const` mutability and rejects assignments to `const`, while runtime cells repeat the check as a safety boundary. Members are similarly separate from bindings, allowing a mutable field through an immutable object reference.
 
