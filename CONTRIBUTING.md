@@ -2,7 +2,9 @@
 
 ## People
 
-Kyna is maintained by [Ahmed Mansour](https://github.com/Up-to-code). [Cursor](https://cursor.com) is used as an AI pair programmer on this repository.
+Kyna is maintained by [Ahmed Mansour](https://github.com/Up-to-code).
+
+[Cursor](https://cursor.com), [Cursor Cloud](https://cursor.com/agents), and [OpenAI Codex](https://openai.com/codex) pair on the public repository. Ahmed reviews and merges.
 
 ## Before you start
 

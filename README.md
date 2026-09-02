@@ -102,26 +102,42 @@ That installs `ky` (and the `kyna` alias) plus the VS Code extension.
 
 ## Contributors
 
+Kyna is Ahmed’s language. The agents below pair on the public repo — review stays with him.
+
 <table>
   <tr>
-    <td align="center" valign="top" width="160">
+    <td align="center" valign="top" width="140">
       <a href="https://github.com/Up-to-code">
-        <img src="https://github.com/Up-to-code.png?size=120" width="88" alt="Ahmed Mansour" /><br />
+        <img src="https://github.com/Up-to-code.png?size=120" width="80" alt="Ahmed Mansour" /><br />
         <strong>Ahmed Mansour</strong>
       </a><br />
       Creator
     </td>
-    <td align="center" valign="top" width="160">
+    <td align="center" valign="top" width="140">
       <a href="https://cursor.com">
-        <img src="https://github.com/cursor.png?size=120" width="88" alt="Cursor" /><br />
+        <img src="https://github.com/cursor.png?size=120" width="80" alt="Cursor" /><br />
         <strong>Cursor</strong>
       </a><br />
-      AI pair programmer
+      Pair programmer
+    </td>
+    <td align="center" valign="top" width="140">
+      <a href="https://cursor.com/cloud">
+        <img src="https://github.com/cursor.png?size=120" width="80" alt="Cursor Cloud" /><br />
+        <strong>Cursor Cloud</strong>
+      </a><br />
+      Cloud agent
+    </td>
+    <td align="center" valign="top" width="140">
+      <a href="https://openai.com/codex">
+        <img src="https://github.com/openai.png?size=120" width="80" alt="OpenAI Codex" /><br />
+        <strong>Codex</strong>
+      </a><br />
+      OpenAI
     </td>
   </tr>
 </table>
 
-Kyna is built by [Ahmed Mansour](https://github.com/Up-to-code), with [Cursor](https://cursor.com) as an AI pair programmer on the public repo.
+Ahmed owns the language, the CLI, and the merge button. Cursor, Cursor Cloud, and Codex help write and review. Dependabot keeps GitHub Actions and C++ pins current.
 
 ## Docs
 
