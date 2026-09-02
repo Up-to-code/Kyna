@@ -33,6 +33,7 @@ private:
     MirBlockId continueTarget;
   };
   std::vector<LoopContext> loops;
+  std::vector<MirBlockId> breaks;
   std::vector<HirStatementId> cleanups;
 
   void activate(std::uint32_t &temporaryCount, std::vector<MirBasicBlock> &blocks,
@@ -45,6 +46,7 @@ private:
   bool lowerActiveCleanups();
   std::vector<MirBlockId> blocksFrom(std::size_t first) const;
   const LoopContext &loopTarget(const std::string &label) const;
+  MirBlockId breakTarget(const std::string &label) const;
   MirInstructionKind instructionFor(HirBinaryOperator operation) const;
 
   MirTemporary lowerExpression(HirExpressionId id);

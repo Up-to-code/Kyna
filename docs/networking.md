@@ -4,7 +4,7 @@ Kyna provides `httpGet(url)` for a raw response body and `fetch(url, options?)` 
 
 ```kyna
 try {
-    set response = fetch("https://api.example.com/v1/items", {
+    const response = fetch("https://api.example.com/v1/items", {
         method: "POST",
         body: jsonStringify({ name: "Kyna" }),
         timeout: 10000,
@@ -13,7 +13,7 @@ try {
             Accept: "application/json"
         }
     });
-    set result = response.json();
+    const result = response.json();
     print(response.status, result);
 } catch (failure) {
     print(failure.code, failure.message);
@@ -34,8 +34,8 @@ Responses expose `ok`, `status`, `url`, `method`, `headers`, `text()`, and `json
 Load secrets from an injected environment or another secure host capability. Never commit production credentials in a `.kyna` file.
 
 ```kyna
-set token = processEnv("KYNA_API_TOKEN");
-set response = fetch("https://api.example.com/v1/profile", {
+const token = processEnv("KYNA_API_TOKEN");
+const response = fetch("https://api.example.com/v1/profile", {
     timeout: 10000,
     headers: { Authorization: "Bearer " + token }
 });
@@ -44,7 +44,7 @@ set response = fetch("https://api.example.com/v1/profile", {
 API keys and cookies are ordinary headers:
 
 ```kyna
-set response = fetch("https://api.example.com/v1/session", {
+const response = fetch("https://api.example.com/v1/session", {
     headers: {
         "X-API-Key": processEnv("KYNA_API_KEY"),
         Cookie: "session=" + processEnv("KYNA_SESSION"),
@@ -91,3 +91,18 @@ Use `http.tryFetch(url, options)` or its global alias `fetchResult(url, options)
 - `error`: a typed Kyna `Error` for validation, DNS, TLS, connection, or timeout failure, otherwise `null`.
 
 HTTP responses such as 401 and 500 remain available in `response`; they do not become transport errors. Use ordinary `fetch` when the caller should catch or propagate failures. See `examples/network/fetch_result.kyna` for both paths.
+
+## Awaiting a network result
+
+`await expr` is a unary prefix operator that binds the result of a call before the program continues. It reads naturally around network processing such as `fetch(...).json()`, where the response must arrive and be decoded before the value is bound:
+
+```kyna
+try {
+    const users = await fetch("https://api.example.com/v1/users").json();
+    print(len(users), users[0].name);
+} catch (failure) {
+    print(failure.code, failure.message);
+}
+```
+
+`await` currently passes synchronous results through, so `await fetch(...)` code compiles on both the tree-walk and bytecode runtimes without a separate async runtime. An event loop is tracked separately in `docs/implementation-status.md`. See `examples/language/await_and_network.kyna` for a deterministic `await` computation and `await fetch(...).json()` pair.

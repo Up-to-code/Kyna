@@ -1,8 +1,8 @@
 # Query parameters are part of the URL; diagnostics redact their values on failure.
 try {
-    set endpoint = "https://api.open-meteo.com/v1/forecast?latitude=30.0444&longitude=31.2357&current=temperature_2m";
-    set response = fetch(endpoint, { timeout: 10000 });
-    set weather = response.json();
+    const endpoint = "https://api.open-meteo.com/v1/forecast?latitude=30.0444&longitude=31.2357&current=temperature_2m";
+    const response = fetch(endpoint, { timeout: 10000 });
+    const weather = response.json();
     print("query", response.status, weather.timezone, weather.current.temperature_2m);
 } catch (failure) {
     print("query request failed", failure.code, failure.message);

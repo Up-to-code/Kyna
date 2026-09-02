@@ -15,8 +15,8 @@ import greet from "./math.kyna";
 // namespace import
 import * as math from "./math.kyna";
 
-export func add(a: int, b: int): int { return a + b; }
-export default func greet(name: str): str { return "hi " + name; }
+export fn add(a: int, b: int): int { return a + b; }
+export default fn greet(name: str): str { return "hi " + name; }
 export { sub, someValue };
 ```
 

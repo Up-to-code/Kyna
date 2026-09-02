@@ -1,18 +1,25 @@
 # Timing instrumentation and logging API.
-# `clockMs()` returns monotonic milliseconds, `profileLog(label, value)` prints a
-# profiling line, and `measure(fn)` runs a zero-argument function and returns the
-# elapsed milliseconds so any computation can be timed and logged.
-func accumulate(): int {
-    let total = 0;
-    loop (let i = 0; i < 20000; i = i + 1) {
+# `clockMs()` returns monotonic milliseconds, `timeNow()` returns monotonic
+# nanoseconds, `timeSleep(ms)` pauses the current thread, `profileLog(label, value)`
+# prints a profiling line, and `measure(fn)` runs a zero-argument function and returns
+# the elapsed milliseconds so any computation can be timed and logged.
+fn accumulate(): int {
+    var total = 0;
+    loop (var i = 0; i < 20000; i = i + 1) {
         total = total + i;
     }
     return total;
 }
 
-let start = clockMs();
-let result = accumulate();
+var start = clockMs();
+var result = accumulate();
 profileLog("accumulate-by-clock", clockMs() - start);
 
-let elapsed = measure(accumulate);
+var elapsed = measure(accumulate);
 print("result", result, "measure-ms", elapsed);
+
+var t0 = timeNow();
+timeSleep(1);
+var t1 = timeNow();
+print("slept-ns", t1 - t0);
+

@@ -8,17 +8,26 @@ The Kyna runtime exposes standard-library functions through the global environme
 - `readFile(path)`, `writeFile(path, content)`, `readJsonFile(path)`, and `writeJsonFile(path, value)`
 - `createDirectory(path)`, `fileExists(path)`, `removePath(path)`, and `listDirectory(path)`
 - `fs.read`, `fs.write`, `fs.readJson`, `fs.writeJson`, `fs.createDirectory`, `fs.exists`, `fs.remove`, and `fs.list`
-- `processRun(command)`, `build(command)`, `processEnv(name)`, `sleep(milliseconds)`, and `wait(milliseconds)`
+- `processRun(command)`, `build(command)`, `processEnv(name)`, `sleep(milliseconds)`, `wait(milliseconds)`, and `timeSleep(milliseconds)`
+- `clockMs()` and `timeNow()` for monotonic millisecond and nanosecond timestamps, plus `measure(fn)` and `profileLog(label, value)` for timing code
 - `os.name()`, `os.architecture()`, `os.cwd()`, `terminal.interactive()`, and `terminal.supportsColor()` through the injected host-information capability
 - `httpGet(url)` for a raw response body and `fetch(url)` for a response object with `ok`, `status`, `url`, `text()`, and `json()`
 - `jsonParse`, `jsonStringify`, `process.json`, `process.stringify`, `process.run`, and `process.env`
 - `toml.parse`, `toml.stringify`, `xml.parse`, and `xml.stringify`, with canonical
   `tomlParse`, `tomlStringify`, `xmlParse`, and `xmlStringify` aliases
 - `filter`, `map`, `reduce`, `find`, `any`, `all`, `unique`, `bubbleSort`, `sort`, and `call`
+- `cryptoSha256(data)` returning the lowercase hex SHA-256 digest of a string
 - `createApiStore(records)` for an in-memory CRUD store with `list`, `get`, `create`, `update`, and `remove`
 - `db.query(connection, sql, parameters?)` and `db.execute(...)` for parameterized PostgreSQL operations
 - `error(message)` for language errors caught by `try`/`catch`
 - `collectGarbage()` and `gcStats()` for heap diagnostics
+
+`sort` returns a new sorted copy and runs in O(n log n) using introsort with
+median-of-three pivoting, an insertion-sort cutoff, and a heapsort fallback, so
+worst-case inputs stay fast. `cryptoSha256` returns the standard lowercase-hex
+SHA-256 digest and is deterministic. `timeNow()` returns monotonic nanoseconds;
+`timeSleep(ms)` suspends the current thread like `sleep`. These builtins run in
+both the tree-walk interpreter and the bytecode VM.
 
 Filesystem, process, host information, networking, and sleeping operations call injected `RuntimeCapabilities`; deterministic embedders can replace every host adapter. The production network adapter uses linked libcurl for HTTP and HTTPS with certificate verification, HTTP/1.1, redirects, a Kyna user agent, a 10-second connect timeout, a 30-second overall timeout, and two bounded retries for transient transport failures. Errors identify DNS, connection, TLS, send, receive, timeout, or HTTP-response phases without exposing query parameters. Standard proxy environment variables are honored by libcurl. Streaming, async I/O, and cancellation remain future work. Process execution uses the host shell and is an explicitly trusted capability.
 

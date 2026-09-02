@@ -17,12 +17,12 @@ std::string tokenName(TokenKind kind) {
     return "string";
   case TokenKind::Char:
     return "character";
-  case TokenKind::Let:
-    return "let";
-  case TokenKind::Set:
-    return "set";
-  case TokenKind::Func:
-    return "func";
+  case TokenKind::Var:
+    return "var";
+  case TokenKind::Const:
+    return "const";
+  case TokenKind::Fn:
+    return "fn";
   case TokenKind::Return:
     return "return";
   case TokenKind::If:
@@ -37,6 +37,12 @@ std::string tokenName(TokenKind kind) {
     return "break";
   case TokenKind::Continue:
     return "continue";
+  case TokenKind::Switch:
+    return "switch";
+  case TokenKind::Case:
+    return "case";
+  case TokenKind::Await:
+    return "await";
   case TokenKind::Match:
     return "match";
   case TokenKind::Try:

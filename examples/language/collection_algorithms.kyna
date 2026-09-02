@@ -1,27 +1,27 @@
 # Arrays and higher-order collection algorithms.
-func double(value: any): any {
+fn double(value: any): any {
     return value * 2;
 }
 
-func add(total: any, value: any): any {
+fn add(total: any, value: any): any {
     return total + value;
 }
 
-func isEven(value: any): bool {
+fn isEven(value: any): bool {
     return value % 2 == 0;
 }
 
-func isPositive(value: any): bool {
+fn isPositive(value: any): bool {
     return value > 0;
 }
 
-set input = [1, 2, 2, 3];
-set mapped = map(input, double);
-set total = reduce(input, add, 0);
-set firstEven = find(input, isEven);
-set evens = filter(input, isEven);
-set distinct = unique(input);
-set ordered = sort([3, 1, 2]);
+const input = [1, 2, 2, 3];
+const mapped = map(input, double);
+const total = reduce(input, add, 0);
+const firstEven = find(input, isEven);
+const evens = filter(input, isEven);
+const distinct = unique(input);
+const ordered = sort([3, 1, 2]);
 
 print("mapped", jsonStringify(mapped));
 print("reduced", total, "first", firstEven);

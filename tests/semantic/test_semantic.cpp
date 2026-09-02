@@ -4,27 +4,27 @@
 #include <cassert>
 
 int main() {
-  auto valid = kyna::Parser(kyna::lex("intf Printable { name: str; } let value: int = 1;")).parse();
+  auto valid = kyna::Parser(kyna::lex("intf Printable { name: str; } var value: int = 1;")).parse();
   assert(kyna::validate(valid).empty());
 
-  auto invalid = kyna::Parser(kyna::lex("set value = 1; value = 2;")).parse();
+  auto invalid = kyna::Parser(kyna::lex("const value = 1; value = 2;")).parse();
   auto diagnostics = kyna::validate(invalid);
   assert(!diagnostics.empty());
   assert(!diagnostics.front().warning);
 
-  auto duplicate = kyna::Parser(kyna::lex("let value = 1; let value = 2;")).parse();
+  auto duplicate = kyna::Parser(kyna::lex("var value = 1; var value = 2;")).parse();
   auto duplicateDiagnostics = kyna::validate(duplicate);
   assert(std::any_of(duplicateDiagnostics.begin(), duplicateDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1102"; }));
 
   auto duplicateParameter =
-      kyna::Parser(kyna::lex("func add(value: int, value: int): int { return value; }")).parse();
+      kyna::Parser(kyna::lex("fn add(value: int, value: int): int { return value; }")).parse();
   auto parameterDiagnostics = kyna::validate(duplicateParameter);
   assert(std::any_of(parameterDiagnostics.begin(), parameterDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1104"; }));
 
   auto wrongCall =
-      kyna::Parser(kyna::lex("func add(value: int): int { return value; } add();")).parse();
+      kyna::Parser(kyna::lex("fn add(value: int): int { return value; } add();")).parse();
   auto callDiagnostics = kyna::validate(wrongCall);
   assert(std::any_of(callDiagnostics.begin(), callDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1201"; }));
@@ -55,13 +55,13 @@ int main() {
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1304"; }));
 
   auto nonExhaustiveMatch =
-      kyna::Parser(kyna::lex("set value = match (1) { 1 => \"one\"; };")).parse();
+      kyna::Parser(kyna::lex("const value = match (1) { 1 => \"one\"; };")).parse();
   auto matchDiagnostics = kyna::validate(nonExhaustiveMatch);
   assert(std::any_of(matchDiagnostics.begin(), matchDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1401"; }));
 
   auto duplicateMatch = kyna::Parser(
-                            kyna::lex("set value = match (1) { 1 => \"one\"; 1 => \"again\"; "
+                            kyna::lex("const value = match (1) { 1 => \"one\"; 1 => \"again\"; "
                                        "_ => \"other\"; };"))
                             .parse();
   auto duplicateMatchDiagnostics = kyna::validate(duplicateMatch);
@@ -69,18 +69,18 @@ int main() {
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1403"; }));
 
   auto scopedIfExpression = kyna::Parser(kyna::lex(
-                                      "set value: str = if (true) { let prefix = \"ad\"; "
+                                      "const value: str = if (true) { var prefix = \"ad\"; "
                                       "prefix + \"ult\" } else { \"minor\" };"))
                                 .parse();
   assert(kyna::validate(scopedIfExpression).empty());
 
-  auto nonCallable = kyna::Parser(kyna::lex("set value = 42; value();")).parse();
+  auto nonCallable = kyna::Parser(kyna::lex("const value = 42; value();")).parse();
   auto nonCallableDiagnostics = kyna::validate(nonCallable);
   assert(std::any_of(nonCallableDiagnostics.begin(), nonCallableDiagnostics.end(),
                      [](const auto &diagnostic) { return diagnostic.code == "KSEM1203"; }));
 
   auto typedError = kyna::Parser(kyna::lex(
-      "func guarded(): str { try { throw \"failure\"; } catch (failure) { "
+      "fn guarded(): str { try { throw \"failure\"; } catch (failure) { "
       "return failure.code + failure.message; } finally { print(\"cleanup\"); } }"))
                         .parse();
   assert(kyna::validate(typedError).empty());
@@ -89,7 +89,7 @@ int main() {
   auto intfExtends = kyna::Parser(kyna::lex(
                               "intf Base<T> { value: T; } "
                               "intf Child extends Base<int> { extra?: str; } "
-                              "func f(): int { return 1; }"))
+                              "fn f(): int { return 1; }"))
                          .parse();
   assert(kyna::validate(intfExtends).empty());
 
@@ -97,7 +97,7 @@ int main() {
   auto genericImplements =
       kyna::Parser(kyna::lex("intf Container<T> { put(item: T): void; } "
                              "class Box implements Container<int> { "
-                             "public func put(item: int): void { } }"))
+                             "public fn put(item: int): void { } }"))
           .parse();
   assert(kyna::validate(genericImplements).empty());
 

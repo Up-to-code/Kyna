@@ -1,31 +1,31 @@
 # PostgreSQL CRUD with parameter binding. Set KYNA_DATABASE_URL before running.
 # Example: postgres://postgres:postgres@127.0.0.1:5432/kyna_example
 
-set connection = process.env("KYNA_DATABASE_URL");
+const connection = process.env("KYNA_DATABASE_URL");
 if (connection == null) {
     error("KYNA_DATABASE_URL is required");
 }
 
 try {
-    set schemaResult = db.execute(connection,
+    const schemaResult = db.execute(connection,
         "CREATE TABLE IF NOT EXISTS kyna_users (id BIGSERIAL PRIMARY KEY, email TEXT UNIQUE NOT NULL, display_name TEXT, active BOOLEAN NOT NULL DEFAULT TRUE)");
 
-    set inserted = db.query(connection,
+    const inserted = db.query(connection,
         "INSERT INTO kyna_users (email, display_name) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET display_name = EXCLUDED.display_name RETURNING id, email, display_name, active",
         ["ada@example.test", "Ada"]);
     console.log("inserted", jsonStringify(inserted.rows[0]));
 
-    set selected = db.query(connection,
+    const selected = db.query(connection,
         "SELECT id, email, display_name, active FROM kyna_users WHERE email = $1",
         ["ada@example.test"]);
     console.log("selected", len(selected.rows), jsonStringify(selected.rows[0]));
 
-    set updated = db.query(connection,
+    const updated = db.query(connection,
         "UPDATE kyna_users SET active = $1 WHERE email = $2 RETURNING id, active",
         [false, "ada@example.test"]);
     console.log("updated", jsonStringify(updated.rows[0]));
 
-    set deleted = db.execute(connection,
+    const deleted = db.execute(connection,
         "DELETE FROM kyna_users WHERE email = $1",
         ["ada@example.test"]);
     console.log("deleted rows", deleted.affectedRows);

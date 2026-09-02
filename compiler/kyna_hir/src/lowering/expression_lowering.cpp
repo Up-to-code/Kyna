@@ -124,11 +124,16 @@ std::optional<HirExpressionId> SyntaxLowerer::lowerExpression(const ExprPtr &exp
             const auto operand = lowerExpression(node.right);
             if (!operand)
               return std::nullopt;
-            return addExpression(
+return addExpression(
                 HirUnaryExpression{node.op == TokenKind::Minus ? HirUnaryOperator::Negate
-                                                               : HirUnaryOperator::Not,
+                                                                : HirUnaryOperator::Not,
                                    *operand},
                 expression->location);
+          } else if constexpr (std::is_same_v<T, AwaitExpr>) {
+            const auto operand = lowerExpression(node.operand);
+            if (!operand)
+              return std::nullopt;
+            return addExpression(HirAwaitExpression{*operand}, expression->location);
           } else if constexpr (std::is_same_v<T, Call>) {
             const auto *callee = node.callee ? std::get_if<Variable>(&node.callee->node) : nullptr;
             const auto *member = node.callee ? std::get_if<Member>(&node.callee->node) : nullptr;

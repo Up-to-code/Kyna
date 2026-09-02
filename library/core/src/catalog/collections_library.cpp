@@ -1,4 +1,5 @@
 #include "catalog_private.hpp"
+#include "collections/introsort.hpp"
 #include "kyna/execution/tree_walk_engine.hpp"
 #include <algorithm>
 #include <cstdint>
@@ -64,54 +65,56 @@ void installCollectionLibrary(Interpreter &interpreter) {
   };
   global->define("filter", Value(filter), false);
 
-  auto bubbleSort = std::make_shared<Function>();
-  bubbleSort->native = true;
-  bubbleSort->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
+  // Builds a strict-weak-ordering predicate `less(a, b)` meaning "a sorts
+  // before b". The optional comparator uses the "should swap" convention from
+  // the original bubble sort, so it is inverted here to yield an ascending
+  // ordering compatible with the prior sort() behavior.
+  const auto buildLess = [&](const FunctionPtr &comparator,
+                             const std::function<double(const Value &)> &asNumber) {
+    if (comparator)
+      return std::function<bool(const Value &, const Value &)>(
+          [&interpreter, comparator](const Value &left, const Value &right) {
+            return comparator->call({right, left}, interpreter).isTruthy();
+          });
+    return std::function<bool(const Value &, const Value &)>(
+        [asNumber](const Value &left, const Value &right) {
+          if (std::holds_alternative<std::int64_t>(left.data) &&
+              std::holds_alternative<std::int64_t>(right.data))
+            return std::get<std::int64_t>(left.data) < std::get<std::int64_t>(right.data);
+          if ((std::holds_alternative<std::int64_t>(left.data) ||
+               std::holds_alternative<double>(left.data)) &&
+              (std::holds_alternative<std::int64_t>(right.data) ||
+               std::holds_alternative<double>(right.data)))
+            return asNumber(left) < asNumber(right);
+          if (std::holds_alternative<std::string>(left.data) &&
+              std::holds_alternative<std::string>(right.data))
+            return std::get<std::string>(left.data) < std::get<std::string>(right.data);
+          throw KynaError({"sort supports only numbers or strings", {1, 1}, false});
+        });
+  };
+
+  auto sortFunction = std::make_shared<Function>();
+  sortFunction->native = true;
+  sortFunction->nativeCall = [&interpreter, buildLess](const std::vector<Value> &arguments) {
     if (arguments.empty() || arguments.size() > 2 ||
         !std::holds_alternative<ArrayPtr>(arguments[0].data) ||
         (arguments.size() == 2 && !std::holds_alternative<FunctionPtr>(arguments[1].data)))
-      throw KynaError({"bubbleSort expects an array and optional comparator", {1, 1}, false});
+      throw KynaError({"sort expects an array and optional comparator", {1, 1}, false});
     auto output = interpreter.heap().allocateArray();
     output->elements = std::get<ArrayPtr>(arguments[0].data)->elements;
     const auto comparator =
         arguments.size() == 2 ? std::get<FunctionPtr>(arguments[1].data) : FunctionPtr{};
-    const auto shouldSwap = [&](const Value &left, const Value &right) {
-      if (comparator)
-        return comparator->call({left, right}, interpreter).isTruthy();
-      if (std::holds_alternative<std::int64_t>(left.data) &&
-          std::holds_alternative<std::int64_t>(right.data))
-        return std::get<std::int64_t>(left.data) > std::get<std::int64_t>(right.data);
-      if ((std::holds_alternative<std::int64_t>(left.data) ||
-           std::holds_alternative<double>(left.data)) &&
-          (std::holds_alternative<std::int64_t>(right.data) ||
-           std::holds_alternative<double>(right.data))) {
-        const auto number = [](const Value &value) {
-          return std::holds_alternative<std::int64_t>(value.data)
-                     ? static_cast<double>(std::get<std::int64_t>(value.data))
-                     : std::get<double>(value.data);
-        };
-        return number(left) > number(right);
-      }
-      if (std::holds_alternative<std::string>(left.data) &&
-          std::holds_alternative<std::string>(right.data))
-        return std::get<std::string>(left.data) > std::get<std::string>(right.data);
-      throw KynaError({"default bubbleSort supports only numbers or strings", {1, 1}, false});
+    const auto asNumber = [](const Value &value) {
+      return std::holds_alternative<std::int64_t>(value.data)
+                 ? static_cast<double>(std::get<std::int64_t>(value.data))
+                 : std::get<double>(value.data);
     };
-    for (std::size_t remaining = output->elements.size(); remaining > 1; --remaining) {
-      bool changed = false;
-      for (std::size_t index = 1; index < remaining; ++index) {
-        if (!shouldSwap(output->elements[index - 1], output->elements[index]))
-          continue;
-        std::swap(output->elements[index - 1], output->elements[index]);
-        changed = true;
-      }
-      if (!changed)
-        break;
-    }
+    const auto less = buildLess(comparator, asNumber);
+    introsort(output->elements, less);
     return Value(output);
   };
-  global->define("bubbleSort", Value(bubbleSort), false);
-  global->define("sort", Value(bubbleSort), false);
+  global->define("sort", Value(sortFunction), false);
+  global->define("bubbleSort", Value(sortFunction), false);
 
   auto call = std::make_shared<Function>();
   call->native = true;

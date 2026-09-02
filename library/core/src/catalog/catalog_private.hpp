@@ -27,5 +27,6 @@ FormatNatives installFormatsLibrary(Interpreter &interpreter);
 
 void installNetworkLibrary(Interpreter &interpreter);
 void installApiStoreLibrary(Interpreter &interpreter);
+void installCryptoLibrary(Interpreter &interpreter);
 
 } // namespace kyna::detail

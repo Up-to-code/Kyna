@@ -147,15 +147,15 @@ bool hasCode(const std::vector<kyna::Diagnostic> &diagnostics, const std::string
 } // namespace
 
 int main() {
-  const kyna::SourceFile comments{7, "comments.kyna", "# π\nlet value: int = 1;"};
+  const kyna::SourceFile comments{7, "comments.kyna", "# π\nvar value: int = 1;"};
   auto lexed = kyna::tokenize(comments);
   assert(lexed.ok());
-  assert(lexed.tokens.front().kind == kyna::TokenKind::Let);
+  assert(lexed.tokens.front().kind == kyna::TokenKind::Var);
   assert(lexed.tokens.front().location.startByte == 5);
   assert(lexed.tokens.front().location.line == 2);
   assert(lexed.tokens.front().location.column == 1);
 
-  const kyna::SourceFile malformed{8, "malformed.kyna", "let first = ; let second = ;"};
+  const kyna::SourceFile malformed{8, "malformed.kyna", "var first = ; var second = ;"};
   auto malformedTokens = kyna::tokenize(malformed);
   auto recovered = kyna::parseModule(malformed, std::move(malformedTokens.tokens));
   assert(!recovered.ok());
@@ -172,12 +172,12 @@ int main() {
               .ok());
 
   auto unprotected = session.checkSource("unprotected.kyna",
-                                         "set response = fetch(\"http://example.test/products\");");
+                                         "const response = fetch(\"http://example.test/products\");");
   assert(unprotected.ok());
   assert(hasCode(unprotected.diagnostics, "K2601"));
   assert(hasCode(unprotected.diagnostics, "K2603"));
   const auto protectedFetch = session.checkSource(
-      "protected.kyna", "try { set response = fetch(\"https://example.test/products\"); } "
+      "protected.kyna", "try { const response = fetch(\"https://example.test/products\"); } "
                       "catch (message) { print(message); }");
   assert(protectedFetch.ok());
   assert(!hasCode(protectedFetch.diagnostics, "K2601"));
@@ -187,12 +187,12 @@ int main() {
   assert(hasCode(emptyCatch.diagnostics, "K2602"));
   const auto unprotectedDatabase = session.checkSource(
       "database-warning.kyna",
-      "set sql = \"SELECT * FROM users\"; set result = db.query(\"postgres://local\", sql);");
+      "const sql = \"SELECT * FROM users\"; const result = db.query(\"postgres://local\", sql);");
   assert(unprotectedDatabase.ok());
   assert(hasCode(unprotectedDatabase.diagnostics, "K2601"));
   assert(hasCode(unprotectedDatabase.diagnostics, "K2610"));
   const auto nullMember = session.checkSource(
-      "null-member.kyna", "set missing = null; print(missing.name);");
+      "null-member.kyna", "const missing = null; print(missing.name);");
   assert(!nullMember.ok());
   assert(hasCode(nullMember.diagnostics, "KSEM2401"));
 
@@ -211,18 +211,18 @@ int main() {
                         "processRun(\"command\"); build(\"command\"); "
                         "processEnv(\"NAME\"); sleep(1); wait(1); "
                         "httpGet(\"http://example.test\"); "
-                        "set response = fetch(\"http://example.test\"); "
-                        "set values = response.json(); set ordered = sort(values); "
+                        "const response = fetch(\"http://example.test\"); "
+                        "const values = response.json(); const ordered = sort(values); "
                         "if (ordered[0] != 1) { error(\"sort failed\"); } "
-                        "set metadata = process.json(\"{\\\"ready\\\":true}\"); "
+                        "const metadata = process.json(\"{\\\"ready\\\":true}\"); "
                         "if (metadata.ready != true) { error(\"json failed\"); } "
-                        "set createdResponse = fetch(\"https://example.test/products\", "
+                        "const createdResponse = fetch(\"https://example.test/products\", "
                         "{ method: \"POST\", body: \"{\\\"title\\\":\\\"created\\\"}\", "
                         "headers: { Authorization: \"Bearer test\" } }); "
-                        "set created = createdResponse.json(); "
+                        "const created = createdResponse.json(); "
                         "if (createdResponse.status != 201 || created.id != 31 || "
                         "createdResponse.headers[\"content-type\"] != \"application/json\") { error(\"POST failed\"); } "
-                        "try { set query = db.query(\"postgres://test\", "
+                        "try { const query = db.query(\"postgres://test\", "
                         "\"SELECT id, name, active, nickname FROM users WHERE id = $1\", [7]); "
                         "if (query.affectedRows != 1 || query.command != \"SELECT 1\" || "
                         "query.rows[0].id != 7 || query.rows[0].active != true || "
@@ -230,10 +230,10 @@ int main() {
                         "} catch (message) { error(message); } "
                         "try { createDirectory(\"cache\"); "
                         "writeJsonFile(\"cache/products.json\", created); "
-                        "set saved = readJsonFile(\"cache/products.json\"); "
+                        "const saved = readJsonFile(\"cache/products.json\"); "
                         "if (saved.id != 31 || !fileExists(\"cache/products.json\")) { "
                         "error(\"JSON file failed\"); } "
-                        "set entries = listDirectory(\"cache\"); "
+                        "const entries = listDirectory(\"cache\"); "
                         "if (entries[0] != \"products.json\") { error(\"list failed\"); } "
                         "removePath(\"cache/products.json\"); "
                         "} catch (message) { error(message); }")
@@ -264,14 +264,14 @@ int main() {
   const auto bytecodeCapabilities = deterministicSession.runSource(
       "bytecode-capabilities.kyna",
       "writeFile(\"vm.txt\", \"draft\"); "
-      "let contents = readFile(\"vm.txt\"); "
+      "var contents = readFile(\"vm.txt\"); "
       "contents = textReplace(contents, \"draft\", \"published\"); "
       "writeFile(\"vm.txt\", contents); "
-      "set edited = readFile(\"vm.txt\"); "
+      "const edited = readFile(\"vm.txt\"); "
       "if (edited != \"published\" || !fileExists(\"vm.txt\")) { error(\"file edit\"); } "
       "createDirectory(\"vm-cache\"); "
-      "set present: str? = processEnv(\"NAME\"); "
-      "set missing: str? = process.env(\"MISSING\"); "
+      "const present: str? = processEnv(\"NAME\"); "
+      "const missing: str? = process.env(\"MISSING\"); "
       "if (present != \"test\" || missing != null) { error(\"environment\"); } "
       "sleep(1); "
       "if (httpGet(\"http://example.test\") != \"[3,1,2]\") { error(\"network\"); }");
@@ -289,12 +289,12 @@ int main() {
   const auto bytecodeFetch = deterministicSession.runSource(
       "bytecode-fetch.kyna",
       "try { "
-      "set response = fetch(\"https://example.test/products\", "
+      "const response = fetch(\"https://example.test/products\", "
       "{ method: \"POST\", body: \"{\\\"title\\\":\\\"created\\\"}\", "
       "timeout: 1200, headers: { Authorization: \"Bearer bytecode\", "
       "\"X-API-Key\": \"test-key\", Cookie: \"session=test-session\", "
       "\"Content-Type\": \"application/json\" } }); "
-      "set product = response.json(); "
+      "const product = response.json(); "
       "if (!response.ok || response.status != 201 || product.id != 31 || "
       "response.text() != \"{\\\"id\\\":31,\\\"title\\\":\\\"created\\\"}\" || "
       "response.headers[\"content-type\"] != \"application/json\") { "
@@ -311,14 +311,14 @@ int main() {
   assert(network->lastTimeout == std::chrono::milliseconds(1200));
   const auto statusResponse = deterministicSession.runSource(
       "bytecode-http-status.kyna",
-      "set response = fetch(\"https://unauthorized.test\", { timeout: 800 }); "
-      "set body = response.json(); "
+      "const response = fetch(\"https://unauthorized.test\", { timeout: 800 }); "
+      "const body = response.json(); "
       "if (response.ok || response.status != 401 || body.error != \"unauthorized\") { "
       "error(\"HTTP status handling\"); }");
   assert(statusResponse.ok());
   const auto invalidResponseJson = deterministicSession.runSource(
       "bytecode-invalid-response-json.kyna",
-      "try { set response = fetch(\"https://invalid-json.test\", { timeout: 800 }); "
+      "try { const response = fetch(\"https://invalid-json.test\", { timeout: 800 }); "
       "response.json(); error(\"expected invalid JSON\"); "
       "} catch (failure) { if (failure.code != \"K5100\") { throw failure; } }");
   assert(invalidResponseJson.ok());
@@ -331,27 +331,27 @@ int main() {
   assert(caughtTimeout.ok());
   const auto safeFetchSuccess = deterministicSession.runSource(
       "bytecode-safe-fetch-success.kyna",
-      "set result = http.tryFetch(\"https://example.test/products\", { timeout: 50 }); "
+      "const result = http.tryFetch(\"https://example.test/products\", { timeout: 50 }); "
       "if (!result.ok || result.error != null || result.response.status != 200) { "
       "error(\"safe fetch success\"); }");
   assert(safeFetchSuccess.ok());
   const auto safeFetchHttpFailure = deterministicSession.runSource(
       "bytecode-safe-fetch-http-status.kyna",
-      "set result = fetchResult(\"https://unauthorized.test\", { timeout: 50 }); "
+      "const result = fetchResult(\"https://unauthorized.test\", { timeout: 50 }); "
       "if (result.ok || result.error != null || result.response.status != 401) { "
       "error(\"safe fetch HTTP status\"); }");
   assert(safeFetchHttpFailure.ok());
   const auto safeFetchTransportFailure = deterministicSession.runSource(
       "bytecode-safe-fetch-transport.kyna",
-      "set result = http.tryFetch(\"https://failure.test\", { timeout: 50 }); "
+      "const result = http.tryFetch(\"https://failure.test\", { timeout: 50 }); "
       "if (result.ok || result.response != null || result.error.code != \"KNET2001\" || "
       "!textContains(result.error.message, \"request failed\")) { error(\"safe fetch transport\"); }");
   assert(safeFetchTransportFailure.ok());
   const auto bytecodeJson = deterministicSession.runSource(
       "bytecode-json.kyna",
-      "set decoded = jsonParse(\"{\\\"items\\\":[20,22],\\\"ready\\\":true}\"); "
+      "const decoded = jsonParse(\"{\\\"items\\\":[20,22],\\\"ready\\\":true}\"); "
       "if (decoded.items[1] != 22 || decoded.ready != true) { error(\"decode\"); } "
-      "set encoded = jsonStringify(decoded); "
+      "const encoded = jsonStringify(decoded); "
       "if (encoded != \"{\\\"items\\\":[20,22],\\\"ready\\\":true}\") { error(\"encode\"); }");
   assert(bytecodeJson.ok());
   const auto caughtJsonFailure = deterministicSession.runSource(
@@ -361,22 +361,22 @@ int main() {
   assert(caughtJsonFailure.ok());
   const auto bytecodeCollections = deterministicSession.runSource(
       "bytecode-collections.kyna",
-      "let values = [3,1,2,2]; push(values, 4); "
+      "var values = [3,1,2,2]; push(values, 4); "
       "if (pop(values) != 4) { error(\"pop\"); } "
-      "set ordered = sort(values); set distinct = unique(ordered); "
-      "set names = keys({ beta: 2, alpha: 1 }); "
+      "const ordered = sort(values); const distinct = unique(ordered); "
+      "const names = keys({ beta: 2, alpha: 1 }); "
       "if (ordered[0] != 1 || ordered[3] != 3 || len(distinct) != 3 || "
       "names[0] != \"alpha\" || names[1] != \"beta\") { error(\"collections\"); }");
   assert(bytecodeCollections.ok());
   const auto bytecodeText = deterministicSession.runSource(
       "bytecode-text.kyna",
-      "set greeting = \"  Héllo 世界  \"; "
+      "const greeting = \"  Héllo 世界  \"; "
       "if (len(\"世界\") != 2 || textFind(greeting, \"世界\") != 8 || "
       "textSlice(greeting, 2, 7) != \"Héllo\" || !textContains(greeting, \"éll\") || "
       "textReplace(\"a世界a\", \"世界\", \"Kyna\") != \"aKynaa\" || "
       "textTrim(greeting) != \"Héllo 世界\" || textLower(\"ÄBC\") != \"äbc\" || "
       "textUpper(\"kyna\") != \"KYNA\") { error(\"unicode text\"); } "
-      "set pieces = textSplit(\"one::two::three\", \"::\"); "
+      "const pieces = textSplit(\"one::two::three\", \"::\"); "
       "if (len(pieces) != 3 || pieces[1] != \"two\") { error(\"text split\"); }");
   assert(bytecodeText.ok());
   const auto caughtTextFailure = deterministicSession.runSource(
@@ -391,10 +391,10 @@ int main() {
   const auto bytecodeHostUtilities = deterministicSession.runSource(
       "bytecode-host-utilities.kyna",
       "writeJsonFile(\"products.json\", { id: 42, revision: 1 }); "
-      "set initial = readJsonFile(\"products.json\"); "
+      "const initial = readJsonFile(\"products.json\"); "
       "writeJsonFile(\"products.json\", { id: initial.id, revision: initial.revision + 1 }); "
-      "set saved = readJsonFile(\"products.json\"); "
-      "set entries = listDirectory(\".\"); "
+      "const saved = readJsonFile(\"products.json\"); "
+      "const entries = listDirectory(\".\"); "
       "if (saved.id != 42 || saved.revision != 2 || entries[0] != \"products.json\" || "
       "processRun(\"deterministic\") != 0 || !removePath(\"products.json\")) { "
       "error(\"host utilities\"); }");
@@ -405,15 +405,15 @@ int main() {
   assert(processes->runs == bytecodeProcessRuns + 1);
   auto collectionsResult = deterministicSession.runSource(
       "collections.kyna",
-      "func kynaDouble(value: int): int { return value * 2; } "
-      "func kynaSum(total: int, value: int): int { return total + value; } "
-      "func kynaEven(value: int): bool { return value % 2 == 0; } "
-      "set collectionInput = [1, 2, 2, 3]; "
-      "set mappedValues = map(collectionInput, kynaDouble); "
-      "set totalValue = reduce(collectionInput, kynaSum, 0); "
-      "set firstEven = find(collectionInput, kynaEven); "
-      "set distinctValues = unique(collectionInput); "
-      "set keyedValue = process.json(\"{\\\"content-type\\\":\\\"application/json\\\"}\"); "
+      "fn kynaDouble(value: int): int { return value * 2; } "
+      "fn kynaSum(total: int, value: int): int { return total + value; } "
+      "fn kynaEven(value: int): bool { return value % 2 == 0; } "
+      "const collectionInput = [1, 2, 2, 3]; "
+      "const mappedValues = map(collectionInput, kynaDouble); "
+      "const totalValue = reduce(collectionInput, kynaSum, 0); "
+      "const firstEven = find(collectionInput, kynaEven); "
+      "const distinctValues = unique(collectionInput); "
+      "const keyedValue = process.json(\"{\\\"content-type\\\":\\\"application/json\\\"}\"); "
       "if (mappedValues[3] != 6 || totalValue != 8 || firstEven != 2 || "
       "distinctValues[2] != 3 || !any(collectionInput, kynaEven) || "
       "all(collectionInput, kynaEven) || keyedValue[\"content-type\"] != \"application/json\") { "
@@ -421,18 +421,18 @@ int main() {
   assert(collectionsResult.ok());
   auto failedNetwork = deterministicSession.runSource(
       "network-failure.kyna",
-      "set response = fetch(\"https://failure.test\", { timeout: 1000 });");
+      "const response = fetch(\"https://failure.test\", { timeout: 1000 });");
   assert(!failedNetwork.ok());
   assert(hasCode(failedNetwork.diagnostics, "KNET2001"));
   assert(failedNetwork.diagnostics.back().location.line == 1);
   auto failedDatabase = deterministicSession.runSource(
       "database-failure.kyna",
-      "set result = db.query(\"postgres://test\", \"FAIL\");");
+      "const result = db.query(\"postgres://test\", \"FAIL\");");
   assert(!failedDatabase.ok());
   assert(hasCode(failedDatabase.diagnostics, "KDB2001"));
   assert(failedDatabase.diagnostics.back().location.line == 1);
   auto invalidIndex = deterministicSession.runSource(
-      "invalid-index.kyna", "set boundsProbe = [1]; print(boundsProbe[2]);");
+      "invalid-index.kyna", "const boundsProbe = [1]; print(boundsProbe[2]);");
   assert(!invalidIndex.ok());
   assert(hasCode(invalidIndex.diagnostics, "KRT2104"));
   auto zeroRemainder = deterministicSession.runSource(
@@ -440,19 +440,19 @@ int main() {
   assert(!zeroRemainder.ok());
   assert(hasCode(zeroRemainder.diagnostics, "KRT2201"));
   assert(!session
-              .checkSource("private.kyna", "class Secret { value: int; } let secret = new Secret(); "
-                                         "let leaked = secret.value;")
+              .checkSource("private.kyna", "class Secret { value: int; } var secret = new Secret(); "
+                                         "var leaked = secret.value;")
               .ok());
   assert(
       !session.checkSource("final.kyna", "final class Base { } class Derived extends Base { }").ok());
   assert(!session
               .checkSource("override.kyna",
-                           "class Base { public func value(): int { return 1; } } "
-                           "class Derived extends Base { public func value(): int { return 2; } }")
+                           "class Base { public fn value(): int { return 1; } } "
+                           "class Derived extends Base { public fn value(): int { return 2; } }")
               .ok());
   assert(!session
               .checkSource("abstract.kyna",
-                           "abstract class Base { public abstract func value(): int; } "
+                           "abstract class Base { public abstract fn value(): int; } "
                            "class Derived extends Base { }")
               .ok());
 
@@ -460,10 +460,10 @@ int main() {
   const auto directory =
       std::filesystem::temp_directory_path() / ("kyna-v03-language-test-" + std::to_string(nonce));
   std::filesystem::create_directories(directory);
-  writeSource(directory / "math.kyna", "export func add(a: int, b: int): int { return a + b; } "
-                                     "func hidden(): int { return 9; }");
+  writeSource(directory / "math.kyna", "export fn add(a: int, b: int): int { return a + b; } "
+                                     "fn hidden(): int { return 9; }");
   writeSource(directory / "main.kyna",
-              "import \"./math.kyna\" as math; let answer: int = math.add(20, 22);");
+              "import \"./math.kyna\" as math; var answer: int = math.add(20, 22);");
   kyna::LanguageSession moduleSession;
   assert(moduleSession.check(directory / "main.kyna").ok());
   assert(moduleSession.run(directory / "main.kyna").ok());
@@ -474,18 +474,18 @@ int main() {
                                       nullptr};
   kyna::LanguageSession cachedModuleSession(std::move(cachedModuleOptions));
   writeSource(directory / "side-effect.kyna",
-              "export set value = 1; writeFile(\"initialization\", \"once\");");
+              "export const value = 1; writeFile(\"initialization\", \"once\");");
   writeSource(directory / "cached-main.kyna", "import \"./side-effect.kyna\" as side;");
   assert(cachedModuleSession.run(directory / "cached-main.kyna").ok());
   assert(cachedModuleSession.run(directory / "cached-main.kyna").ok());
   assert(moduleFiles->writes == 1);
 
   auto overlay = moduleSession.checkSourceAtPath(
-      directory / "main.kyna", "import \"./math.kyna\" as math; let answer: int = math.add(1, 2);");
+      directory / "main.kyna", "import \"./math.kyna\" as math; var answer: int = math.add(1, 2);");
   assert(overlay.ok());
 
   writeSource(directory / "private-import.kyna",
-              "import \"./math.kyna\" as math; let answer = math.hidden();");
+              "import \"./math.kyna\" as math; var answer = math.hidden();");
   auto privateImport = moduleSession.check(directory / "private-import.kyna");
   assert(!privateImport.ok());
   assert(privateImport.diagnostics.front().message.find("no exported member") != std::string::npos);
@@ -501,16 +501,16 @@ int main() {
   const auto persistedFile = persistedDirectory / "products.json";
   const auto persistenceSource =
       "try { createDirectory(\"" + persistedDirectory.string() + "\"); writeFile(\"" +
-      persistedTextFile.string() + "\", \"draft\"); let text = readFile(\"" +
+      persistedTextFile.string() + "\", \"draft\"); var text = readFile(\"" +
       persistedTextFile.string() + "\"); text = textReplace(text, \"draft\", \"published\"); "
       "writeFile(\"" + persistedTextFile.string() + "\", text); writeJsonFile(\"" +
-      persistedFile.string() + "\", { id: 1, revision: 1 }); set initial = readJsonFile(\"" +
+      persistedFile.string() + "\", { id: 1, revision: 1 }); const initial = readJsonFile(\"" +
       persistedFile.string() + "\"); writeJsonFile(\"" + persistedFile.string() +
-      "\", { id: initial.id, revision: initial.revision + 1 }); set saved = readJsonFile(\"" +
+      "\", { id: initial.id, revision: initial.revision + 1 }); const saved = readJsonFile(\"" +
       persistedFile.string() + "\"); if (readFile(\"" + persistedTextFile.string() +
       "\") != \"published\" || saved.id != 1 || saved.revision != 2 || !fileExists(\"" +
       persistedFile.string() + "\")) { error(\"persistence edit failed\"); } "
-      "set entries = listDirectory(\"" + persistedDirectory.string() +
+      "const entries = listDirectory(\"" + persistedDirectory.string() +
       "\"); if (len(entries) != 2) { error(\"listing failed\"); } removePath(\"" +
       persistedTextFile.string() + "\"); removePath(\"" + persistedFile.string() +
       "\"); removePath(\"" + persistedDirectory.string() + "\"); } "

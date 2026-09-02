@@ -3,13 +3,13 @@
 
 int main() {
   auto program =
-      kyna::Parser(kyna::lex("class Box { public value: int; } let b = { value: 1 };")).parse();
+      kyna::Parser(kyna::lex("class Box { public value: int; } var b = { value: 1 };")).parse();
   assert(program.size() == 2);
   assert(std::holds_alternative<kyna::ClassDecl>(program[0]->node));
   assert(std::holds_alternative<kyna::VarDecl>(program[1]->node));
 
   auto quotedFields =
-      kyna::Parser(kyna::lex("set headers = { \"Content-Type\": \"application/json\", "
+      kyna::Parser(kyna::lex("const headers = { \"Content-Type\": \"application/json\", "
                             "\"X-API-Key\": \"test\" };"))
           .parse();
   assert(quotedFields.size() == 1);

@@ -75,6 +75,25 @@ void installConsoleLibrary(Interpreter &interpreter) {
                                                 .count()));
   };
   global->define("clockMs", Value(clock), false);
+  auto timeNow = std::make_shared<Function>();
+  timeNow->native = true;
+  timeNow->nativeCall = [](const std::vector<Value> &a) {
+    if (!a.empty())
+      throw KynaError({"timeNow expects no arguments", {1, 1}, false});
+    const auto now = std::chrono::steady_clock::now();
+    return Value(static_cast<std::int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()));
+  };
+  global->define("timeNow", Value(timeNow), false);
+  auto timeSleep = std::make_shared<Function>();
+  timeSleep->native = true;
+  timeSleep->nativeCall = [caps = interpreter.runtimeCapabilities()](const std::vector<Value> &a) {
+    if (a.size() != 1 || !std::holds_alternative<std::int64_t>(a[0].data))
+      throw KynaError({"timeSleep expects a millisecond duration", {1, 1}, false});
+    caps.clock->sleep(std::chrono::milliseconds(std::get<std::int64_t>(a[0].data)));
+    return Value();
+  };
+  global->define("timeSleep", Value(timeSleep), false);
   auto profileLog = std::make_shared<Function>();
   profileLog->native = true;
   profileLog->nativeCall = [](const std::vector<Value> &a) {

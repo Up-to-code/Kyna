@@ -41,6 +41,8 @@ Value Interpreter::eval(const ExprPtr &e) {
           if (auto d = std::get_if<double>(&v.data))
             return Value(-*d);
           throw KynaError({"unary '-' requires a number", {1, 1}, false});
+        } else if constexpr (std::is_same_v<T, AwaitExpr>) {
+          return eval(n.operand);
         } else if constexpr (std::is_same_v<T, Binary>) {
           if (n.op == TokenKind::AndAnd) {
             auto l = eval(n.left);

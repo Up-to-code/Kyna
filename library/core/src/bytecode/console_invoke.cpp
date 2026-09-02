@@ -33,6 +33,21 @@ std::optional<NativeCallResult> consoleBytecodeInvoke(
                              .count();
     return NativeCallResult{RuntimeValue(static_cast<std::int64_t>(elapsed)), std::nullopt};
   }
+  if (name == "timeNow") {
+    if (!arguments.empty())
+      return bytecodeFailure("KSTD2005", "timeNow expects no arguments");
+    const auto now = std::chrono::steady_clock::now();
+    const auto elapsed =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    return NativeCallResult{RuntimeValue(static_cast<std::int64_t>(elapsed)), std::nullopt};
+  }
+  if (name == "timeSleep") {
+    if (arguments.size() != 1 || !std::holds_alternative<std::int64_t>(arguments[0].data))
+      return bytecodeFailure("KSTD2007", "timeSleep expects a millisecond duration");
+    ctx.capabilities.clock->sleep(
+        std::chrono::milliseconds(std::get<std::int64_t>(arguments[0].data)));
+    return NativeCallResult{};
+  }
   if (name == "profileLog") {
     if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data))
       return bytecodeFailure("KSTD2006", "profileLog expects a label string and an elapsed value");

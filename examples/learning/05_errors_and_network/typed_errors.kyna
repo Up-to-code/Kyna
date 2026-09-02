@@ -1,4 +1,4 @@
-let cleanupRan = false;
+var cleanupRan = false;
 try {
     error("lesson failure");
 } catch (failure) {

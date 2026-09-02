@@ -1,13 +1,13 @@
-func factorial(value: int): int {
+fn factorial(value: int): int {
     if (value <= 1) {
         return 1;
     }
     return value * factorial(value - 1);
 }
 
-func add(left: int, right: int): int {
+fn add(left: int, right: int): int {
     return left + right;
 }
 
-set operation = add;
+const operation = add;
 print("function values", factorial(5), operation(20, 22));

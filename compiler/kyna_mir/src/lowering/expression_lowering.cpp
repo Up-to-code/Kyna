@@ -139,6 +139,12 @@ MirTemporary HirLowerer::lowerExpression(HirExpressionId id) {
                                                            : MirInstructionKind::Not,
                target, operand, {}, nullptr, expression.span, 0, {}});
           return target;
+        } else if constexpr (std::is_same_v<T, HirAwaitExpression>) {
+          const auto operand = lowerExpression(node.operand);
+          const auto target = temporary();
+          current().instructions.push_back(
+              {MirInstructionKind::Move, target, operand, {}, nullptr, expression.span, 0, {}});
+          return target;
         } else if constexpr (std::is_same_v<T, HirBinaryExpression>) {
           const auto left = lowerExpression(node.left);
           if (node.operation == HirBinaryOperator::And ||

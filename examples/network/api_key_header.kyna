@@ -1,10 +1,10 @@
 # APIs commonly accept a key in X-API-Key or another provider-specific header.
-set apiKey = processEnv("KYNA_API_KEY");
+const apiKey = processEnv("KYNA_API_KEY");
 if (apiKey == null) {
     print("Set KYNA_API_KEY before running this example");
 } else {
     try {
-        set response = fetch("https://api.example.com/v1/data", {
+        const response = fetch("https://api.example.com/v1/data", {
             timeout: 10000,
             headers: {
                 "X-API-Key": apiKey,

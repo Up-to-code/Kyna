@@ -3,13 +3,13 @@
 Kyna exposes parameterized SQL through the `db` namespace. Database behavior crosses the injected `DatabasePort` seam: official builds provide the libpq PostgreSQL adapter, while tests can provide deterministic in-memory adapters without changing language code.
 
 ```kyna
-set connection = process.env("KYNA_DATABASE_URL");
+const connection = process.env("KYNA_DATABASE_URL");
 if (connection == null) {
     error("KYNA_DATABASE_URL is required");
 }
 
 try {
-    set result = db.query(connection,
+    const result = db.query(connection,
         "SELECT id, email, active FROM users WHERE email = $1",
         ["ada@example.test"]);
     console.log(result.rows, result.affectedRows, result.command);

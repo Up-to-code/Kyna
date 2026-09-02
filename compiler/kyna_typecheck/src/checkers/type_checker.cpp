@@ -59,6 +59,8 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
           if (x.name != "int" && x.name != "float" && x.name != "num" && x.name != "any")
             error("unary '-' requires a numeric operand", e->location);
           return x;
+        } else if constexpr (std::is_same_v<T, AwaitExpr>) {
+          return expr(n.operand);
         } else if constexpr (std::is_same_v<T, Binary>) {
           auto a = expr(n.left), b = expr(n.right);
           if (n.op == TokenKind::EqualEqual || n.op == TokenKind::BangEqual ||

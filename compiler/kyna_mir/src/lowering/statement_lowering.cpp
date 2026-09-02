@@ -78,7 +78,9 @@ void HirLowerer::lowerStatement(HirStatementId id) {
 
           currentBlock = bodyBlock;
           loops.push_back({node.label, exitBlock, conditionBlock});
+          breaks.push_back(exitBlock);
           lowerStatement(node.body);
+          breaks.pop_back();
           loops.pop_back();
           if (!current().terminator)
             terminate(MirGotoTerminator{conditionBlock}, statement.span);
@@ -100,7 +102,9 @@ void HirLowerer::lowerStatement(HirStatementId id) {
 
           currentBlock = bodyBlock;
           loops.push_back({node.label, exitBlock, incrementBlock});
+          breaks.push_back(exitBlock);
           lowerStatement(node.body);
+          breaks.pop_back();
           loops.pop_back();
           if (!current().terminator)
             terminate(MirGotoTerminator{incrementBlock}, statement.span);
@@ -111,7 +115,7 @@ void HirLowerer::lowerStatement(HirStatementId id) {
           terminate(MirGotoTerminator{conditionBlock}, statement.span);
           currentBlock = exitBlock;
         } else if constexpr (std::is_same_v<T, HirBreakStatement>) {
-          const auto target = loopTarget(node.label).breakTarget;
+          const auto target = breakTarget(node.label);
           if (lowerActiveCleanups())
             terminate(MirGotoTerminator{target}, statement.span);
         } else if constexpr (std::is_same_v<T, HirContinueStatement>) {
@@ -120,6 +124,58 @@ void HirLowerer::lowerStatement(HirStatementId id) {
             terminate(MirGotoTerminator{target}, statement.span);
         } else if constexpr (std::is_same_v<T, HirThrowStatement>) {
           terminate(MirThrowTerminator{lowerExpression(node.value)}, statement.span);
+        } else if constexpr (std::is_same_v<T, HirSwitchStatement>) {
+          const auto subject = temporary();
+          const auto subjectValue = lowerExpression(node.subject);
+          current().instructions.push_back(
+              {MirInstructionKind::Move, subject, subjectValue, {}, nullptr, statement.span, 0,
+               {}});
+
+          std::vector<std::size_t> valueArms;
+          std::optional<std::size_t> defaultArm;
+          for (std::size_t arm = 0; arm < node.cases.size(); ++arm) {
+            if (node.cases[arm].value)
+              valueArms.push_back(arm);
+            else
+              defaultArm = arm;
+          }
+
+          const auto continuation = addBlock();
+          std::vector<MirBlockId> armBlocks(node.cases.size());
+          for (auto &arm : armBlocks)
+            arm = addBlock();
+          std::vector<MirBlockId> testBlocks(valueArms.size());
+          for (auto &test : testBlocks)
+            test = addBlock();
+
+          if (valueArms.empty()) {
+            terminate(MirGotoTerminator{armBlocks[*defaultArm]}, statement.span);
+          } else {
+            terminate(MirGotoTerminator{testBlocks.front()}, statement.span);
+            for (std::size_t arm = 0; arm < valueArms.size(); ++arm) {
+              currentBlock = testBlocks[arm];
+              const auto caseValue = lowerExpression(*node.cases[valueArms[arm]].value);
+              const auto equal = temporary();
+              current().instructions.push_back(
+                  {MirInstructionKind::Equal, equal, subject, caseValue, {}, statement.span, 0,
+                   {}});
+              const auto whenFalse = arm + 1 < valueArms.size()
+                                         ? testBlocks[arm + 1]
+                                         : defaultArm ? armBlocks[*defaultArm] : continuation;
+              terminate(MirBranchTerminator{equal, armBlocks[valueArms[arm]], whenFalse},
+                        statement.span);
+            }
+          }
+
+          breaks.push_back(continuation);
+          for (std::size_t arm = 0; arm < node.cases.size(); ++arm) {
+            currentBlock = armBlocks[arm];
+            lowerStatement(node.cases[arm].body);
+            if (!current().terminator)
+              terminate(MirGotoTerminator{continuation}, statement.span);
+          }
+          breaks.pop_back();
+          currentBlock = continuation;
         } else {
           const auto continuation = addBlock();
           const auto tryEntry = addBlock();

@@ -1,11 +1,14 @@
-# Immutable set bindings, mutable let bindings, equality, and nullable values.
-set answer: int = 42;
-let counter: int = 0;
+# Immutable const bindings, mutable var bindings, equality, and nullable values.
+const answer: int = 42;
+var counter: int = 0;
 counter = counter + 1;
 counter = counter + 1;
-
-let nickname: str? = null;
-set missing = nickname == null;
+fn incrementCounter(): int {
+    counter = counter + 1;
+    return counter;
+}
+var nickname: str? = null;
+const missing = nickname == null;
 nickname = "Kyna";
 
 print("bindings", answer, counter);

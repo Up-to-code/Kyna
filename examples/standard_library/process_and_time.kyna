@@ -1,5 +1,5 @@
 # Process, environment, and clock APIs. Commands stay disabled for portability.
-set executablePath = processEnv("PATH");
+const executablePath = processEnv("PATH");
 sleep(0);
 wait(0);
 

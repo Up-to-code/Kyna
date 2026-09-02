@@ -1,5 +1,5 @@
-export func add(left: int, right: int): int {
+export fn add(left: int, right: int): int {
     return left + right;
 }
 
-set internalName = "not exported";
+const internalName = "not exported";

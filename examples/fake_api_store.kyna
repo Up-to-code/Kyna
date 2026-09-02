@@ -1,76 +1,76 @@
 # Real Fake Store API CRUD plus local collection processing.
-func affordable(product: any): bool {
+fn affordable(product: any): bool {
     return product.price < 100;
 }
 
-func laterPrice(left: any, right: any): bool {
+fn laterPrice(left: any, right: any): bool {
     return left.price > right.price;
 }
 
-func productTitle(product: any): str {
+fn productTitle(product: any): str {
     return product.title;
 }
 
-func main(): void {
+fn main(): void {
     try {
         # READ the live product collection and process response.json().
-        set productsResponse = fetch("https://fakestoreapi.com/products?limit=5", { timeout: 15000 });
-        set products = productsResponse.json();
+        const productsResponse = fetch("https://fakestoreapi.com/products?limit=5", { timeout: 15000 });
+        const products = productsResponse.json();
         console.log("GET", productsResponse.status, "products", len(products));
 
         # Persist the live JSON through Kyna's filesystem capability.
         fs.createDirectory("fake-store-output");
         fs.writeJson("fake-store-output/products.json", products);
-        set persistedProducts = fs.readJson("fake-store-output/products.json");
+        const persistedProducts = fs.readJson("fake-store-output/products.json");
         console.log("saved", len(persistedProducts), "files", fs.list("fake-store-output"));
 
-        set affordableProducts = filter(products, affordable);
-        set sortedProducts = bubbleSort(affordableProducts, laterPrice);
+        const affordableProducts = filter(products, affordable);
+        const sortedProducts = bubbleSort(affordableProducts, laterPrice);
         console.log("filtered", len(affordableProducts), "lowest", sortedProducts[0].title);
         print("called", call(productTitle, [sortedProducts[0]]));
 
         # CREATE: Fake Store API returns a simulated product with a generated id.
-        set createBody = jsonStringify({
+        const createBody = jsonStringify({
             title: "Kyna test product",
             price: 42,
             description: "Created from Kyna",
             image: "https://i.pravatar.cc",
             category: "electronics"
         });
-        set createdResponse = fetch("https://fakestoreapi.com/products", {
+        const createdResponse = fetch("https://fakestoreapi.com/products", {
             method: "POST",
             body: createBody,
             timeout: 15000
         });
-        set created = process.json(createdResponse.text());
+        const created = process.json(createdResponse.text());
         console.log("POST", created.id, created.title);
 
         # READ one product.
-        set productResponse = fetch("https://fakestoreapi.com/products/1", { timeout: 15000 });
-        set product = productResponse.json();
+        const productResponse = fetch("https://fakestoreapi.com/products/1", { timeout: 15000 });
+        const product = productResponse.json();
         console.log("GET one", product.id, product.title);
 
         # UPDATE and DELETE use the real documented routes. Mutations are simulated by the API.
-        set updateBody = jsonStringify({ title: "Updated by Kyna", price: 50 });
-        set updatedResponse = fetch("https://fakestoreapi.com/products/7", {
+        const updateBody = jsonStringify({ title: "Updated by Kyna", price: 50 });
+        const updatedResponse = fetch("https://fakestoreapi.com/products/7", {
             method: "PUT",
             body: updateBody,
             timeout: 15000
         });
-        set updated = updatedResponse.json();
+        const updated = updatedResponse.json();
         console.log("PUT", updated.id, updated.title);
 
-        set deletedResponse = fetch("https://fakestoreapi.com/products/6", {
+        const deletedResponse = fetch("https://fakestoreapi.com/products/6", {
             method: "DELETE",
             timeout: 15000
         });
-        set deleted = deletedResponse.json();
+        const deleted = deletedResponse.json();
         console.log("DELETE", deleted.id);
 
-        # set is immutable, but an array value remains mutable through index assignment.
-        set scores = [3, 1, 2];
+        # const is immutable, but an array value remains mutable through index assignment.
+        const scores = [3, 1, 2];
         scores[0] = 4;
-        set orderedScores = sort(scores);
+        const orderedScores = sort(scores);
         console.log("sorted", jsonStringify(orderedScores), orderedScores[0] == 1);
 
         if (created.id == null) {

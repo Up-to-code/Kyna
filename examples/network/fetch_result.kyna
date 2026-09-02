@@ -1,11 +1,11 @@
 # Non-throwing HTTP workflow. The result always has ok, response, and error fields.
-set success = http.tryFetch("mock://kyna/users", { timeout: 1000 });
+const success = http.tryFetch("mock://kyna/users", { timeout: 1000 });
 if (!success.ok || success.response.status != 200 || success.error != null) {
     error("successful fetch result checkpoint failed");
 }
 
 # Invalid transport input becomes a typed Error value instead of escaping the call.
-set failed = fetchResult("invalid://not-supported", { timeout: 1000 });
+const failed = fetchResult("invalid://not-supported", { timeout: 1000 });
 if (failed.ok || failed.response != null || failed.error.code != "KNET2001") {
     error("failed fetch result checkpoint failed");
 }

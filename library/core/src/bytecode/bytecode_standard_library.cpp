@@ -28,6 +28,8 @@ public:
       return std::move(*result);
     if (auto result = detail::collectionsBytecodeInvoke(name, arguments, context))
       return std::move(*result);
+    if (auto result = detail::cryptoBytecodeInvoke(name, arguments, context))
+      return std::move(*result);
     return detail::bytecodeFailure("KSTD2099",
                                    "unknown standard-library native '" + std::string(name) + "'");
   }
@@ -41,7 +43,7 @@ private:
 
 const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
   static const std::vector<std::string> names{
-      "print", "log", "typeOf", "toString", "clockMs", "profileLog", "len", "error", "readFile", "writeFile", "fileExists",
+      "print", "log", "typeOf", "toString", "clockMs", "timeNow", "timeSleep", "profileLog", "len", "error", "readFile", "writeFile", "fileExists",
       "createDirectory", "removePath", "listDirectory", "readJsonFile", "writeJsonFile",
       "processEnv", "processRun", "build", "osName", "osArchitecture",
       "osWorkingDirectory", "terminalIsInteractive", "terminalSupportsColor",
@@ -51,7 +53,7 @@ const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
       "jsonStringify", "tomlParse", "tomlStringify", "xmlParse", "xmlStringify",
       "push", "pop", "keys", "unique", "sort", "bubbleSort",
       "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
-      "textLower", "textUpper"};
+      "textLower", "textUpper", "cryptoSha256"};
   return names;
 }
 

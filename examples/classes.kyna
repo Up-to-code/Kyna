@@ -5,16 +5,16 @@ class Animal {
         self.name = name;
     }
 
-    public func speak(): str {
+    public fn speak(): str {
         return self.name;
     }
 }
 
 class Dog extends Animal {
-    public override func speak(): str {
+    public override fn speak(): str {
         return "woof " + self.name;
     }
 }
 
-let pet = new Dog("Rex");
+var pet = new Dog("Rex");
 print(pet.speak());

@@ -92,14 +92,14 @@ code --install-extension editors/vscode-kyna/kyna-language-support-1.0.12.vsix -
 Open or create a `.kyna` file:
 
 ```kyna
-func greet(name: str): str {
+fn greet(name: str): str {
     return "Hello " + name;
 }
 
-let visits: int = 1;
+var visits: int = 1;
 visits = visits + 1;
 
-set audience = if (visits > 1) {
+const audience = if (visits > 1) {
     "returning visitor"
 } else {
     "new visitor"

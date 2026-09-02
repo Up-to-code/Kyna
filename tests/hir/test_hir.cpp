@@ -7,7 +7,7 @@
 
 int main() {
   kyna::SourceManager sources;
-  const auto source = sources.add("hir-test", "set left = 20; set right = 22; left + right;");
+  const auto source = sources.add("hir-test", "const left = 20; const right = 22; left + right;");
   auto lexed = kyna::tokenize(*sources.find(source));
   auto parsed = kyna::parseModule(*sources.find(source), std::move(lexed.tokens));
   assert(lexed.diagnostics.empty());
@@ -23,7 +23,7 @@ int main() {
 
   const auto functionSource = sources.add(
       "hir-functions",
-      "func add(left: int, right: int): int { return left + right; } set answer = add(20, 22);");
+      "fn add(left: int, right: int): int { return left + right; } const answer = add(20, 22);");
   auto functionLexed = kyna::tokenize(*sources.find(functionSource));
   auto functionParsed =
       kyna::parseModule(*sources.find(functionSource), std::move(functionLexed.tokens));
@@ -35,7 +35,7 @@ int main() {
   assert(functionListing.find("function @f0 add") != std::string::npos);
   assert(functionListing.find("call @f0") != std::string::npos);
 
-  const auto logicalSource = sources.add("hir-logical", "set value = true && false || true;");
+  const auto logicalSource = sources.add("hir-logical", "const value = true && false || true;");
   auto logicalLexed = kyna::tokenize(*sources.find(logicalSource));
   auto logicalParsed =
       kyna::parseModule(*sources.find(logicalSource), std::move(logicalLexed.tokens));
@@ -46,7 +46,7 @@ int main() {
   assert(logicalListing.find("or") != std::string::npos);
 
   const auto ifExpressionSource =
-      sources.add("hir-if-expression", "set value = if (true) { 1 } else { 2 };");
+      sources.add("hir-if-expression", "const value = if (true) { 1 } else { 2 };");
   auto ifExpressionLexed = kyna::tokenize(*sources.find(ifExpressionSource));
   auto ifExpressionParsed = kyna::parseModule(*sources.find(ifExpressionSource),
                                                std::move(ifExpressionLexed.tokens));
@@ -57,7 +57,7 @@ int main() {
 
   const auto firstClassSource = sources.add(
       "hir-first-class",
-      "func identity(value: int): int { return value; } set selected = identity; selected(1);");
+      "fn identity(value: int): int { return value; } const selected = identity; selected(1);");
   auto firstClassLexed = kyna::tokenize(*sources.find(firstClassSource));
   auto firstClassParsed =
       kyna::parseModule(*sources.find(firstClassSource), std::move(firstClassLexed.tokens));
@@ -69,7 +69,7 @@ int main() {
 
   const auto nativeMemberSource = sources.add(
       "hir-native-members",
-      "set metadata = process.json(\"{\\\"ready\\\":true}\"); console.log(metadata.ready);");
+      "const metadata = process.json(\"{\\\"ready\\\":true}\"); console.log(metadata.ready);");
   auto nativeMemberLexed = kyna::tokenize(*sources.find(nativeMemberSource));
   auto nativeMemberParsed =
       kyna::parseModule(*sources.find(nativeMemberSource), std::move(nativeMemberLexed.tokens));
@@ -83,8 +83,8 @@ int main() {
 
   const auto exceptionSource = sources.add(
       "hir-exceptions",
-      "try { throw \"boom\"; } catch (failure) { set recovered = true; } "
-      "finally { set cleaned = true; }");
+      "try { throw \"boom\"; } catch (failure) { const recovered = true; } "
+      "finally { const cleaned = true; }");
   auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
   auto exceptionParsed =
       kyna::parseModule(*sources.find(exceptionSource), std::move(exceptionLexed.tokens));
@@ -98,9 +98,9 @@ int main() {
   const auto classSource = sources.add(
       "hir-classes",
       "class Animal { public name: str; public init(name: str) { self.name = name; } "
-      "public func speak(): str { return self.name; } } "
-      "class Dog extends Animal { public override func speak(): str { return self.name; } } "
-      "set pet = new Dog(\"Rex\"); pet.speak();");
+      "public fn speak(): str { return self.name; } } "
+      "class Dog extends Animal { public override fn speak(): str { return self.name; } } "
+      "const pet = new Dog(\"Rex\"); pet.speak();");
   auto classLexed = kyna::tokenize(*sources.find(classSource));
   auto classParsed =
       kyna::parseModule(*sources.find(classSource), std::move(classLexed.tokens));

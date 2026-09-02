@@ -210,7 +210,10 @@ std::optional<HirLocalId> SyntaxLowerer::findLocal(const std::string &name) cons
   }
 
 bool SyntaxLowerer::isFetchCall(const ExprPtr &expression) const {
-    const auto *call = expression ? std::get_if<Call>(&expression->node) : nullptr;
+    const ExprPtr *node = &expression;
+    if (const auto *await = (*node) ? std::get_if<AwaitExpr>(&(*node)->node) : nullptr)
+      node = &await->operand;
+    const auto *call = (*node) ? std::get_if<Call>(&(*node)->node) : nullptr;
     const auto *callee = call && call->callee ? std::get_if<Variable>(&call->callee->node) : nullptr;
     return callee && callee->name == "fetch";
   }
@@ -251,6 +254,12 @@ bool SyntaxLowerer::hasLoopTarget(const std::string &label) const {
     if (label.empty())
       return true;
     return std::find(loopLabels.rbegin(), loopLabels.rend(), label) != loopLabels.rend();
+  }
+
+bool SyntaxLowerer::hasBreakTarget(const std::string &label) const {
+    if (!label.empty())
+      return hasLoopTarget(label);
+    return !loopLabels.empty() || switchDepth > 0;
   }
 
 

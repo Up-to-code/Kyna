@@ -51,6 +51,7 @@ EXPECTED_OUTPUT = {
     "examples/match.kyna": "one\n",
     "examples/modules/main.kyna": "42\n",
     "examples/language/advanced_control_flow.kyna": "visits 12\nshortCircuit false true\n",
+    "examples/language/await_and_network.kyna": "awaited int 42\nawaited fetch 3 Ada\n",
     "examples/language/bindings_and_nullability.kyna": (
         "bindings 42 2\nnullable true true\nequality true true\n"
     ),
@@ -73,6 +74,10 @@ EXPECTED_OUTPUT = {
         "keys [\"name\",\"version\"]\nencoded {\"items\":[20,22],\"ready\":true}\n"
     ),
     "examples/language/recursive_functions.kyna": "factorial(6) 720\nfibonacci(10) 55\n",
+    "examples/language/syntax_overview.kyna": (
+        "bindings Kyna 42\nelse-if B\nswitch missing\nswitch other\n"
+        "loop-broken 2\nawait 42\nlegacy let set 15\n"
+    ),
     "examples/language/unicode_text.kyna": (
         "length 12\nslice Héllo\nfind 8\ncontains true\nreplace Héllo Kyna\n"
         "case äbc KYNA\nsplit 3 two\n"
@@ -176,6 +181,9 @@ BUILTIN_COVERAGE = {
     "logColor": "examples/standard_library/memory_and_color.kyna",
     "createApiStore": "examples/standard_library/api_store.kyna",
     "clockMs": "examples/standard_library/timing.kyna",
+    "timeNow": "examples/standard_library/timing.kyna",
+    "timeSleep": "examples/standard_library/timing.kyna",
+    "cryptoSha256": "examples/standard_library/crypto.kyna",
     "profileLog": "examples/standard_library/timing.kyna",
     "measure": "examples/standard_library/timing.kyna",
 }

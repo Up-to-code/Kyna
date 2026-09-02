@@ -159,14 +159,14 @@ On Windows, use the executable produced in the selected preset's build directory
 ## Language tour
 
 ```kyna
-func greet(name: str): str {
+fn greet(name: str): str {
     return "Hello " + name;
 }
 
-let visits: int = 1;  # mutable, with a locked type
+var visits: int = 1;  # mutable, with a locked type
 visits = visits + 1;
 
-set audience = if (visits > 1) {  # immutable
+const audience = if (visits > 1) {  # immutable
     "returning visitor"
 } else {
     "new visitor"
@@ -175,10 +175,10 @@ set audience = if (visits > 1) {  # immutable
 console.log(greet("Kyna"), audience);
 ```
 
-Kyna deliberately uses `let` for mutable bindings and `set` for immutable bindings. Types are inferred when safe, can be written explicitly, and are non-nullable by default. Add `?` when a value may be `null`:
+Kyna uses `var` for mutable bindings and `const` for immutable bindings; the legacy spellings `let`, `set`, and `func` remain accepted as aliases. Types are inferred when safe, can be written explicitly, and are non-nullable by default. Add `?` when a value may be `null`:
 
 ```kyna
-let nickname: str? = null;
+var nickname: str? = null;
 ```
 
 Modules expose only explicitly exported declarations:
@@ -189,7 +189,7 @@ import "./math.kyna" as math;
 console.log(math.add(20, 22));
 ```
 
-The language also supports first-class functions, mutable and transitive lexical captures, recursion, single inheritance, structural interfaces, exhaustive `match`, and typed `try`/`catch`/`finally`. Browse the runnable [`examples/language/`](examples/language/) programs or read the complete [language specification](docs/language-spec.md).
+The language also supports first-class functions, mutable and transitive lexical captures, recursion, single inheritance, structural interfaces, exhaustive `match`, `switch`/`case` arms, `await` expressions, and typed `try`/`catch`/`finally`. Browse the runnable [`examples/language/`](examples/language/) programs (start with `syntax_overview.kyna`) or read the complete [language specification](docs/language-spec.md).
 
 ## Command-line tools
 

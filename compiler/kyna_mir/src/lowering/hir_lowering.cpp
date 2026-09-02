@@ -96,6 +96,12 @@ const HirLowerer::LoopContext &HirLowerer::loopTarget(const std::string &label) 
   return loops.back();
 }
 
+MirBlockId HirLowerer::breakTarget(const std::string &label) const {
+  if (!label.empty())
+    return loopTarget(label).breakTarget;
+  return breaks.back();
+}
+
 MirInstructionKind HirLowerer::instructionFor(HirBinaryOperator operation) const {
   switch (operation) {
   case HirBinaryOperator::Add: return MirInstructionKind::Add;

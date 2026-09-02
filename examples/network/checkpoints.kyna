@@ -1,7 +1,7 @@
 # Deterministic request/response checkpoints using Kyna's built-in mock endpoint.
 try {
-    set response = fetch("mock://kyna/users", { timeout: 1000 });
-    set users = response.json();
+    const response = fetch("mock://kyna/users", { timeout: 1000 });
+    const users = response.json();
 
     if (!response.ok) {
         error("checkpoint: expected a successful response");

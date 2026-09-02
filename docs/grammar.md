@@ -12,22 +12,28 @@ import-namespace ::= "import" "*" "as" IDENT "from" STRING ";" ;
 declaration   ::= "export"? modifiers* ( variable | function | class | interface ) | statement ;
 export-list   ::= "export" "{" IDENT ("," IDENT)* "}" ";" ;
 export-default-var ::= "export" "default" (variable | function | class | interface) ;
-variable      ::= ("let" | "set") IDENT (":" type)? ("=" expression)? ";" ;
-function      ::= "func" IDENT "(" parameters? ")" (":" type)? block ;
+variable      ::= ("var" | "const") IDENT (":" type)? ("=" expression)? ";" ;
+function      ::= "fn" IDENT "(" parameters? ")" (":" type)? block ;
 parameters    ::= IDENT ":" type ("," IDENT ":" type)* ;
 class         ::= "class" IDENT ("extends" IDENT)? ("implements" type-arg ("," type-arg)*)? "{" class-member* "}" ;
-class-member  ::= modifiers* ("init" | "func" IDENT) "(" parameters? ")" (":" type)? (block | ";")
+class-member  ::= modifiers* ("init" | "fn" IDENT) "(" parameters? ")" (":" type)? (block | ";")
                 | modifiers* IDENT ":" type ("=" expression)? ";" ;
 interface     ::= "intf" IDENT ("<" type-param ("," type-param)* ">")?
                   ("extends" type-arg ("," type-arg)*)? "{" interface-member* "}" ;
-interface-member ::= "func" IDENT "(" parameters? ")" ":" type ";"
+interface-member ::= "fn" IDENT "(" parameters? ")" ":" type ";"
                    | IDENT ":" type ";" | IDENT "?" ":" type ";"
                    | "[" IDENT ":" type "]" ":" type ";"        (* index signature *)
                    | "(" parameters? ")" ":" type ";"          (* call signature *)
                    | IDENT "(" parameters? ")" ":" type ";" ;  (* method *)
 type-param    ::= IDENT ;
 type          ::= IDENT ("<" type ("," type)* ">")? ("?")? ("|" type)* ;
+switch        ::= "switch" "(" expression ")" "{" ( "case" expression ":" block | "default" ":" block )+ "}" ;
+await-expr    ::= "await" unary ;
 ```
+
+The legacy spellings `let` (§ mutability), `set` (immutability), and `func`
+(function) are accepted as aliases of `var`, `const`, and `fn`. See
+`examples/language/syntax_overview.kyna` for a tour of the current syntax.
 
 Precedence from low to high is assignment, `||`, `&&`, equality, comparison, `+/-`, `*/%`, unary, call/member.
 

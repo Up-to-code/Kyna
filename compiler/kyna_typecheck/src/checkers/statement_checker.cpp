@@ -110,6 +110,26 @@ void Analyzer::stmt(const StmtPtr &s) {
           activeLoopLabels.push_back(n.label);
           stmt(n.body);
           activeLoopLabels.pop_back();
+        } else if constexpr (std::is_same_v<T, SwitchStmt>) {
+          const auto subject = expr(n.subject);
+          bool seenDefault = false;
+          for (const auto &arm : n.cases) {
+            if (arm.isDefault) {
+              if (seenDefault)
+                error("duplicate default arm in switch", s->location);
+              seenDefault = true;
+              continue;
+            }
+            const auto value = expr(arm.value);
+            if (!compatible(subject, value))
+              error("case value has type " + value.str() + ", but subject has type " +
+                        subject.str(),
+                    arm.value->location);
+          }
+          ++switchDepth;
+          for (const auto &arm : n.cases)
+            stmt(arm.body);
+          --switchDepth;
         } else if constexpr (std::is_same_v<T, TryStmt>) {
           stmt(n.tryBranch);
           if (n.catchBranch) {
@@ -123,16 +143,24 @@ void Analyzer::stmt(const StmtPtr &s) {
           }
           if (n.finallyBranch)
             stmt(n.finallyBranch);
-        } else if constexpr (std::is_same_v<T, BreakStmt> || std::is_same_v<T, ContinueStmt>) {
-          const auto operation = std::is_same_v<T, BreakStmt> ? "break" : "continue";
+        } else if constexpr (std::is_same_v<T, BreakStmt>) {
+          if (activeLoopLabels.empty() && switchDepth == 0)
+            error("break must be inside a switch or loop", s->location, "KSEM1301",
+                  "remove it or move it into a switch or loop body");
+          else if (!n.label.empty() &&
+                   std::find(activeLoopLabels.rbegin(), activeLoopLabels.rend(), n.label) ==
+                       activeLoopLabels.rend())
+            error("break references unknown loop label '" + n.label + "'", s->location,
+                  "KSEM1302", "use the label of an enclosing loop");
+        } else if constexpr (std::is_same_v<T, ContinueStmt>) {
           if (activeLoopLabels.empty())
-            error(std::string(operation) + " must be inside a loop", s->location, "KSEM1301",
+            error("continue must be inside a loop", s->location, "KSEM1301",
                   "remove it or move it into a loop body");
           else if (!n.label.empty() &&
                    std::find(activeLoopLabels.rbegin(), activeLoopLabels.rend(), n.label) ==
                        activeLoopLabels.rend())
-            error(std::string(operation) + " references unknown loop label '" + n.label + "'",
-                  s->location, "KSEM1302", "use the label of an enclosing loop");
+            error("continue references unknown loop label '" + n.label + "'", s->location,
+                  "KSEM1302", "use the label of an enclosing loop");
         } else if constexpr (std::is_same_v<T, ReturnStmt>) {
           if (!inFunction)
             error("return must be inside a function",
@@ -293,6 +321,16 @@ bool Analyzer::alwaysReturns(const StmtPtr &s) const {
     if (attempt->catchBranch)
       return alwaysReturns(attempt->tryBranch) && alwaysReturns(attempt->catchBranch);
     return alwaysReturns(attempt->tryBranch);
+  }
+  if (auto sw = std::get_if<SwitchStmt>(&s->node)) {
+    bool defaultSeen = false;
+    for (const auto &arm : sw->cases) {
+      if (!alwaysReturns(arm.body))
+        return false;
+      if (arm.isDefault)
+        defaultSeen = true;
+    }
+    return defaultSeen;
   }
   return false;
 }

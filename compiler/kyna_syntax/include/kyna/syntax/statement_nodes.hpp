@@ -31,6 +31,15 @@ struct LoopStmt {
   StmtPtr body;
   std::string label;
 };
+struct SwitchCase {
+  ExprPtr value;
+  StmtPtr body;
+  bool isDefault{false};
+};
+struct SwitchStmt {
+  ExprPtr subject;
+  std::vector<SwitchCase> cases;
+};
 struct BreakStmt {
   std::string label;
 };

@@ -1,0 +1,20 @@
+# await pauses the program until a call finishes, then hands the value back for
+# the next line. It works on plain calls and on network processing such as
+# fetch(...).json(), where the response must arrive and be decoded first.
+
+# Await a computation: wait until double(21) returns before binding the result.
+fn double(value: int): int {
+    return value * 2;
+}
+
+var awaited = await double(21);
+print("awaited int", awaited);
+
+# Await a network fetch plus JSON decode. The program waits until the mock
+# endpoint responds and the body is parsed into an array of user objects.
+try {
+    const users = await fetch("mock://kyna/users", { timeout: 1000 }).json();
+    print("awaited fetch", len(users), users[0].name);
+} catch (failure) {
+    print("awaited failure", failure.code, failure.message);
+}

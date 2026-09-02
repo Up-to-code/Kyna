@@ -1,4 +1,4 @@
 import "./app.kyna" as application;
 
-set app = application.createApp();
+const app = application.createApp();
 app.listen();

@@ -19,6 +19,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   const auto formats = detail::installFormatsLibrary(interpreter);
   detail::installNetworkLibrary(interpreter);
   detail::installApiStoreLibrary(interpreter);
+  detail::installCryptoLibrary(interpreter);
 
   auto process = interpreter.heap().allocate();
   process->fields["json"] = Value(formats.jsonParse);

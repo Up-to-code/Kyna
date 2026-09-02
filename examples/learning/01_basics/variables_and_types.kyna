@@ -1,8 +1,8 @@
-# set creates an immutable binding. An explicit annotation documents its type.
-set language: str = "Kyna";
-set release: int = 1;
-set stable: bool = true;
-set nickname: str? = null;
+# const creates an immutable binding. An explicit annotation documents its type.
+const language: str = "Kyna";
+const release: int = 1;
+const stable: bool = true;
+const nickname: str? = null;
 
 print("values", language, release, stable, nickname == null);
 print("types", typeOf(language), typeOf(release), typeOf(stable), typeOf(nickname));

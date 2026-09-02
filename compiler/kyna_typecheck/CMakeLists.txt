@@ -8,4 +8,6 @@ kyna_add_module(kyna_typecheck SOURCES
   src/catalog/interface_catalog.cpp
   src/validators/program_validation.cpp
   src/checkers/module_analyzer.cpp
+  src/checkers/cycle_detector.cpp
+  src/types/scope.cpp
   PUBLIC_DEPENDENCIES kyna_resolution kyna_symbols kyna_syntax kyna_types kyna_diagnostics)

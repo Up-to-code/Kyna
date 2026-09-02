@@ -1,9 +1,9 @@
 # tryFetch converts validation/transport failures into an Error value.
-set result = http.tryFetch("invalid://learning-example", { timeout: 1000 });
+const result = http.tryFetch("invalid://learning-example", { timeout: 1000 });
 if (result.ok) {
     print("request", result.response.status);
 } else {
     print("request error", result.error.code, result.response == null);
 }
 
-set apiKey = processEnv("KYNA_API_KEY");
+const apiKey = processEnv("KYNA_API_KEY");

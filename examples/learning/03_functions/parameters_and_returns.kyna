@@ -1,8 +1,8 @@
-func fullName(first: str, last: str): str {
+fn fullName(first: str, last: str): str {
     return first + " " + last;
 }
 
-func square(value: int): int {
+fn square(value: int): int {
     return value * value;
 }
 

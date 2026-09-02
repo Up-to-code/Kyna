@@ -43,6 +43,7 @@ private:
   TypeRef currentReturn{"void", false, {}};
   bool inFunction{false};
   std::vector<std::string> activeLoopLabels;
+  int switchDepth{0};
   void stmt(const StmtPtr &);
   void warning(const std::string &, SourceLocation);
   TypeRef expr(const ExprPtr &);

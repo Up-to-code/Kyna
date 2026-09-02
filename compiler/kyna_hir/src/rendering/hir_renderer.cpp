@@ -44,6 +44,8 @@ std::string renderHir(const HirProgram &program) {
             output << "closure @f" << node.function.value;
           else if constexpr (std::is_same_v<T, HirUnaryExpression>)
             output << hirUnaryOperatorName(node.operation) << " %e" << node.operand.value;
+          else if constexpr (std::is_same_v<T, HirAwaitExpression>)
+            output << "await %e" << node.operand.value;
           else if constexpr (std::is_same_v<T, HirBinaryExpression>)
             output << hirBinaryOperatorName(node.operation) << " %e" << node.left.value << ", %e"
                    << node.right.value;
@@ -150,6 +152,16 @@ std::string renderHir(const HirProgram &program) {
             if (node.increment) output << " increment=%e" << node.increment->value;
             output << " body=%s" << node.body.value;
             if (!node.label.empty()) output << " label=" << node.label;
+          } else if constexpr (std::is_same_v<T, HirSwitchStatement>) {
+            output << "switch %e" << node.subject.value;
+            for (const auto &arm : node.cases) {
+              output << " [";
+              if (arm.value)
+                output << "case %e" << arm.value->value;
+              else
+                output << "default";
+              output << " => %s" << arm.body.value;
+            }
           } else if constexpr (std::is_same_v<T, HirBreakStatement>) {
             output << "break";
             if (!node.label.empty()) output << ' ' << node.label;

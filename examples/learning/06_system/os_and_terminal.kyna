@@ -1,9 +1,9 @@
 # Host facts are injected capabilities, so embedders and tests can replace them.
-set systemName = osName();
-set cpu = osArchitecture();
-set directory = osWorkingDirectory();
-set interactive = terminalIsInteractive();
-set color = terminalSupportsColor();
+const systemName = osName();
+const cpu = osArchitecture();
+const directory = osWorkingDirectory();
+const interactive = terminalIsInteractive();
+const color = terminalSupportsColor();
 
 if (systemName != os.name() || cpu != os.architecture() || directory != os.cwd() ||
     interactive != terminal.interactive() || color != terminal.supportsColor()) {

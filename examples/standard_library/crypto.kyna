@@ -1,0 +1,5 @@
+# Cryptographic hashing API. `cryptoSha256(data)` returns the lowercase hex
+# SHA-256 digest of a string.
+var digest = cryptoSha256("abc");
+print("sha256-abc", digest);
+print("sha256-empty", cryptoSha256(""));

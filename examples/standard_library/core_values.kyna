@@ -1,5 +1,5 @@
 # Core values, output, dynamic calls, and explicit errors.
-func add(left: int, right: int): int {
+fn add(left: int, right: int): int {
     return left + right;
 }
 

@@ -1,8 +1,8 @@
 # Typed Error values, catch, closure mutation, and guaranteed cleanup.
-func demonstrateExceptions(): void {
-    let trace = "";
+fn demonstrateExceptions(): void {
+    var trace = "";
 
-    func guarded(): str {
+    fn guarded(): str {
         try {
             throw "boom";
         } catch (failure) {
@@ -14,7 +14,7 @@ func demonstrateExceptions(): void {
         }
     }
 
-    func returnThroughFinally(): str {
+    fn returnThroughFinally(): str {
         try {
             return "returned";
         } finally {
@@ -22,8 +22,8 @@ func demonstrateExceptions(): void {
         }
     }
 
-    set result = guarded();
-    set returned = returnThroughFinally();
+    const result = guarded();
+    const returned = returnThroughFinally();
     print(result, returned, trace);
 }
 
