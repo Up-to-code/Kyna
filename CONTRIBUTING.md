@@ -1,5 +1,9 @@
 # Contributing to Kyna
 
+## People
+
+Kyna is maintained by [Ahmed Mansour](https://github.com/Up-to-code). [Cursor](https://cursor.com) is used as an AI pair programmer on this repository.
+
 ## Before you start
 
 For language changes, read the [language specification](docs/language-spec.md) and [architecture guide](docs/architecture.md). For security issues, follow [SECURITY.md](SECURITY.md) instead of opening an issue.
