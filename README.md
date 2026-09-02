@@ -113,7 +113,7 @@ That installs `ky` (and the `kyna` alias) plus the VS Code extension.
     </td>
     <td align="center" valign="top" width="160">
       <a href="https://cursor.com">
-        <img src="https://www.cursor.com/favicon.ico" width="88" alt="Cursor" /><br />
+        <img src="https://github.com/cursor.png?size=120" width="88" alt="Cursor" /><br />
         <strong>Cursor</strong>
       </a><br />
       AI pair programmer
