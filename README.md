@@ -121,7 +121,7 @@ Kyna is Ahmed’s language. The agents below pair on the public repo — review 
       Pair programmer
     </td>
     <td align="center" valign="top" width="140">
-      <a href="https://cursor.com/cloud">
+      <a href="https://cursor.com/agents">
         <img src="https://github.com/cursor.png?size=120" width="80" alt="Cursor Cloud" /><br />
         <strong>Cursor Cloud</strong>
       </a><br />
