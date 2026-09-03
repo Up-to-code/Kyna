@@ -1,5 +1,11 @@
 # Contributing to Kyna
 
+## People
+
+Kyna is maintained by [Ahmed Mansour](https://github.com/Up-to-code).
+
+[Cursor](https://cursor.com), [Cursor Cloud](https://cursor.com/agents), and [OpenAI Codex](https://openai.com/codex) pair on the public repository. Ahmed reviews and merges.
+
 ## Before you start
 
 For language changes, read the [language specification](docs/language-spec.md) and [architecture guide](docs/architecture.md). For security issues, follow [SECURITY.md](SECURITY.md) instead of opening an issue.
