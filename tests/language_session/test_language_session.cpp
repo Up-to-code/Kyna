@@ -499,21 +499,22 @@ int main() {
   const auto persistedDirectory = directory / "persisted";
   const auto persistedTextFile = persistedDirectory / "message.txt";
   const auto persistedFile = persistedDirectory / "products.json";
+  const auto pathText = [](const std::filesystem::path &path) { return path.generic_string(); };
   const auto persistenceSource =
-      "try { createDirectory(\"" + persistedDirectory.string() + "\"); writeFile(\"" +
-      persistedTextFile.string() + "\", \"draft\"); var text = readFile(\"" +
-      persistedTextFile.string() + "\"); text = textReplace(text, \"draft\", \"published\"); "
-      "writeFile(\"" + persistedTextFile.string() + "\", text); writeJsonFile(\"" +
-      persistedFile.string() + "\", { id: 1, revision: 1 }); const initial = readJsonFile(\"" +
-      persistedFile.string() + "\"); writeJsonFile(\"" + persistedFile.string() +
+      "try { createDirectory(\"" + pathText(persistedDirectory) + "\"); writeFile(\"" +
+      pathText(persistedTextFile) + "\", \"draft\"); var text = readFile(\"" +
+      pathText(persistedTextFile) + "\"); text = textReplace(text, \"draft\", \"published\"); "
+      "writeFile(\"" + pathText(persistedTextFile) + "\", text); writeJsonFile(\"" +
+      pathText(persistedFile) + "\", { id: 1, revision: 1 }); const initial = readJsonFile(\"" +
+      pathText(persistedFile) + "\"); writeJsonFile(\"" + pathText(persistedFile) +
       "\", { id: initial.id, revision: initial.revision + 1 }); const saved = readJsonFile(\"" +
-      persistedFile.string() + "\"); if (readFile(\"" + persistedTextFile.string() +
+      pathText(persistedFile) + "\"); if (readFile(\"" + pathText(persistedTextFile) +
       "\") != \"published\" || saved.id != 1 || saved.revision != 2 || !fileExists(\"" +
-      persistedFile.string() + "\")) { error(\"persistence edit failed\"); } "
-      "const entries = listDirectory(\"" + persistedDirectory.string() +
+      pathText(persistedFile) + "\")) { error(\"persistence edit failed\"); } "
+      "const entries = listDirectory(\"" + pathText(persistedDirectory) +
       "\"); if (len(entries) != 2) { error(\"listing failed\"); } removePath(\"" +
-      persistedTextFile.string() + "\"); removePath(\"" + persistedFile.string() +
-      "\"); removePath(\"" + persistedDirectory.string() + "\"); } "
+      pathText(persistedTextFile) + "\"); removePath(\"" + pathText(persistedFile) +
+      "\"); removePath(\"" + pathText(persistedDirectory) + "\"); } "
       "catch (message) { error(message); }";
   kyna::LanguageSession productionFileSession;
   assert(productionFileSession.runSource("persistence.kyna", persistenceSource).ok());
@@ -534,6 +535,16 @@ int main() {
   assert(packageCheck.ok());
   const auto packageRun = packageSession.run(packageDir);
   assert(packageRun.ok());
+
+  const auto importedPkg = directory / "libpkg";
+  std::filesystem::create_directories(importedPkg);
+  {
+    std::ofstream helpers(importedPkg / "math.kyna");
+    helpers << "export fn add(a: int, b: int): int { return a + b; }\n";
+  }
+  writeSource(directory / "import-dir.kyna",
+              "import \"./libpkg\" as lib; var n: int = lib.add(20, 22);");
+  assert(moduleSession.check(directory / "import-dir.kyna").ok());
 
   std::filesystem::remove_all(directory);
 }

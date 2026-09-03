@@ -1,21 +1,7 @@
-#include "kyna/types/basic_type.hpp"
-#include "kyna/types/type.hpp"
-
-#include <array>
+#include <kyna/types/basic_type.hpp>
+#include <kyna/types/type.hpp>
 
 namespace kyna::types {
-namespace {
-
-// The numeric primitives are mutually assignable (int promotes to float and to
-// the generic "num" umbrella). The any/object/func/array classifiers accept any
-// value of the corresponding structural family.
-bool isNumeric(BasicKind kind) {
-  return kind == BasicKind::Int || kind == BasicKind::Float || kind == BasicKind::Num;
-}
-
-bool isUnit(BasicKind kind) { return kind == BasicKind::Void || kind == BasicKind::Null; }
-
-} // namespace
 
 bool BasicType::isAssignableTo(const Type *target) const {
   if (isIdenticalTo(target))
@@ -27,11 +13,14 @@ bool BasicType::isAssignableTo(const Type *target) const {
     return true;
   const auto lhs = basicKind();
   const auto rhs = other->basicKind();
-  // Numeric family is mutually assignable; unit types accept void/null only.
-  if (isNumeric(lhs) && isNumeric(rhs))
+  // Widen int → float and int/float → num. Narrowing (float → int, num → int)
+  // stays a type error.
+  if (lhs == BasicKind::Int && (rhs == BasicKind::Float || rhs == BasicKind::Num))
     return true;
-  if (lhs == BasicKind::Null || lhs == BasicKind::Void)
-    return isUnit(rhs);
+  if (lhs == BasicKind::Float && rhs == BasicKind::Num)
+    return true;
+  if (lhs == BasicKind::Null)
+    return false;
   return false;
 }
 

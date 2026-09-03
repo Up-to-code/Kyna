@@ -1,4 +1,4 @@
-#include "kyna/modules/package_loader.hpp"
+#include <kyna/modules/package_loader.hpp>
 #include "module_path_resolver.hpp"
 
 #include <algorithm>

@@ -1,6 +1,6 @@
 #include "check_helpers.hpp"
-#include "kyna/lexing/token.hpp"
-#include "kyna/semantics/program_analyzer.hpp"
+#include <kyna/lexing/token.hpp>
+#include <kyna/semantics/program_analyzer.hpp>
 
 namespace kyna {
 

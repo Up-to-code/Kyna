@@ -1,4 +1,4 @@
-#include "kyna/execution/runtime_capabilities.hpp"
+#include <kyna/execution/runtime_capabilities.hpp>
 
 #include <cassert>
 #include <iostream>
@@ -6,6 +6,7 @@
 
 namespace {
 
+#if !defined(_WIN32)
 using namespace kyna;
 
 void test_spawn_echoes_output() {
@@ -52,14 +53,20 @@ void test_spawn_nonzero_exit() {
   assert(!result.failedToStart);
   assert(result.exitCode == 42);
 }
+#endif
 
 } // namespace
 
 int main() {
+#if defined(_WIN32)
+  std::cout << "TEST SKIPPED: POSIX spawn is not available on Windows\n";
+  return 0;
+#else
   test_spawn_echoes_output();
   test_spawn_metacharacters_not_injected();
   test_spawn_nonexistent_program();
   test_spawn_nonzero_exit();
   std::cout << "TEST PASSED: spawn security tests\n";
   return 0;
+#endif
 }

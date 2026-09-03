@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kyna/execution/runtime_capabilities.hpp"
+#include <kyna/execution/runtime_capabilities.hpp>
 
 #include <filesystem>
 #include <fstream>

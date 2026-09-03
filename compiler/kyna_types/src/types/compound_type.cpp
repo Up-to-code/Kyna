@@ -1,5 +1,5 @@
-#include "kyna/types/compound_type.hpp"
-#include "kyna/types/basic_type.hpp"
+#include <kyna/types/compound_type.hpp>
+#include <kyna/types/basic_type.hpp>
 
 #include <set>
 #include <string>

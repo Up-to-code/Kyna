@@ -1,4 +1,4 @@
-#include "kyna/execution/runtime_capabilities.hpp"
+#include <kyna/execution/runtime_capabilities.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -21,7 +21,8 @@ public:
 };
 
 // A derived context with optional parent linkage, a deadline, and cancellable
-// state. Cancelling a child propagates up to its parent.
+// state. Cancelling a child does not cancel its parent; cancellation still
+// flows downward through isCancelled() observing the parent.
 class MutableContext final : public Context {
 public:
   explicit MutableContext(std::shared_ptr<Context> parent,
@@ -42,18 +43,16 @@ public:
   }
 
   std::optional<std::chrono::system_clock::time_point> deadline() const override {
-    if (deadline_)
-      return deadline_;
-    if (parent_)
-      return parent_->deadline();
-    return std::nullopt;
+    std::optional<std::chrono::system_clock::time_point> nearest = deadline_;
+    if (parent_) {
+      const auto parentDeadline = parent_->deadline();
+      if (parentDeadline && (!nearest || *parentDeadline < *nearest))
+        nearest = parentDeadline;
+    }
+    return nearest;
   }
 
-  void cancel() override {
-    cancelled_.store(true, std::memory_order_relaxed);
-    if (parent_)
-      parent_->cancel();
-  }
+  void cancel() override { cancelled_.store(true, std::memory_order_relaxed); }
 
 private:
   std::shared_ptr<Context> parent_;

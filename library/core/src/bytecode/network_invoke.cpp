@@ -1,9 +1,9 @@
 #include "bytecode_private.hpp"
 #include "../codecs/json/json_value_codec.hpp"
+#include "../catalog/network/parse_ipv4.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <string>
 
 namespace kyna::detail {
@@ -27,16 +27,10 @@ std::optional<NativeCallResult> networkBytecodeInvoke(
   if (name == "parseIP") {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
       return bytecodeFailure("KNET2010", "parseIP expects an address string");
-    const auto &text = std::get<std::string>(arguments[0].data);
-    unsigned a = 0, b = 0, c = 0, d = 0;
-    char extra = 0;
-    if (std::sscanf(text.c_str(), "%u.%u.%u.%u%c", &a, &b, &c, &d, &extra) != 4 || a > 255 ||
-        b > 255 || c > 255 || d > 255)
+    const auto parsed = parseIPv4(std::get<std::string>(arguments[0].data));
+    if (!parsed)
       return NativeCallResult{};
-    return NativeCallResult{
-        RuntimeValue(std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." +
-                     std::to_string(d)),
-        std::nullopt};
+    return NativeCallResult{RuntimeValue(*parsed), std::nullopt};
   }
   if (name == "fetchResult") {
     auto fetched = networkBytecodeInvoke("fetch", arguments, ctx);

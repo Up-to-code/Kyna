@@ -1,9 +1,11 @@
-#include "kyna/lexing/tokenizer.hpp"
-#include "kyna/modules/module_loader.hpp"
-#include "kyna/modules/package_loader.hpp"
-#include "kyna/parsing/module_parser.hpp"
+#include <kyna/lexing/tokenizer.hpp>
+#include <kyna/modules/module_loader.hpp>
+#include <kyna/modules/package_loader.hpp>
+#include <kyna/parsing/module_parser.hpp>
 #include "module_path_resolver.hpp"
 #include <algorithm>
+#include <map>
+#include <optional>
 #include <set>
 
 namespace kyna {
@@ -44,6 +46,11 @@ private:
   }
 
   void visit(const std::filesystem::path &path, SourceSpan importSpan) {
+    std::error_code directoryError;
+    if (std::filesystem::is_directory(path, directoryError)) {
+      ingestDirectoryPackage(path, importSpan, false);
+      return;
+    }
     const auto existing = state[path];
     if (existing == 2)
       return;
@@ -118,32 +125,42 @@ private:
   }
 
   ModuleLoadResult loadDirectoryPackage(const std::filesystem::path &directory) {
+    ingestDirectoryPackage(directory, {}, true);
+    return std::move(result);
+  }
+
+  void ingestDirectoryPackage(const std::filesystem::path &directory, SourceSpan importSpan,
+                              bool setEntry) {
+    const auto existing = state[directory];
+    if (existing == 2)
+      return;
+    if (existing == 1) {
+      report("module import cycle involving package '" + directory.filename().string() + "'",
+             importSpan, "K4002");
+      return;
+    }
     auto discovered = package_loading::discoverPackage(directory);
     std::vector<package_loading::DiscoveredFile> files;
     for (const auto &file : discovered.files)
       if (!isPackageTestFile(file.path))
         files.push_back(file);
     if (files.empty()) {
-      report("package directory contains no Kyna source files", {}, "K4000");
-      return std::move(result);
+      report("package directory contains no Kyna source files", importSpan, "K4000");
+      return;
     }
 
-    std::filesystem::path primary;
-    for (const auto &file : files) {
-      if (!file.declarationFile) {
-        primary = file.path;
-        break;
-      }
-    }
-    if (primary.empty())
-      primary = files.front().path;
-    result.graph.entry = primary;
+    if (setEntry)
+      result.graph.entry = directory;
+
+    state[directory] = 1;
+    stack.push_back(directory);
 
     SyntaxTree merged;
     merged.module.path = directory;
     std::vector<ModuleDependency> dependencies;
     std::set<std::string> aliases;
     std::set<std::filesystem::path> packagePaths;
+    packagePaths.insert(module_loading::canonicalize(directory));
     for (const auto &file : files)
       packagePaths.insert(module_loading::canonicalize(file.path));
     bool allDeclaration = true;
@@ -204,9 +221,10 @@ private:
       sourceFiles.push_back(file.path);
     ModuleRecord record{std::move(merged), std::move(dependencies), allDeclaration,
                         std::move(sourceFiles)};
-    result.graph.modules.insert_or_assign(primary, std::move(record));
-    result.graph.initializationOrder.push_back(primary);
-    return std::move(result);
+    stack.pop_back();
+    state[directory] = 2;
+    result.graph.modules.insert_or_assign(directory, std::move(record));
+    result.graph.initializationOrder.push_back(directory);
   }
 };
 

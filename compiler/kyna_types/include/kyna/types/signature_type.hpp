@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kyna/types/type.hpp"
+#include <kyna/types/type.hpp>
 
 namespace kyna::types {
 

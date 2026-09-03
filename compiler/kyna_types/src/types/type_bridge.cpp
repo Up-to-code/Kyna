@@ -1,8 +1,8 @@
-#include "kyna/types/type_bridge.hpp"
-#include "kyna/types/basic_type.hpp"
-#include "kyna/types/compound_type.hpp"
-#include "kyna/types/named_type.hpp"
-#include "kyna/types/signature_type.hpp"
+#include <kyna/types/type_bridge.hpp>
+#include <kyna/types/basic_type.hpp>
+#include <kyna/types/compound_type.hpp>
+#include <kyna/types/named_type.hpp>
+#include <kyna/types/signature_type.hpp>
 
 namespace kyna::types {
 namespace {
@@ -110,7 +110,7 @@ bool isAssignable(TypePtr actual, TypePtr expected) {
     return false;
   }
   if (expected->kind() == TypeKind::Nullable) {
-    if (isBasic(actual, BasicKind::Null) || isBasic(actual, BasicKind::Void))
+    if (isBasic(actual, BasicKind::Null))
       return true;
     const auto *nullable = static_cast<const NullableType *>(expected);
     if (actual->kind() == TypeKind::Nullable)

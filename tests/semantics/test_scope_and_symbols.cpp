@@ -1,9 +1,9 @@
-#include "kyna/semantics/symbol.hpp"
-#include "kyna/semantics/scope.hpp"
-#include "kyna/semantics/environment.hpp"
-#include "kyna/semantics/cycle_detector.hpp"
-#include "kyna/types/type.hpp"
-#include "kyna/types/basic_type.hpp"
+#include <kyna/semantics/symbol.hpp>
+#include <kyna/semantics/scope.hpp>
+#include <kyna/semantics/environment.hpp>
+#include <kyna/semantics/cycle_detector.hpp>
+#include <kyna/types/type.hpp>
+#include <kyna/types/basic_type.hpp>
 
 #include <cassert>
 #include <string>

@@ -1,5 +1,5 @@
-#include "kyna/types/type.hpp"
-#include "kyna/types/basic_type.hpp"
+#include <kyna/types/type.hpp>
+#include <kyna/types/basic_type.hpp>
 
 namespace kyna::types {
 

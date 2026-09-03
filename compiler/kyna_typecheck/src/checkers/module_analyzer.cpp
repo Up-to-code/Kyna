@@ -1,9 +1,10 @@
-#include "kyna/semantics/module_analyzer.hpp"
+#include <kyna/semantics/module_analyzer.hpp>
 #include "best_practice_checker.hpp"
-#include "kyna/semantics/export_cache.hpp"
-#include "kyna/semantics/program_analyzer.hpp"
+#include <kyna/semantics/export_cache.hpp>
+#include <kyna/semantics/program_analyzer.hpp>
 #include <algorithm>
 #include <optional>
+#include <set>
 
 namespace kyna {
 namespace {
@@ -83,6 +84,7 @@ bool AnalysisResult::ok() const {
 AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
   std::vector<Diagnostic> diagnostics;
   std::vector<std::filesystem::path> cachedModules;
+  std::set<std::filesystem::path> rechecked;
   for (const auto &path : graph.initializationOrder) {
     auto found = graph.modules.find(path);
     if (found == graph.modules.end())
@@ -148,8 +150,12 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
     auto sources = found->second.sourceFiles;
     if (sources.empty())
       sources.push_back(path);
+    bool dependencyRechecked = false;
+    for (const auto &dependency : found->second.dependencies)
+      if (rechecked.contains(dependency.canonicalPath))
+        dependencyRechecked = true;
     const auto cacheFile = export_cache::cachePath(path);
-    if (!isEntry && export_cache::stampMatches(sources, cacheFile)) {
+    if (!isEntry && !dependencyRechecked && export_cache::stampMatches(sources, cacheFile)) {
       cachedModules.push_back(path);
       continue;
     }
@@ -171,6 +177,7 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
       export_cache::invalidate(cacheFile);
     else if (!isEntry)
       export_cache::writeStamp(sources, cacheFile);
+    rechecked.insert(path);
   }
   const bool failed = std::any_of(diagnostics.begin(), diagnostics.end(),
                                   [](const Diagnostic &diagnostic) { return !diagnostic.warning; });

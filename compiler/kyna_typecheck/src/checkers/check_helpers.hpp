@@ -1,9 +1,9 @@
 #pragma once
 
-#include "kyna/semantics/modifier_query.hpp"
-#include "kyna/semantics/type_model.hpp"
-#include "kyna/syntax/declaration_nodes.hpp"
-#include "kyna/types/type_bridge.hpp"
+#include <kyna/semantics/modifier_query.hpp>
+#include <kyna/semantics/type_model.hpp>
+#include <kyna/syntax/declaration_nodes.hpp>
+#include <kyna/types/type_bridge.hpp>
 
 #include <string>
 #include <vector>

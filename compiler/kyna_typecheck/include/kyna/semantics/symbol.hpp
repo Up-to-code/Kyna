@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kyna/types/type.hpp"
-#include "kyna/source/source_span.hpp"
+#include <kyna/types/type.hpp>
+#include <kyna/source/source_span.hpp>
 
 #include <cstdint>
 #include <memory>

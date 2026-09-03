@@ -243,6 +243,7 @@ def invoke(
         [str(binary), command, str(source), "--no-color"],
         cwd=working_directory or root,
         text=True,
+        encoding="utf-8",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=process_environment,
@@ -307,7 +308,7 @@ def main() -> int:
                 binary, root, "run", root / relative,
                 environment=EXAMPLE_ENVIRONMENTS.get(relative)
             )
-        actual = ANSI.sub("", executed.stdout)
+        actual = ANSI.sub("", executed.stdout).replace("\r\n", "\n")
         if executed.returncode != 0:
             failures.append(f"{relative}: run exited {executed.returncode}: {executed.stderr.strip()}")
         elif actual != expected:

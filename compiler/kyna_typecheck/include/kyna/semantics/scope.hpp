@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kyna/semantics/symbol.hpp"
-#include "kyna/source/source_span.hpp"
+#include <kyna/semantics/symbol.hpp>
+#include <kyna/source/source_span.hpp>
 
 #include <memory>
 #include <string>

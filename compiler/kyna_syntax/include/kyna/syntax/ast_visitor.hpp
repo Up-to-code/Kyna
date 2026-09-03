@@ -1,8 +1,8 @@
 #pragma once
 
-#include "kyna/syntax/declaration_nodes.hpp"
-#include "kyna/syntax/expression_nodes.hpp"
-#include "kyna/syntax/statement_nodes.hpp"
+#include <kyna/syntax/declaration_nodes.hpp>
+#include <kyna/syntax/expression_nodes.hpp>
+#include <kyna/syntax/statement_nodes.hpp>
 
 namespace kyna::syntax {
 

@@ -1,4 +1,4 @@
-#include "kyna/execution/runtime_capabilities.hpp"
+#include <kyna/execution/runtime_capabilities.hpp>
 
 #include <cassert>
 #include <chrono>

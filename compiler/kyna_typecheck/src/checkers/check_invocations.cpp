@@ -1,6 +1,6 @@
 #include "check_helpers.hpp"
-#include "kyna/semantics/program_analyzer.hpp"
-#include "kyna/symbols/standard_library_symbols.hpp"
+#include <kyna/semantics/program_analyzer.hpp>
+#include <kyna/symbols/standard_library_symbols.hpp>
 
 #include <algorithm>
 #include <limits>

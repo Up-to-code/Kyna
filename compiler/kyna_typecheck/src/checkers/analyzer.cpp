@@ -1,10 +1,10 @@
-#include "kyna/semantics/program_analyzer.hpp"
-#include "kyna/semantics/modifier_query.hpp"
-#include "kyna/symbols/standard_library_symbols.hpp"
-#include "kyna/types/type_bridge.hpp"
-#include "kyna/types/type_bridge.hpp"
-#include "kyna/types/signature_type.hpp"
-#include "kyna/types/basic_type.hpp"
+#include <kyna/semantics/program_analyzer.hpp>
+#include <kyna/semantics/modifier_query.hpp>
+#include <kyna/symbols/standard_library_symbols.hpp>
+#include <kyna/types/type_bridge.hpp>
+#include <kyna/types/type_bridge.hpp>
+#include <kyna/types/signature_type.hpp>
+#include <kyna/types/basic_type.hpp>
 #include <algorithm>
 #include <map>
 #include <set>

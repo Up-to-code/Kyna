@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kyna/semantics/type_model.hpp"
-#include "kyna/types/type.hpp"
+#include <kyna/semantics/type_model.hpp>
+#include <kyna/types/type.hpp>
 
 #include <string_view>
 

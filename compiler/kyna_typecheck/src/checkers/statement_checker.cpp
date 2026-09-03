@@ -1,4 +1,4 @@
-#include "kyna/semantics/program_analyzer.hpp"
+#include <kyna/semantics/program_analyzer.hpp>
 
 #include <type_traits>
 #include <variant>

@@ -1,7 +1,7 @@
-#include "kyna/modules/module_loader.hpp"
-#include "kyna/semantics/export_cache.hpp"
-#include "kyna/semantics/module_analyzer.hpp"
-#include "kyna/source/source_manager.hpp"
+#include <kyna/modules/module_loader.hpp>
+#include <kyna/semantics/export_cache.hpp>
+#include <kyna/semantics/module_analyzer.hpp>
+#include <kyna/source/source_manager.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -57,6 +57,25 @@ void test_writes_and_reuses_dependency_stamp() {
   std::filesystem::remove_all(dir);
 }
 
+void test_dependency_change_invalidates_importers() {
+  const auto dir = makeTempDir();
+  writeFile(dir / "leaf.kyna", "export fn value(): int { return 1; }");
+  writeFile(dir / "mid.kyna", "import \"./leaf.kyna\" as leaf; export fn wrap(): int { return leaf.value(); }");
+  writeFile(dir / "main.kyna", "import \"./mid.kyna\" as mid; var n: int = mid.wrap();");
+
+  kyna::SourceManager firstSources;
+  auto firstLoad = kyna::loadModuleGraph(firstSources, dir / "main.kyna");
+  assert(kyna::analyzeModuleGraph(std::move(firstLoad.graph)).ok());
+
+  writeFile(dir / "leaf.kyna", "export fn value(): int { return \"nope\"; }");
+  kyna::SourceManager secondSources;
+  auto secondLoad = kyna::loadModuleGraph(secondSources, dir / "main.kyna");
+  auto second = kyna::analyzeModuleGraph(std::move(secondLoad.graph));
+  assert(!second.ok());
+  assert(second.cachedModules.empty());
+  std::filesystem::remove_all(dir);
+}
+
 void test_entry_module_is_never_cached() {
   const auto dir = makeTempDir();
   writeFile(dir / "solo.kyna", "fn main(): int { return 1; }");
@@ -74,4 +93,5 @@ void test_entry_module_is_never_cached() {
 int main() {
   test_writes_and_reuses_dependency_stamp();
   test_entry_module_is_never_cached();
+  test_dependency_change_invalidates_importers();
 }

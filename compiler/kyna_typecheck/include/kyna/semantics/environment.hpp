@@ -1,7 +1,7 @@
 #pragma once
 
-#include "kyna/semantics/symbol.hpp"
-#include "kyna/types/type.hpp"
+#include <kyna/semantics/symbol.hpp>
+#include <kyna/types/type.hpp>
 
 #include <cstdint>
 #include <utility>

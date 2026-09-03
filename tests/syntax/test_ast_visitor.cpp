@@ -1,4 +1,4 @@
-#include "kyna/syntax/ast_visitor.hpp"
+#include <kyna/syntax/ast_visitor.hpp>
 
 #include <cassert>
 #include <memory>

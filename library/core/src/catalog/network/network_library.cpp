@@ -1,11 +1,11 @@
 #include "../catalog_private.hpp"
 #include "network_private.hpp"
 #include "../../codecs/json/json_value_codec.hpp"
-#include "kyna/execution/tree_walk_engine.hpp"
+#include <kyna/execution/tree_walk_engine.hpp>
+#include "parse_ipv4.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <string>
 
 namespace kyna::detail {
@@ -56,14 +56,10 @@ void installNetworkLibrary(Interpreter &interpreter) {
   parseIP->nativeCall = [](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
       throw KynaError({"parseIP expects an address string", {1, 1}, false});
-    const auto &text = std::get<std::string>(arguments[0].data);
-    unsigned a = 0, b = 0, c = 0, d = 0;
-    char extra = 0;
-    if (std::sscanf(text.c_str(), "%u.%u.%u.%u%c", &a, &b, &c, &d, &extra) != 4 || a > 255 ||
-        b > 255 || c > 255 || d > 255)
+    const auto parsed = parseIPv4(std::get<std::string>(arguments[0].data));
+    if (!parsed)
       return Value();
-    return Value(std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." +
-                 std::to_string(d));
+    return Value(*parsed);
   };
   global->define("parseIP", Value(parseIP), false);
 

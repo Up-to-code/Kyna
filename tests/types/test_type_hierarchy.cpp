@@ -1,9 +1,9 @@
-#include "kyna/types/type.hpp"
-#include "kyna/types/basic_type.hpp"
-#include "kyna/types/signature_type.hpp"
-#include "kyna/types/named_type.hpp"
-#include "kyna/types/compound_type.hpp"
-#include "kyna/types/type_bridge.hpp"
+#include <kyna/types/type.hpp>
+#include <kyna/types/basic_type.hpp>
+#include <kyna/types/signature_type.hpp>
+#include <kyna/types/named_type.hpp>
+#include <kyna/types/compound_type.hpp>
+#include <kyna/types/type_bridge.hpp>
 
 #include <cassert>
 
@@ -29,17 +29,14 @@ void test_pointer_identity_and_immutability() {
 
 void test_basic_assignability() {
   assert(Universe::Int()->isAssignableTo(Universe::Int()));
-  // Numeric family is mutually assignable.
   assert(Universe::Int()->isAssignableTo(Universe::Float()));
-  assert(Universe::Float()->isAssignableTo(Universe::Int()));
+  assert(!Universe::Float()->isAssignableTo(Universe::Int()));
   assert(Universe::Int()->isAssignableTo(Universe::Num()));
-  assert(Universe::Num()->isAssignableTo(Universe::Float()));
-  // Any accepts everything.
+  assert(!Universe::Num()->isAssignableTo(Universe::Float()));
   assert(Universe::Int()->isAssignableTo(Universe::Any()));
   assert(Universe::String()->isAssignableTo(Universe::Any()));
-  // Unit types accept null/void only.
-  assert(Universe::Null()->isAssignableTo(Universe::Void()));
-  assert(Universe::Void()->isAssignableTo(Universe::Null()));
+  assert(!Universe::Null()->isAssignableTo(Universe::Void()));
+  assert(!Universe::Void()->isAssignableTo(Universe::Null()));
   assert(!Universe::String()->isAssignableTo(Universe::Bool()));
 }
 
@@ -110,6 +107,7 @@ void test_type_bridge_and_analyzer_assignability() {
   assert(isAssignable(Universe::Int(), Universe::Num()));
   assert(isAssignable(Universe::Int(), typeFromRef(nullableInt)));
   assert(isAssignable(Universe::Null(), typeFromRef(nullableInt)));
+  assert(!isAssignable(Universe::Void(), typeFromRef(nullableInt)));
   assert(!isAssignable(typeFromRef(nullableInt), Universe::Int()));
   assert(isAssignable(Universe::Int(), typeFromRef(any)));
   assert(isAssignable(typeFromRef(any), Universe::Int()));

@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include "kyna/execution/runtime_object_model.hpp"
+#include <kyna/execution/runtime_object_model.hpp>
 
 namespace kyna::detail {
 

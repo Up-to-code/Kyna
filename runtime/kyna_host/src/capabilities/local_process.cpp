@@ -1,11 +1,12 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "kyna/execution/runtime_capabilities.hpp"
+#include <kyna/execution/runtime_capabilities.hpp>
 #include "../host_private.hpp"
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -97,12 +98,15 @@ void readBothPipes(int stdoutFd, int stderrFd, std::string &stdoutText, std::str
       break;
     for (nfds_t i = 0; i < count; ++i) {
       const int fd = descriptors[i].fd;
-      if (!(descriptors[i].revents & POLLIN))
-        continue;
-      const ssize_t n = ::read(fd, buffer, sizeof(buffer));
-      if (n > 0) {
-        (fd == stdoutFd ? stdoutText : stderrText).append(buffer, static_cast<std::size_t>(n));
-      } else {
+      const auto events = descriptors[i].revents;
+      if (events & POLLIN) {
+        const ssize_t n = ::read(fd, buffer, sizeof(buffer));
+        if (n > 0) {
+          (fd == stdoutFd ? stdoutText : stderrText).append(buffer, static_cast<std::size_t>(n));
+          continue;
+        }
+      }
+      if ((events & (POLLHUP | POLLERR | POLLNVAL)) || (events & POLLIN)) {
         if (fd == stdoutFd)
           stdoutOpen = false;
         else

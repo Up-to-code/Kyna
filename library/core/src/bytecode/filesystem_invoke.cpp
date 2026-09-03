@@ -2,6 +2,7 @@
 #include "../codecs/json/json_value_codec.hpp"
 #include <array>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 
 namespace kyna::detail {
@@ -101,11 +102,16 @@ std::optional<NativeCallResult> filesystemBytecodeInvoke(
     if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data) ||
         !std::holds_alternative<std::string>(arguments[1].data))
       return bytecodeFailure("KFS2010", "copyFile expects source and destination path strings");
+    const auto &sourcePath = std::get<std::string>(arguments[0].data);
+    const auto &destPath = std::get<std::string>(arguments[1].data);
+    std::error_code equivalentError;
+    if (std::filesystem::equivalent(sourcePath, destPath, equivalentError))
+      return bytecodeFailure("KFS2010", "copyFile source and destination must be different paths");
     std::string message;
-    auto reader = ctx.capabilities.files->openRead(std::get<std::string>(arguments[0].data), message);
+    auto reader = ctx.capabilities.files->openRead(sourcePath, message);
     if (!reader)
       return bytecodeFailure("KFS2010", std::move(message), arguments[0]);
-    auto writer = ctx.capabilities.files->openWrite(std::get<std::string>(arguments[1].data), message);
+    auto writer = ctx.capabilities.files->openWrite(destPath, message);
     if (!writer)
       return bytecodeFailure("KFS2010", std::move(message), arguments[1]);
     std::array<std::uint8_t, 65536> buffer{};
@@ -114,7 +120,13 @@ std::optional<NativeCallResult> filesystemBytecodeInvoke(
       const auto got = reader->read(buffer.data(), buffer.size());
       if (got == 0)
         break;
-      total += static_cast<std::int64_t>(writer->write(buffer.data(), got));
+      const auto written = writer->write(buffer.data(), got);
+      if (written != got) {
+        reader->close();
+        writer->close();
+        return bytecodeFailure("KFS2010", "copyFile failed to write the destination", arguments[1]);
+      }
+      total += static_cast<std::int64_t>(written);
     }
     reader->close();
     writer->close();
