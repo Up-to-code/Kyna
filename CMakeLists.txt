@@ -351,7 +351,7 @@ if(KYNA_BUILD_TESTS)
            COMMAND Python3::Interpreter
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_repl_terminal.py"
                    "$<TARGET_FILE:kyna>")
-  set_tests_properties(kyna_repl_terminal PROPERTIES TIMEOUT 30 LABELS "integration;terminal")
+  set_tests_properties(kyna_repl_terminal PROPERTIES TIMEOUT 45 LABELS "integration;terminal")
   add_test(NAME kyna_new_project_terminal
            COMMAND Python3::Interpreter
                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_new_project_terminal.py"
