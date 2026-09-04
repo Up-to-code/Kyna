@@ -11,6 +11,15 @@ npm install --global @kyna-language/cli@preview
 ky --version
 ```
 
+With Bun, explicitly trust the package so Bun runs the native installation and
+checksum-verification step:
+
+```sh
+bun add --global --trust @kyna-language/cli@preview
+```
+
+The Bun path currently requires Node.js 18+ for the published command shim.
+
 The installation provides two equivalent commands:
 
 ```sh
@@ -28,6 +37,20 @@ npm outdated --global @kyna-language/cli                # check for an update
 
 The `latest` channel will become the recommended default after the first signed
 stable release.
+
+## Install without a JavaScript package manager
+
+macOS or Linux:
+
+```sh
+curl -fsSL https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.sh | sh -s -- --channel preview --version 1.0.0-preview.3
+```
+
+Windows PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.ps1'))) -Channel preview -Version 1.0.0-preview.3
+```
 
 ## Supported systems
 
