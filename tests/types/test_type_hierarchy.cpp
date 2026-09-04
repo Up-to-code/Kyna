@@ -4,6 +4,16 @@
 #include <kyna/types/named_type.hpp>
 #include <kyna/types/compound_type.hpp>
 #include <kyna/types/type_bridge.hpp>
+#include <kyna/types/alias_type.hpp>
+#include <kyna/types/array_type.hpp>
+#include <kyna/types/channel_type.hpp>
+#include <kyna/types/interface_type.hpp>
+#include <kyna/types/map_type.hpp>
+#include <kyna/types/pointer_type.hpp>
+#include <kyna/types/slice_type.hpp>
+#include <kyna/types/struct_type.hpp>
+#include <kyna/types/tuple_type.hpp>
+#include <kyna/types/type_parameter.hpp>
 
 #include <cassert>
 
@@ -113,6 +123,73 @@ void test_type_bridge_and_analyzer_assignability() {
   assert(isAssignable(typeFromRef(any), Universe::Int()));
 }
 
+void test_go_style_composite_types() {
+  const auto *array = ArrayType::make(4, Universe::Int());
+  assert(array == ArrayType::make(4, Universe::Int()));
+  assert(array->str() == "[4]int");
+  assert(!array->isIdenticalTo(ArrayType::make(5, Universe::Int())));
+
+  const auto *slice = SliceType::make(Universe::String());
+  assert(slice == SliceType::make(Universe::String()));
+  assert(slice->str() == "array<str>");
+  assert(slice->isAssignableTo(Universe::Array()));
+
+  const auto *map = MapType::make(Universe::String(), Universe::Int());
+  assert(map->key() == Universe::String());
+  assert(map->value() == Universe::Int());
+  assert(map->str() == "map<str, int>");
+
+  const auto *pointer = PointerType::make(array);
+  assert(pointer == PointerType::make(array));
+  assert(pointer->base() == array);
+
+  const auto *tuple = TupleType::make({Universe::Int(), Universe::Bool()});
+  assert(tuple->str() == "(int, bool)");
+  assert(tuple == TupleType::make({Universe::Int(), Universe::Bool()}));
+
+  const auto *channel = ChannelType::make(Universe::Int());
+  const auto *send = ChannelType::make(Universe::Int(), ChannelDirection::SendOnly);
+  assert(channel->isAssignableTo(send));
+  assert(!send->isAssignableTo(channel));
+}
+
+void test_struct_interfaces_named_methods_and_aliases() {
+  const auto *point = StructType::make({{"x", Universe::Int(), {}, false},
+                                        {"y", Universe::Int(), {}, false}});
+  assert(point->field("x")->type == Universe::Int());
+  assert(point == StructType::make({{"x", Universe::Int(), {}, false},
+                                    {"y", Universe::Int(), {}, false}}));
+
+  const auto *read = SignatureType::make({SliceType::make(Universe::Int())}, Universe::Int());
+  const auto *reader = InterfaceType::make({{"read", read}});
+  const auto *file = NamedType::make("TypeTestFile", Universe::Object(), {{"read", read, false}});
+  assert(reader->isSatisfiedBy(file));
+  assert(isAssignable(file, reader));
+
+  const auto *close = SignatureType::make({}, Universe::Void());
+  const auto *closer = InterfaceType::make({{"close", close}});
+  const auto *socket = NamedType::make("TypeTestSocket", Universe::Object(),
+                                      {{"close", close, true}});
+  assert(!closer->isSatisfiedBy(socket));
+  assert(closer->isSatisfiedBy(PointerType::make(socket)));
+
+  const auto *parameter = TypeParam::make("T", reader);
+  assert(parameter->constraint() == reader);
+  const auto *alias = AliasType::make("Count", Universe::Int());
+  assert(alias->isIdenticalTo(Universe::Int()));
+  assert(alias->underlying() == Universe::Int());
+}
+
+void test_composite_type_bridge() {
+  const kyna::TypeRef arrayOfInt{"array", false, {{"int", false, {}, {}}}, {}};
+  const kyna::TypeRef stringToBool{
+      "map", false, {{"str", false, {}, {}}, {"bool", false, {}, {}}}, {}};
+  assert(typeFromRef(arrayOfInt)->kind() == TypeKind::Slice);
+  assert(typeFromRef(stringToBool)->kind() == TypeKind::Map);
+  assert(typeToRef(typeFromRef(arrayOfInt)).str() == "array<int>");
+  assert(typeToRef(typeFromRef(stringToBool)).str() == "map<str, bool>");
+}
+
 } // namespace
 
 int main() {
@@ -122,5 +199,8 @@ int main() {
   test_named_type();
   test_union_and_nullable();
   test_type_bridge_and_analyzer_assignability();
+  test_go_style_composite_types();
+  test_struct_interfaces_named_methods_and_aliases();
+  test_composite_type_bridge();
   return 0;
 }

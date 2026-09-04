@@ -17,8 +17,15 @@ enum class TypeKind : uint8_t {
   Union,
   Nullable,
   Array,
+  Slice,
   Map,
+  Pointer,
+  Struct,
   Interface,
+  Tuple,
+  Channel,
+  TypeParam,
+  Alias,
 };
 
 // A type value exposed through the public API. Concrete types are immutable and
@@ -65,6 +72,16 @@ class SignatureType;
 class NamedType;
 class UnionType;
 class NullableType;
+class ArrayType;
+class SliceType;
+class MapType;
+class PointerType;
+class StructType;
+class InterfaceType;
+class TupleType;
+class ChannelType;
+class TypeParam;
+class AliasType;
 
 // Zero-allocation registry of the primitive singleton instances. All of these
 // return stable pointers that are valid for the lifetime of the process.

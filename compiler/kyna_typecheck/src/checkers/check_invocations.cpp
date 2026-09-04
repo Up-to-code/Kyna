@@ -180,11 +180,20 @@ TypeRef Analyzer::checkIndex(const Index &n, SourceLocation) {
   if (object.name == "object" && index.name != "str" && index.name != "any")
     error("object key must be str, got '" + index.str() + "'", n.index->location, "KSEM2403",
           "use a string key such as object[\"field\"]");
-  if (object.name != "array" && object.name != "object" && object.name != "any")
+  if (object.name == "map" && object.typeArgs.size() == 2 &&
+      !compatible(object.typeArgs[0], index))
+    error("map key has type '" + index.str() + "', expected '" + object.typeArgs[0].str() + "'",
+          n.index->location, "KSEM2403", "use a key compatible with the map's key type");
+  if (object.name != "array" && object.name != "object" && object.name != "map" &&
+      object.name != "any")
     error(object.name == "null" ? "cannot index null"
                                 : "indexing requires an array or object, got '" + object.str() +
                                       "'",
           n.object->location, "KSEM2402", "check the value and its type before indexing it");
+  if (object.name == "array" && object.typeArgs.size() == 1)
+    return object.typeArgs.front();
+  if (object.name == "map" && object.typeArgs.size() == 2)
+    return object.typeArgs[1];
   return analyzerNamedType("any");
 }
 

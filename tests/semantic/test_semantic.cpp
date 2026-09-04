@@ -115,4 +115,15 @@ int main() {
                          "import * as ns from \"./m.kyna\";"))
                        .parse();
   assert(kyna::validate(jsImports).empty());
+
+  // Array literals retain their inferred element type through indexed access.
+  auto typedArray =
+      kyna::Parser(kyna::lex("const values = [1, 2, 3]; const first: int = values[0];"))
+          .parse();
+  assert(kyna::validate(typedArray).empty());
+
+  auto wrongArrayElement =
+      kyna::Parser(kyna::lex("const values = [1, 2, 3]; const first: str = values[0];"))
+          .parse();
+  assert(!kyna::validate(wrongArrayElement).empty());
 }

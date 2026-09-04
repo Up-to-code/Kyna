@@ -2,7 +2,6 @@
 #include <kyna/semantics/modifier_query.hpp>
 #include <kyna/symbols/standard_library_symbols.hpp>
 #include <kyna/types/type_bridge.hpp>
-#include <kyna/types/type_bridge.hpp>
 #include <kyna/types/signature_type.hpp>
 #include <kyna/types/basic_type.hpp>
 #include <algorithm>
@@ -42,6 +41,8 @@ bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
     return classConforms(classes[a.name], effectiveContract(*contract, stack), e, {});
   }
   if (!e.typeArgs.empty() || !a.typeArgs.empty()) {
+    if (e.name == a.name && e.typeArgs.empty() && (e.name == "array" || e.name == "map"))
+      return true;
     if (e.name != a.name || e.typeArgs.size() != a.typeArgs.size())
       return e.name == "any" || a.name == "any";
     for (std::size_t index = 0; index < e.typeArgs.size(); ++index)

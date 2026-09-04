@@ -18,6 +18,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
       - uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: vcpkg.json
@@ -29,3 +31,6 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Verify the staged installation
         run: cmake --install build --config Release --prefix staged-install
+      - name: Test the npm installer package
+        working-directory: tools/npm-installer
+        run: npm test

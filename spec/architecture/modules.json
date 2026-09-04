@@ -1,0 +1,153 @@
+{
+  "schema": "kyna.module-graph/v1",
+  "description": "Authoritative internal target ownership and dependency graph.",
+  "modules": [
+    {
+      "target": "kyna_source",
+      "cmake": "compiler/kyna_source/CMakeLists.txt",
+      "domain": "source",
+      "dependencies": []
+    },
+    {
+      "target": "kyna_diagnostics",
+      "cmake": "compiler/kyna_diagnostics/CMakeLists.txt",
+      "domain": "diagnostics",
+      "dependencies": ["kyna_source"]
+    },
+    {
+      "target": "kyna_types",
+      "cmake": "compiler/kyna_types/CMakeLists.txt",
+      "domain": "semantic types",
+      "dependencies": []
+    },
+    {
+      "target": "kyna_lexing",
+      "cmake": "compiler/kyna_lexing/CMakeLists.txt",
+      "domain": "lexing",
+      "dependencies": ["kyna_diagnostics", "kyna_source"]
+    },
+    {
+      "target": "kyna_syntax",
+      "cmake": "compiler/kyna_syntax/CMakeLists.txt",
+      "domain": "syntax",
+      "dependencies": ["kyna_lexing", "kyna_source", "kyna_types"]
+    },
+    {
+      "target": "kyna_parsing",
+      "cmake": "compiler/kyna_parsing/CMakeLists.txt",
+      "domain": "parsing",
+      "dependencies": ["kyna_diagnostics", "kyna_lexing", "kyna_syntax"]
+    },
+    {
+      "target": "kyna_symbols",
+      "cmake": "compiler/kyna_symbols/CMakeLists.txt",
+      "domain": "symbols",
+      "dependencies": ["kyna_types"]
+    },
+    {
+      "target": "kyna_resolution",
+      "cmake": "compiler/kyna_resolution/CMakeLists.txt",
+      "domain": "module resolution",
+      "dependencies": ["kyna_diagnostics", "kyna_parsing"]
+    },
+    {
+      "target": "kyna_typecheck",
+      "cmake": "compiler/kyna_typecheck/CMakeLists.txt",
+      "domain": "type checking",
+      "dependencies": [
+        "kyna_diagnostics",
+        "kyna_resolution",
+        "kyna_symbols",
+        "kyna_syntax",
+        "kyna_types"
+      ]
+    },
+    {
+      "target": "kyna_hir",
+      "cmake": "compiler/kyna_hir/CMakeLists.txt",
+      "domain": "high-level IR",
+      "dependencies": ["kyna_diagnostics", "kyna_syntax"]
+    },
+    {
+      "target": "kyna_mir",
+      "cmake": "compiler/kyna_mir/CMakeLists.txt",
+      "domain": "middle IR",
+      "dependencies": ["kyna_diagnostics", "kyna_hir"]
+    },
+    {
+      "target": "kyna_bytecode",
+      "cmake": "compiler/kyna_bytecode/CMakeLists.txt",
+      "domain": "bytecode",
+      "dependencies": ["kyna_diagnostics", "kyna_mir"]
+    },
+    {
+      "target": "kyna_host",
+      "cmake": "runtime/kyna_host/CMakeLists.txt",
+      "domain": "host capabilities",
+      "dependencies": []
+    },
+    {
+      "target": "kyna_vm",
+      "cmake": "runtime/kyna_vm/CMakeLists.txt",
+      "domain": "virtual machine",
+      "dependencies": ["kyna_bytecode", "kyna_host", "kyna_typecheck"]
+    },
+    {
+      "target": "kyna_collections_library",
+      "cmake": "library/collections/CMakeLists.txt",
+      "domain": "collections library",
+      "dependencies": ["kyna_vm"]
+    },
+    {
+      "target": "kyna_database_library",
+      "cmake": "library/database/CMakeLists.txt",
+      "domain": "database library",
+      "dependencies": ["kyna_host", "kyna_vm"]
+    },
+    {
+      "target": "kyna_formats_library",
+      "cmake": "library/formats/CMakeLists.txt",
+      "domain": "document formats",
+      "dependencies": []
+    },
+    {
+      "target": "kyna_text_library",
+      "cmake": "library/text/CMakeLists.txt",
+      "domain": "Unicode text",
+      "dependencies": []
+    },
+    {
+      "target": "kyna_standard_library",
+      "cmake": "library/core/CMakeLists.txt",
+      "domain": "standard library",
+      "dependencies": [
+        "kyna_collections_library",
+        "kyna_database_library",
+        "kyna_formats_library",
+        "kyna_host",
+        "kyna_text_library",
+        "kyna_vm"
+      ]
+    },
+    {
+      "target": "kyna_embedding",
+      "cmake": "sdk/kyna_embedding/CMakeLists.txt",
+      "domain": "embedding",
+      "dependencies": [
+        "kyna_bytecode",
+        "kyna_hir",
+        "kyna_mir",
+        "kyna_resolution",
+        "kyna_standard_library",
+        "kyna_typecheck",
+        "kyna_vm"
+      ]
+    },
+    {
+      "target": "kyna",
+      "cmake": "tools/kyna_cli/CMakeLists.txt",
+      "domain": "command-line driver",
+      "dependencies": ["kyna_embedding"]
+    }
+  ]
+}

@@ -55,9 +55,13 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
         else if constexpr (std::is_same_v<T, Index>)
           return checkIndex(n, e->location);
         else if constexpr (std::is_same_v<T, ArrayExpr>) {
-          for (auto &element : n.elements)
-            expr(element);
-          return analyzerNamedType("array");
+          TypeRef elementType = analyzerNamedType("any");
+          if (!n.elements.empty()) {
+            elementType = expr(n.elements.front());
+            for (std::size_t index = 1; index < n.elements.size(); ++index)
+              elementType = merge(elementType, expr(n.elements[index]));
+          }
+          return TypeRef{"array", false, {elementType}, {}};
         } else if constexpr (std::is_same_v<T, NewExpr>)
           return checkNew(n, e->location);
         else if constexpr (std::is_same_v<T, ObjectExpr>) {

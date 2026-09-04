@@ -6,4 +6,14 @@ kyna_add_module(kyna_types SOURCES
   src/types/named_type.cpp
   src/types/compound_type.cpp
   src/types/type_bridge.cpp
+  src/types/array_type.cpp
+  src/types/slice_type.cpp
+  src/types/map_type.cpp
+  src/types/pointer_type.cpp
+  src/types/struct_type.cpp
+  src/types/interface_type.cpp
+  src/types/tuple_type.cpp
+  src/types/channel_type.cpp
+  src/types/type_parameter.cpp
+  src/types/alias_type.cpp
 )

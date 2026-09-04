@@ -2,7 +2,7 @@
 
 Kyna uses subsystem-owned CMake modules. Each module owns its `include/kyna/...` interface, its `src/` implementation, and focused unit tests. Root tests exercise behavior across module interfaces.
 
-Run `make architecture-check` to reject compatibility leftovers and ambiguous filenames before review. The same check runs under CTest and therefore in CI.
+Run `make architecture-check` to reject compatibility leftovers, ambiguous filenames, unregistered modules, dependency drift, and dependency cycles before review. The same check runs under CTest and therefore in CI.
 
 | Repository area | Responsibility |
 | --- | --- |
@@ -25,7 +25,36 @@ Run `make architecture-check` to reject compatibility leftovers and ambiguous fi
 | `library/core` | Trusted standard-library catalog and JSON value codec |
 | `sdk/kyna_embedding` | The high-level language-session interface |
 | `tools/kyna_cli` | CLI11 command parsing and command adapters |
+| `tools/npm-installer` | Version-locked npm adapter for verified native release archives |
 
-The dependency direction is declared by the root CMake subdirectory order and each module's explicit target links. Public headers cannot use a repository-wide include directory, so accidental reverse dependencies fail during compilation.
+The authoritative dependency graph is [`spec/architecture/modules.json`](../spec/architecture/modules.json). Each module's explicit CMake links must match that manifest exactly. The architecture verifier rejects a missing target, a stale target, an undeclared link, a missing link, an unknown dependency, or a cycle. Public headers cannot use a repository-wide include directory, so accidental reverse dependencies also fail during compilation.
+
+The intended relation between layers is:
+
+```text
+source ──► diagnostics ──► lexing ──► syntax ──► parsing ──► resolution
+   │                           │          │                       │
+   └───────────────────────────┘          ├──► HIR ─► MIR ─► bytecode
+types ──► symbols ────────────────────────└──► typecheck          │
+  │          │                                  │                ▼
+  └──────────┴──────────────────────────────────┴──────────────► VM
+host ──────────────────────────────────────────────────────────► VM
+library modules ──► standard library ──► embedding ──► CLI
+```
+
+Arrows mean “may depend on,” not data flow in every command. The manifest records the exact build graph; this view explains the architectural direction. Higher layers orchestrate lower layers. Lower compiler layers never import the CLI, embedding session, or product policy.
+
+## Folder relation
+
+Every module has the same ownership shape even when it needs only a subset of the folders:
+
+```text
+<module>/
+  include/kyna/<module>/   stable public interface
+  src/<domain>/            private implementation, one responsibility per file
+  CMakeLists.txt           explicit sources and declared dependencies
+```
+
+Folders name owned work (`types`, `validators`, `checkers`, `lowering`, `rendering`, `catalog`, `codecs`, `loading`, `graph`, `io`, `entry`, `parsing`, `dispatcher`, or `command`). They are not mandatory layers and must not become empty scaffolding. Tests live beside a module only when they test its private domain; cross-module behavior belongs under root `tests/`.
 
 Files are grouped by language construct or owned invariant, not by arbitrary function count. For example, expression parsing belongs in `expression_parser.cpp`, while VM value tracing stays with the VM because splitting it from heap ownership would create a shallow circular interface.
