@@ -72,14 +72,15 @@ void Parser::synchronize() {
     switch (peek().kind) {
     case TokenKind::Import:
     case TokenKind::Export:
-    case TokenKind::Let:
-    case TokenKind::Set:
-    case TokenKind::Func:
+    case TokenKind::Var:
+    case TokenKind::Const:
+    case TokenKind::Fn:
     case TokenKind::Class:
     case TokenKind::Intf:
     case TokenKind::If:
     case TokenKind::While:
     case TokenKind::Loop:
+    case TokenKind::Switch:
     case TokenKind::Return:
     case TokenKind::Throw:
     case TokenKind::Try:

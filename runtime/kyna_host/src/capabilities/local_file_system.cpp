@@ -7,6 +7,7 @@
 
 #include "kyna/execution/runtime_capabilities.hpp"
 #include "../host_private.hpp"
+#include "file_stream.hpp"
 
 namespace kyna::detail {
 
@@ -77,6 +78,24 @@ public:
       names.push_back(entry.path().filename().string());
     std::sort(names.begin(), names.end());
     return names;
+  }
+
+  ReadCloser openRead(const std::filesystem::path &path, std::string &error) override {
+    auto stream = std::make_shared<FileStreamReader>(path);
+    if (!stream->isOpen()) {
+      error = "read file '" + path.string() + "': path is missing or permission was denied";
+      return nullptr;
+    }
+    return stream;
+  }
+
+  WriteCloser openWrite(const std::filesystem::path &path, std::string &error) override {
+    auto stream = std::make_shared<FileStreamWriter>(path);
+    if (!stream->isOpen()) {
+      error = "write file '" + path.string() + "': parent is missing or permission was denied";
+      return nullptr;
+    }
+    return stream;
   }
 };
 

@@ -1,16 +1,16 @@
 // Arithmetic, recursion, arrays, and error handling.
-func factorial(n: int): int {
+fn factorial(n: int): int {
     if (n <= 1) {
         return 1;
     }
     return n * factorial(n - 1);
 }
 
-func isPrime(n: int): bool {
+fn isPrime(n: int): bool {
     if (n < 2) {
         return false;
     }
-    let divisor = 2;
+    var divisor = 2;
     while (divisor * divisor <= n) {
         if (n % divisor == 0) {
             return false;
@@ -20,9 +20,9 @@ func isPrime(n: int): bool {
     return true;
 }
 
-let values = [1, 2, 3, 4, 5];
-let total: num = 0;
-loop (let i = 0; i < len(values); i = i + 1) {
+var values = [1, 2, 3, 4, 5];
+var total: num = 0;
+loop (var i = 0; i < len(values); i = i + 1) {
     total = total + values[i];
 }
 

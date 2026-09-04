@@ -86,6 +86,10 @@ ExprPtr Parser::factor() {
   return e;
 }
 ExprPtr Parser::unary() {
+  if (match(TokenKind::Await)) {
+    auto t = previous();
+    return make(AwaitExpr{unary()}, t.location);
+  }
   if (match(TokenKind::Bang) || match(TokenKind::Minus)) {
     auto t = previous();
     return make(Unary{t.kind, unary()}, t.location);

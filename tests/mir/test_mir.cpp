@@ -9,7 +9,7 @@
 
 int main() {
   kyna::SourceManager sources;
-  const auto source = sources.add("mir-test", "set left = 20; set right = 22; left + right;");
+  const auto source = sources.add("mir-test", "const left = 20; const right = 22; left + right;");
   auto lexed = kyna::tokenize(*sources.find(source));
   auto parsed = kyna::parseModule(*sources.find(source), std::move(lexed.tokens));
   auto hir = kyna::lowerSyntaxToHir("mir-test", parsed.tree);
@@ -30,7 +30,7 @@ int main() {
 
   const auto controlSource = sources.add(
       "control-flow",
-      "let value = 0; while (value < 3) { value = value + 1; } if (value == 3) { return value; } else { return 0; }");
+      "var value = 0; while (value < 3) { value = value + 1; } if (value == 3) { return value; } else { return 0; }");
   auto controlLexed = kyna::tokenize(*sources.find(controlSource));
   auto controlParsed =
       kyna::parseModule(*sources.find(controlSource), std::move(controlLexed.tokens));
@@ -45,7 +45,7 @@ int main() {
 
   const auto functionSource = sources.add(
       "mir-functions",
-      "func add(left: int, right: int): int { return left + right; } set answer = add(20, 22);");
+      "fn add(left: int, right: int): int { return left + right; } const answer = add(20, 22);");
   auto functionLexed = kyna::tokenize(*sources.find(functionSource));
   auto functionParsed =
       kyna::parseModule(*sources.find(functionSource), std::move(functionLexed.tokens));
@@ -60,7 +60,7 @@ int main() {
   assert(functionListing.find("call @f1") != std::string::npos);
 
   const auto logicalSource = sources.add(
-      "mir-logical", "set answer = false && (1 / 0 == 0); set fallback = true || answer;");
+      "mir-logical", "const answer = false && (1 / 0 == 0); const fallback = true || answer;");
   auto logicalLexed = kyna::tokenize(*sources.find(logicalSource));
   auto logicalParsed =
       kyna::parseModule(*sources.find(logicalSource), std::move(logicalLexed.tokens));
@@ -74,7 +74,7 @@ int main() {
   assert(logicalListing.find("divide") != std::string::npos);
 
   const auto ifExpressionSource =
-      sources.add("mir-if-expression", "set value = if (true) { 1 } else { 2 };");
+      sources.add("mir-if-expression", "const value = if (true) { 1 } else { 2 };");
   auto ifExpressionLexed = kyna::tokenize(*sources.find(ifExpressionSource));
   auto ifExpressionParsed = kyna::parseModule(*sources.find(ifExpressionSource),
                                                std::move(ifExpressionLexed.tokens));
@@ -89,7 +89,7 @@ int main() {
 
   const auto firstClassSource = sources.add(
       "mir-first-class",
-      "func identity(value: int): int { return value; } set selected = identity; selected(1);");
+      "fn identity(value: int): int { return value; } const selected = identity; selected(1);");
   auto firstClassLexed = kyna::tokenize(*sources.find(firstClassSource));
   auto firstClassParsed =
       kyna::parseModule(*sources.find(firstClassSource), std::move(firstClassLexed.tokens));
@@ -103,8 +103,8 @@ int main() {
 
   const auto exceptionSource = sources.add(
       "mir-exceptions",
-      "try { throw \"boom\"; } catch (failure) { set recovered = true; } "
-      "finally { set cleaned = true; }");
+      "try { throw \"boom\"; } catch (failure) { const recovered = true; } "
+      "finally { const cleaned = true; }");
   auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
   auto exceptionParsed =
       kyna::parseModule(*sources.find(exceptionSource), std::move(exceptionLexed.tokens));

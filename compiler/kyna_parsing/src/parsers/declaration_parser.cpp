@@ -26,16 +26,13 @@ StmtPtr Parser::declaration() {
   }
   auto mods = modifiers();
   StmtPtr parsed;
-  if (match(TokenKind::Func))
+  if (match(TokenKind::Fn))
     parsed = functionDeclaration(std::move(mods));
   else if (match(TokenKind::Class))
     parsed = classDeclaration(std::move(mods));
   else if (match(TokenKind::Intf))
     parsed = interfaceDeclaration();
-  else if (match(TokenKind::Let)) {
-    --current;
-    parsed = varDeclaration();
-  } else if (match(TokenKind::Set)) {
+  else if (match(TokenKind::Var) || match(TokenKind::Const)) {
     --current;
     parsed = varDeclaration();
   }
@@ -136,16 +133,13 @@ StmtPtr Parser::exportListDeclaration() {
 StmtPtr Parser::defaultExportDeclaration() {
   auto mods = modifiers();
   StmtPtr parsed;
-  if (match(TokenKind::Func))
+  if (match(TokenKind::Fn))
     parsed = functionDeclaration(std::move(mods));
   else if (match(TokenKind::Class))
     parsed = classDeclaration(std::move(mods));
   else if (match(TokenKind::Intf))
     parsed = interfaceDeclaration();
-  else if (match(TokenKind::Let)) {
-    --current;
-    parsed = varDeclaration();
-  } else if (match(TokenKind::Set)) {
+  else if (match(TokenKind::Var) || match(TokenKind::Const)) {
     --current;
     parsed = varDeclaration();
   }
@@ -177,10 +171,10 @@ void Parser::markExported(const StmtPtr &parsed) {
 StmtPtr Parser::varDeclaration() {
   bool mut;
   Token t = peek();
-  if (match(TokenKind::Let))
+  if (match(TokenKind::Var))
     mut = true;
   else {
-    consume(TokenKind::Set, "expected 'let' or 'set'");
+    consume(TokenKind::Const, "expected 'var' or 'const'");
     mut = false;
   }
   Token name = consume(TokenKind::Identifier, "expected binding name");
@@ -234,7 +228,7 @@ StmtPtr Parser::classDeclaration(std::vector<std::string> mods) {
   ClassDecl c{name.lexeme, parent, {}, {}, std::move(mods), std::move(interfaces)};
   while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
     auto mm = modifiers();
-    if (match(TokenKind::Func) || match(TokenKind::Init)) {
+    if (match(TokenKind::Fn) || match(TokenKind::Init)) {
       bool isInit = previous().kind == TokenKind::Init;
       Token n = isInit ? Token{TokenKind::Identifier, "init", previous().location}
                        : consume(TokenKind::Identifier, "expected method name");
@@ -327,9 +321,9 @@ StmtPtr Parser::interfaceDeclaration() {
       i.callSignatures.push_back(std::move(signature));
       continue;
     }
-    // Method with explicit 'func' prefix: func get(): str;
-    if (match(TokenKind::Func)) {
-      Token f = consume(TokenKind::Identifier, "expected method name after 'func'");
+    // Method with explicit 'fn' prefix: fn get(): str;
+    if (match(TokenKind::Fn)) {
+      Token f = consume(TokenKind::Identifier, "expected method name after 'fn'");
       consume(TokenKind::LeftParen, "expected '(' after method name");
       std::vector<Param> ps;
       if (!check(TokenKind::RightParen)) {

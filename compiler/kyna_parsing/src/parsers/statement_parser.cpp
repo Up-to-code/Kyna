@@ -5,16 +5,17 @@ StmtPtr Parser::block() {
   Token t = consume(TokenKind::LeftBrace, "expected '{'");
   BlockStmt b;
   while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
-    if (check(TokenKind::Let) || check(TokenKind::Set))
+    if (check(TokenKind::Var) || check(TokenKind::Const))
       b.statements.push_back(varDeclaration());
-    else if (check(TokenKind::Func)) {
+    else if (check(TokenKind::Fn)) {
       ++current;
       b.statements.push_back(functionDeclaration({}));
     } else if (check(TokenKind::Class)) {
       ++current;
       b.statements.push_back(classDeclaration({}));
     } else if (check(TokenKind::If) || check(TokenKind::While) || check(TokenKind::Loop) ||
-               check(TokenKind::Break) || check(TokenKind::Continue) || check(TokenKind::Return) ||
+               check(TokenKind::Switch) || check(TokenKind::Break) ||
+               check(TokenKind::Continue) || check(TokenKind::Return) ||
                check(TokenKind::Throw) || check(TokenKind::Try) || check(TokenKind::LeftBrace))
       b.statements.push_back(statement());
     else {
@@ -66,7 +67,7 @@ StmtPtr Parser::statement() {
       ExprPtr cond, inc;
       if (match(TokenKind::LeftParen)) {
         if (!check(TokenKind::Semicolon)) {
-          if (check(TokenKind::Let) || check(TokenKind::Set))
+          if (check(TokenKind::Var) || check(TokenKind::Const))
             init = varDeclaration();
           else {
             auto e = expression();
@@ -92,7 +93,7 @@ StmtPtr Parser::statement() {
     ExprPtr cond, inc;
     if (match(TokenKind::LeftParen)) {
       if (!check(TokenKind::Semicolon)) {
-        if (check(TokenKind::Let) || check(TokenKind::Set))
+        if (check(TokenKind::Var) || check(TokenKind::Const))
           init = varDeclaration();
         else {
           auto e = expression();
@@ -109,6 +110,38 @@ StmtPtr Parser::statement() {
       consume(TokenKind::RightParen, "expected ')' after loop clauses");
     }
     return make(LoopStmt{init, cond, inc, block(), ""}, t.location);
+  }
+  if (match(TokenKind::Switch)) {
+    Token t = previous();
+    consume(TokenKind::LeftParen, "expected '(' after switch");
+    auto subject = expression();
+    consume(TokenKind::RightParen, "expected ')' after switch subject");
+    consume(TokenKind::LeftBrace, "expected '{' after switch subject");
+    SwitchStmt sw{subject, {}};
+    bool seenDefault = false;
+    while (!check(TokenKind::RightBrace) && !check(TokenKind::End)) {
+      SwitchCase c;
+      if (match(TokenKind::Case)) {
+        if (seenDefault)
+          throw KynaError({"case cannot follow the default arm", previous().location, false});
+        c.value = expression();
+      } else if (match(TokenKind::Default)) {
+        if (seenDefault)
+          throw KynaError({"duplicate default arm in switch", previous().location, false});
+        seenDefault = true;
+        c.isDefault = true;
+      } else {
+        throw KynaError(
+            {"expected 'case' or 'default' in switch body", peek().location, false});
+      }
+      consume(TokenKind::Colon, "expected ':' after switch arm label");
+      c.body = block();
+      sw.cases.push_back(std::move(c));
+    }
+    consume(TokenKind::RightBrace, "expected '}' after switch body");
+    if (sw.cases.empty())
+      throw KynaError({"switch requires at least one case or default", t.location, false});
+    return make(std::move(sw), t.location);
   }
   if (match(TokenKind::Break)) {
     Token t = previous();

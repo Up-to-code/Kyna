@@ -10,6 +10,9 @@ namespace kyna {
 struct AnalysisResult {
   std::optional<CheckedProgram> program;
   std::vector<Diagnostic> diagnostics;
+  // Dependency modules whose bodies were skipped because a matching `.kyc`
+  // stamp was present. The entry module is never listed.
+  std::vector<std::filesystem::path> cachedModules;
   [[nodiscard]] bool ok() const;
 };
 

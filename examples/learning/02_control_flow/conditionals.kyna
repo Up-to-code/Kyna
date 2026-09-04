@@ -1,5 +1,5 @@
-set score = 84;
-set grade = if (score >= 80) {
+const score = 84;
+const grade = if (score >= 80) {
     "great"
 } else {
     "keep learning"

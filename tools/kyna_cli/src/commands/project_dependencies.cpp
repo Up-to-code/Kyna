@@ -3,6 +3,15 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <vector>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <spawn.h>
+#include <sys/wait.h>
+#define KYNA_CLI_POSIX 1
+extern char **environ;
+#endif
 
 namespace kyna::cli {
 namespace {
@@ -10,6 +19,44 @@ bool write(const fs::path &path, std::string_view contents, std::string &error) 
   return projectWrite(path, contents, error);
 }
 std::string shellQuote(const std::string &value) { return projectShellQuote(value); }
+
+// Runs a program with an explicit argument vector and waits for completion.
+// Unlike std::system, no shell interprets the arguments, so values such as
+// dependency URLs or cache paths can never inject additional commands.
+int runArgv(const std::string &program, const std::vector<std::string> &args) {
+#if defined(KYNA_CLI_POSIX)
+  std::vector<std::string> storage;
+  storage.reserve(args.size() + 1);
+  storage.push_back(program);
+  for (const auto &argument : args)
+    storage.push_back(argument);
+  std::vector<char *> argv;
+  argv.reserve(storage.size() + 1);
+  for (auto &entry : storage)
+    argv.push_back(entry.data());
+  argv.push_back(nullptr);
+
+  posix_spawn_file_actions_t actions;
+  posix_spawnattr_t attributes;
+  if (posix_spawn_file_actions_init(&actions) != 0 || posix_spawnattr_init(&attributes) != 0)
+    return -1;
+  pid_t child = -1;
+  const int spawnError =
+      posix_spawn(&child, program.c_str(), &actions, &attributes, argv.data(), environ);
+  posix_spawnattr_destroy(&attributes);
+  posix_spawn_file_actions_destroy(&actions);
+  if (spawnError != 0)
+    return -1;
+  int status = 0;
+  if (waitpid(child, &status, 0) < 0)
+    return -1;
+  return WIFEXITED(status) ? WEXITSTATUS(status) : 128;
+#else
+  (void)program;
+  (void)args;
+  return -1;
+#endif
+}
 } // namespace
 
 fs::path cacheRoot() {
@@ -100,25 +147,27 @@ int runDependencies(const Options &options, std::ostream &output, std::ostream &
       const auto cache = cacheRoot() / "git" / std::string(name.str());
       fs::create_directories(cache.parent_path());
       if (!fs::exists(cache / ".git")) {
-        const auto command = "git clone --quiet --no-checkout " + shellQuote(*git) + " " +
-                             shellQuote(cache.string());
-        if (std::system(command.c_str()) != 0) {
+        const auto cloneArgs = std::vector<std::string>{"clone", "--quiet", "--no-checkout",
+                                                        *git, cache.string()};
+        if (runArgv("git", cloneArgs) != 0) {
           errors << "ky install: failed to clone " << *git << '\n';
           return 2;
         }
       }
-      const auto fetch = "git -C " + shellQuote(cache.string()) + " fetch --quiet --tags origin";
-      (void)std::system(fetch.c_str());
-      const auto checkout = "git -C " + shellQuote(cache.string()) + " checkout --quiet --detach " +
-                            shellQuote(requested);
-      if (std::system(checkout.c_str()) != 0) {
+      (void)runArgv("git", {"-C", cache.string(), "fetch", "--quiet", "--tags", "origin"});
+      const auto checkout =
+          runArgv("git", {"-C", cache.string(), "checkout", "--quiet", "--detach", requested});
+      if (checkout != 0) {
         errors << "ky install: cannot resolve " << requested << '\n';
         return 2;
       }
       const auto revFile = cache / ".kyna-revision";
-      const auto revisionCommand = "git -C " + shellQuote(cache.string()) +
-                                   " rev-parse HEAD > " + shellQuote(revFile.string());
-      if (std::system(revisionCommand.c_str()) != 0)
+      // Capture the resolved revision by spawning with the shell only to
+      // redirect output, which is safe because all arguments are verbatim.
+      const auto revisionShell =
+          "git -C " + shellQuote(cache.string()) + " rev-parse HEAD > " +
+          shellQuote(revFile.string());
+      if (std::system(revisionShell.c_str()) != 0)
         return 2;
       std::string revision = readInput(revFile.string(), std::cin, error);
       while (!revision.empty() &&

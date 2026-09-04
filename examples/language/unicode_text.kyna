@@ -1,6 +1,6 @@
 # Unicode-aware text length, slicing, searching, replacement, and case conversion.
-set greeting = "  Héllo 世界  ";
-set pieces = textSplit("one::two::three", "::");
+const greeting = "  Héllo 世界  ";
+const pieces = textSplit("one::two::three", "::");
 
 print("length", len(greeting));
 print("slice", textSlice(greeting, 2, 7));

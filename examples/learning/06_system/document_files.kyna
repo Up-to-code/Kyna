@@ -1,15 +1,15 @@
 # Run in a disposable working directory: create, read, edit, and remove TOML/XML files.
-set directory = "kyna-document-files";
-set tomlPath = directory + "/project.toml";
-set xmlPath = directory + "/project.xml";
+const directory = "kyna-document-files";
+const tomlPath = directory + "/project.toml";
+const xmlPath = directory + "/project.xml";
 
 try {
     fs.createDirectory(directory);
 
     fs.write(tomlPath, toml.stringify({ title: "Draft", revision: 1 }));
-    set draft = toml.parse(fs.read(tomlPath));
+    const draft = toml.parse(fs.read(tomlPath));
     fs.write(tomlPath, toml.stringify({ title: "Kyna", revision: draft.revision + 1 }));
-    set edited = toml.parse(fs.read(tomlPath));
+    const edited = toml.parse(fs.read(tomlPath));
 
     fs.write(xmlPath, xml.stringify({
         name: "project",
@@ -17,7 +17,7 @@ try {
         text: "",
         children: [{ name: "name", attributes: {}, text: "Kyna", children: [] }]
     }));
-    set document = xml.parse(fs.read(xmlPath));
+    const document = xml.parse(fs.read(xmlPath));
 
     print("document files", edited.title, edited.revision, document.children[0].text);
     fs.remove(tomlPath);

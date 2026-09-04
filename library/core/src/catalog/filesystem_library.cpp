@@ -1,6 +1,9 @@
 #include "catalog_private.hpp"
 #include "../codecs/json/json_value_codec.hpp"
 #include "kyna/execution/tree_walk_engine.hpp"
+#include <array>
+#include <cstdint>
+#include <filesystem>
 #include <string>
 
 namespace kyna::detail {
@@ -116,6 +119,45 @@ void installFilesystemLibrary(Interpreter &interpreter) {
     return Value(true);
   };
   global->define("writeJsonFile", Value(writeJsonFile), false);
+
+  auto copyFile = std::make_shared<Function>();
+  copyFile->native = true;
+  copyFile->nativeCall = [capabilities](const std::vector<Value> &a) {
+    if (a.size() != 2 || !std::holds_alternative<std::string>(a[0].data) ||
+        !std::holds_alternative<std::string>(a[1].data))
+      throw KynaError({"copyFile expects source and destination paths", {1, 1}, false});
+    const auto &sourcePath = std::get<std::string>(a[0].data);
+    const auto &destPath = std::get<std::string>(a[1].data);
+    std::error_code equivalentError;
+    if (std::filesystem::equivalent(sourcePath, destPath, equivalentError))
+      throw KynaError({"copyFile source and destination must be different paths", {1, 1}, false,
+                       "KFS2010"});
+    std::string error;
+    auto reader = capabilities.files->openRead(sourcePath, error);
+    if (!reader)
+      throw KynaError({std::move(error), {1, 1}, false, "KFS2010"});
+    auto writer = capabilities.files->openWrite(destPath, error);
+    if (!writer)
+      throw KynaError({std::move(error), {1, 1}, false, "KFS2010"});
+    std::array<std::uint8_t, 65536> buffer{};
+    std::int64_t total = 0;
+    for (;;) {
+      const auto got = reader->read(buffer.data(), buffer.size());
+      if (got == 0)
+        break;
+      const auto written = writer->write(buffer.data(), got);
+      if (written != got) {
+        reader->close();
+        writer->close();
+        throw KynaError({"copyFile failed to write the destination", {1, 1}, false, "KFS2010"});
+      }
+      total += static_cast<std::int64_t>(written);
+    }
+    reader->close();
+    writer->close();
+    return Value(total);
+  };
+  global->define("copyFile", Value(copyFile), false);
 
   auto fileSystem = interpreter.heap().allocate();
   fileSystem->fields["read"] = Value(read);

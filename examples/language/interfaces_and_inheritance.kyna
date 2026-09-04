@@ -10,17 +10,17 @@ class Animal implements Named {
         self.name = name;
     }
 
-    public func speak(): str {
+    public fn speak(): str {
         return "animal " + self.name;
     }
 }
 
 class Dog extends Animal {
-    public override func speak(): str {
+    public override fn speak(): str {
         return super.speak() + " says woof";
     }
 }
 
-set dog = new Dog("Rex");
+const dog = new Dog("Rex");
 print("interface", dog.name);
 print("override", dog.speak());

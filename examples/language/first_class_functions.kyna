@@ -1,25 +1,25 @@
 # Functions are values and can be passed through higher-order functions.
-func add(left: int, right: int): int {
+fn add(left: int, right: int): int {
     return left + right;
 }
 
-func multiply(left: int, right: int): int {
+fn multiply(left: int, right: int): int {
     return left * right;
 }
 
-func apply(operation: any, left: int, right: int): any {
+fn apply(operation: any, left: int, right: int): any {
     return operation(left, right);
 }
 
-set selected = add;
-set sum = apply(selected, 20, 22);
-set product = apply(multiply, 6, 7);
+const selected = add;
+const sum = apply(selected, 20, 22);
+const product = apply(multiply, 6, 7);
 
 # Fail loudly if function references, argument transport, or indirect dispatch regress.
 if (sum == 42 && product == 42) {
-    set verified = true;
+    const verified = true;
 } else {
-    set invalidFirstClassCall = 1 / 0;
+    const invalidFirstClassCall = 1 / 0;
 }
 
 print("sum", sum);

@@ -81,9 +81,37 @@ std::optional<HirStatementId> SyntaxLowerer::lowerStatement(const StmtPtr &state
             return addStatement(
                 HirLoopStatement{initializer, *condition, increment, *body, node.label},
                 statement->location);
+          } else if constexpr (std::is_same_v<T, SwitchStmt>) {
+            const auto subject = lowerExpression(node.subject);
+            bool lowered = subject.has_value();
+            ++switchDepth;
+            HirSwitchStatement sw;
+            for (const auto &arm : node.cases) {
+              HirSwitchCase loweredArm;
+              if (arm.value) {
+                const auto value = lowerExpression(arm.value);
+                if (!value) {
+                  lowered = false;
+                  break;
+                }
+                loweredArm.value = *value;
+              }
+              const auto body = lowerScopedStatement(arm.body);
+              if (!body) {
+                lowered = false;
+                break;
+              }
+              loweredArm.body = *body;
+              sw.cases.push_back(std::move(loweredArm));
+            }
+            --switchDepth;
+            if (!lowered)
+              return std::nullopt;
+            return addStatement(HirSwitchStatement{*subject, std::move(sw.cases)},
+                                statement->location);
           } else if constexpr (std::is_same_v<T, BreakStmt>) {
-            if (!hasLoopTarget(node.label)) {
-              unsupported(node.label.empty() ? "break outside a loop"
+            if (!hasBreakTarget(node.label)) {
+              unsupported(node.label.empty() ? "break outside a switch or loop"
                                              : "break to unknown loop label '" + node.label + "'",
                           statement->location);
               return std::nullopt;

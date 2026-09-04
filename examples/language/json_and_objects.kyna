@@ -1,8 +1,8 @@
 # JSON decoding/encoding, object members, string keys, and mutable shapes.
-set decoded = jsonParse("{\"items\":[20,22],\"ready\":true}");
-let project = { name: "Kyna", version: 1 };
+const decoded = jsonParse("{\"items\":[20,22],\"ready\":true}");
+var project = { name: "Kyna", version: 1 };
 project.version = decoded.items[0] + decoded.items[1];
-set headers = process.json("{\"content-type\":\"application/json\"}");
+const headers = process.json("{\"content-type\":\"application/json\"}");
 
 print("decoded", decoded.items[1], decoded.ready);
 print("project", project.name, project.version);

@@ -1,8 +1,8 @@
 # Short-circuit booleans, mutable bindings, nested loops, and labeled exits all lower to MIR.
-let visits = 0;
+var visits = 0;
 
-outer: loop (let row = 0; row < 5; row = row + 1) {
-    loop (let column = 0; column < 5; column = column + 1) {
+outer: loop (var row = 0; row < 5; row = row + 1) {
+    loop (var column = 0; column < 5; column = column + 1) {
         if (column == 1) {
             continue;
         }
@@ -14,14 +14,14 @@ outer: loop (let row = 0; row < 5; row = row + 1) {
 }
 
 # Neither division is evaluated: && and || are lowered as control flow, not eager operators.
-set shortCircuitAnd = false && (1 / 0 == 0);
-set shortCircuitOr = true || (1 / 0 == 0);
+const shortCircuitAnd = false && (1 / 0 == 0);
+const shortCircuitOr = true || (1 / 0 == 0);
 
 # Fail loudly if loop targets, increments, mutation, or short-circuiting regress.
 if (visits == 12 && !shortCircuitAnd && shortCircuitOr) {
-    set verified = true;
+    const verified = true;
 } else {
-    set invalidControlFlow = 1 / 0;
+    const invalidControlFlow = 1 / 0;
 }
 
 print("visits", visits);

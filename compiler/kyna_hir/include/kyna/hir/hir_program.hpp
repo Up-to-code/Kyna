@@ -69,6 +69,9 @@ struct HirUnaryExpression {
   HirUnaryOperator operation;
   HirExpressionId operand;
 };
+struct HirAwaitExpression {
+  HirExpressionId operand;
+};
 struct HirBinaryExpression {
   HirExpressionId left;
   HirBinaryOperator operation;
@@ -145,7 +148,7 @@ struct HirMatchExpression {
 struct HirExpression {
   using Node = std::variant<HirConstantExpression, HirLocalExpression,
                             HirFunctionReferenceExpression, HirClosureExpression,
-                            HirUnaryExpression,
+                            HirUnaryExpression, HirAwaitExpression,
                             HirBinaryExpression, HirAssignLocalExpression,
                             HirAssignIndexExpression, HirAssignMemberExpression, HirCallExpression,
                             HirIndirectCallExpression, HirNativeCallExpression,
@@ -186,6 +189,14 @@ struct HirLoopStatement {
   HirStatementId body;
   std::string label;
 };
+struct HirSwitchCase {
+  std::optional<HirExpressionId> value;
+  HirStatementId body;
+};
+struct HirSwitchStatement {
+  HirExpressionId subject;
+  std::vector<HirSwitchCase> cases;
+};
 struct HirBreakStatement {
   std::string label;
 };
@@ -205,8 +216,8 @@ struct HirTryStatement {
 struct HirStatement {
   using Node = std::variant<HirBindLocalStatement, HirEvaluateStatement, HirReturnStatement,
                             HirBlockStatement, HirIfStatement, HirWhileStatement, HirLoopStatement,
-                            HirBreakStatement, HirContinueStatement, HirThrowStatement,
-                            HirTryStatement>;
+                            HirSwitchStatement, HirBreakStatement, HirContinueStatement,
+                            HirThrowStatement, HirTryStatement>;
   Node node;
   SourceSpan span;
 };

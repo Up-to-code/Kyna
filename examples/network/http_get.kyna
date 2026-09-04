@@ -1,7 +1,7 @@
 # Public no-key HTTP helper smoke test. Network availability is not required by CI.
 try {
-    set payload = httpGet("https://jsonplaceholder.typicode.com/todos/1");
-    set todo = jsonParse(payload);
+    const payload = httpGet("https://jsonplaceholder.typicode.com/todos/1");
+    const todo = jsonParse(payload);
     print("todo", todo.id, todo.completed);
 } catch (failure) {
     print("HTTP smoke test unavailable", failure.code, failure.message);

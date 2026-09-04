@@ -1,7 +1,9 @@
 #include "catalog_private.hpp"
+#include "../codecs/json/json_value_codec.hpp"
 #include <chrono>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 
 namespace kyna::detail {
@@ -75,6 +77,25 @@ void installConsoleLibrary(Interpreter &interpreter) {
                                                 .count()));
   };
   global->define("clockMs", Value(clock), false);
+  auto timeNow = std::make_shared<Function>();
+  timeNow->native = true;
+  timeNow->nativeCall = [](const std::vector<Value> &a) {
+    if (!a.empty())
+      throw KynaError({"timeNow expects no arguments", {1, 1}, false});
+    const auto now = std::chrono::steady_clock::now();
+    return Value(static_cast<std::int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()));
+  };
+  global->define("timeNow", Value(timeNow), false);
+  auto timeSleep = std::make_shared<Function>();
+  timeSleep->native = true;
+  timeSleep->nativeCall = [caps = interpreter.runtimeCapabilities()](const std::vector<Value> &a) {
+    if (a.size() != 1 || !std::holds_alternative<std::int64_t>(a[0].data))
+      throw KynaError({"timeSleep expects a millisecond duration", {1, 1}, false});
+    caps.clock->sleep(std::chrono::milliseconds(std::get<std::int64_t>(a[0].data)));
+    return Value();
+  };
+  global->define("timeSleep", Value(timeSleep), false);
   auto profileLog = std::make_shared<Function>();
   profileLog->native = true;
   profileLog->nativeCall = [](const std::vector<Value> &a) {
@@ -122,6 +143,41 @@ void installConsoleLibrary(Interpreter &interpreter) {
                  " errors=" + std::to_string(snapshot.errors));
   };
   global->define("gcStats", Value(stats), false);
+
+  const auto emitLog = [](const std::string &level, const std::vector<Value> &arguments) -> Value {
+    if (arguments.empty() || !std::holds_alternative<std::string>(arguments[0].data))
+      throw KynaError({"structured log expects a message string", {1, 1}, false});
+    std::ostringstream line;
+    line << "{\"level\":\"" << level << "\",\"msg\":" << stringifyJsonValue(arguments[0]);
+    if (arguments.size() >= 2)
+      line << ",\"fields\":" << stringifyJsonValue(arguments[1]);
+    line << "}";
+    std::cout << line.str() << '\n';
+    return Value();
+  };
+  auto slogInfo = std::make_shared<Function>();
+  slogInfo->native = true;
+  slogInfo->nativeCall = [emitLog](const std::vector<Value> &arguments) {
+    return emitLog("info", arguments);
+  };
+  auto slogWarn = std::make_shared<Function>();
+  slogWarn->native = true;
+  slogWarn->nativeCall = [emitLog](const std::vector<Value> &arguments) {
+    return emitLog("warn", arguments);
+  };
+  auto slogError = std::make_shared<Function>();
+  slogError->native = true;
+  slogError->nativeCall = [emitLog](const std::vector<Value> &arguments) {
+    return emitLog("error", arguments);
+  };
+  global->define("slogInfo", Value(slogInfo), false);
+  global->define("slogWarn", Value(slogWarn), false);
+  global->define("slogError", Value(slogError), false);
+  auto slog = interpreter.heap().allocate();
+  slog->fields["info"] = Value(slogInfo);
+  slog->fields["warn"] = Value(slogWarn);
+  slog->fields["error"] = Value(slogError);
+  global->define("slog", Value(slog), false);
 }
 
 } // namespace kyna::detail

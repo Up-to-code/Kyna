@@ -37,5 +37,7 @@ std::optional<NativeCallResult> formatsBytecodeInvoke(
     std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
 std::optional<NativeCallResult> collectionsBytecodeInvoke(
     std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
+std::optional<NativeCallResult> cryptoBytecodeInvoke(
+    std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
 
 } // namespace kyna::detail

@@ -1,5 +1,5 @@
 # Named functions are validated, lowered to bytecode, and invoked with explicit VM frames.
-func factorial(value: int): int {
+fn factorial(value: int): int {
     if (value <= 1) {
         return 1;
     } else {
@@ -7,7 +7,7 @@ func factorial(value: int): int {
     }
 }
 
-func fibonacci(value: int): int {
+fn fibonacci(value: int): int {
     if (value <= 1) {
         return value;
     } else {
@@ -15,18 +15,18 @@ func fibonacci(value: int): int {
     }
 }
 
-set factorialSix: int = factorial(6);
-set fibonacciTen: int = fibonacci(10);
+const factorialSix: int = factorial(6);
+const fibonacciTen: int = fibonacci(10);
 
 # Fail loudly if call arguments, return values, recursion, or branching are incorrect.
 if (factorialSix == 720) {
     if (fibonacciTen == 55) {
-        set verified = true;
+        const verified = true;
     } else {
-        set invalidFibonacci = 1 / 0;
+        const invalidFibonacci = 1 / 0;
     }
 } else {
-    set invalidFactorial = 1 / 0;
+    const invalidFactorial = 1 / 0;
 }
 
 print("factorial(6)", factorialSix);

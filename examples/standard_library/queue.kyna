@@ -1,0 +1,6 @@
+# Queues: enqueue at the back, dequeue from the front.
+const pending = createQueue();
+enqueue(pending, "one");
+enqueue(pending, "two");
+const first = dequeue(pending);
+print(queueIsEmpty(pending), peekQueue(pending), first);

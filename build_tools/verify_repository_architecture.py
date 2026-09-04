@@ -21,6 +21,7 @@ SKIPPED_DIRECTORIES = {
     "_CPack_Packages",
     "build",
     "node_modules",
+    "vcpkg",
 }
 SKIPPED_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".vsix", ".zip", ".gz"}
 AMBIGUOUS_STEMS = {"behavior", "functions", "helpers", "runtime", "types", "validation", "words"}

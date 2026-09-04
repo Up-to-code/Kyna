@@ -7,8 +7,8 @@
 int main() {
   auto program =
       kyna::Parser(kyna::lex("class Node { public next: Node?; }"
-                             "func make(): void { let n = new Node(); n.next = n; return; }"
-                             "loop (let i = 0; i < 300; i = i + 1) { make(); }"))
+                             "fn make(): void { var n = new Node(); n.next = n; return; }"
+                             "loop (var i = 0; i < 300; i = i + 1) { make(); }"))
           .parse();
   assert(kyna::validate(program).empty());
   kyna::Interpreter interpreter(kyna::productionRuntimeCapabilities(),

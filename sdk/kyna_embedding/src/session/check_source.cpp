@@ -19,7 +19,7 @@ LanguageResult LanguageSession::checkSource(std::string name, std::string source
   ParsedModuleGraph graph;
   graph.entry = name;
   graph.initializationOrder.push_back(name);
-  graph.modules.emplace(name, ModuleRecord{std::move(parsed.tree), {}});
+  graph.modules.emplace(name, ModuleRecord{std::move(parsed.tree), {}, false, {}});
   auto analysis = analyzeModuleGraph(std::move(graph));
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
   return {std::move(diagnostics), false, {}};

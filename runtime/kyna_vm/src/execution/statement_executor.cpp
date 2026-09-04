@@ -164,6 +164,19 @@ void Interpreter::exec(const StmtPtr &s) {
           }
           if (pendingFailure && flow.kind == Flow::None)
             std::rethrow_exception(pendingFailure);
+        } else if constexpr (std::is_same_v<T, SwitchStmt>) {
+          const auto subject = eval(n.subject);
+          ++switchDepth;
+          for (const auto &arm : n.cases) {
+            const bool selected = arm.isDefault || subject.equals(eval(arm.value));
+            if (!selected)
+              continue;
+            exec(arm.body);
+            if (flow.kind == Flow::Break && flow.label.empty())
+              flow = {};
+            break;
+          }
+          --switchDepth;
         } else if constexpr (std::is_same_v<T, ThrowStmt>) {
           const auto value = eval(n.value);
           if (const auto *error = std::get_if<ErrorPtr>(&value.data); error && *error)
@@ -171,8 +184,8 @@ void Interpreter::exec(const StmtPtr &s) {
           throw RuntimeThrownError(
               objectHeap.allocateError(value.display(), "KRT2301", value));
         } else if constexpr (std::is_same_v<T, BreakStmt>) {
-          if (loopDepth == 0)
-            throw KynaError({"break must be inside a loop", {1, 1}, false});
+          if (loopDepth == 0 && switchDepth == 0)
+            throw KynaError({"break must be inside a switch or loop", {1, 1}, false});
           flow = {Flow::Break, {}, n.label};
         } else if constexpr (std::is_same_v<T, ContinueStmt>) {
           if (loopDepth == 0)

@@ -1,10 +1,10 @@
 # Read secrets from the environment; never commit real tokens to source control.
-set token = processEnv("KYNA_API_TOKEN");
+const token = processEnv("KYNA_API_TOKEN");
 if (token == null) {
     print("Set KYNA_API_TOKEN before running this example");
 } else {
     try {
-        set response = fetch("https://api.example.com/v1/profile", {
+        const response = fetch("https://api.example.com/v1/profile", {
             timeout: 10000,
             headers: {
                 Authorization: "Bearer " + token,

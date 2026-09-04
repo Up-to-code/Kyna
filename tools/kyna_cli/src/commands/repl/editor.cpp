@@ -177,7 +177,8 @@ std::optional<std::string> ReplLineEditor::read(bool continuation, std::ostream 
       app.Exit();
       return true;
     }
-    if (event == Event::CtrlD && content.empty()) {
+    if (event == Event::CtrlD &&
+        content.find_first_not_of(" \t\n\r") == std::string::npos) {
       endOfInput = true;
       app.Exit();
       return true;

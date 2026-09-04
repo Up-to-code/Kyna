@@ -31,6 +31,7 @@ std::vector<std::filesystem::path> candidates(
     add(base / requested);
   } else {
     const auto stem = base / requested;
+    add(stem);
     add(std::filesystem::path(stem.string() + ".kyna.d"));
     add(std::filesystem::path(stem.string() + ".kyna"));
     add(std::filesystem::path(stem.string() + ".d.ky"));

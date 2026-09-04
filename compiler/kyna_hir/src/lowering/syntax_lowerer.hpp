@@ -23,6 +23,7 @@ private:
   std::unordered_map<std::string, HirFunctionId> functions;
   std::unordered_map<std::string, HirClassId> classes;
   std::vector<std::string> loopLabels;
+  int switchDepth{0};
   std::vector<std::optional<HirFunctionId>> localOwners;
   std::vector<bool> responseLocals;
   std::optional<HirFunctionId> currentFunction;
@@ -45,6 +46,7 @@ private:
   bool isResponseExpression(const ExprPtr &expression) const;
   void predeclareNestedFunctions(const BlockStmt &block);
   bool hasLoopTarget(const std::string &label) const;
+  bool hasBreakTarget(const std::string &label) const;
   std::optional<HirBinaryOperator> lowerOperator(TokenKind operation);
   struct ValueBlock {
     HirStatementId prelude;
@@ -52,6 +54,12 @@ private:
   };
   std::optional<ValueBlock> lowerValueBlock(const StmtPtr &statement);
   std::optional<HirExpressionId> lowerExpression(const ExprPtr &expression);
+  std::optional<HirExpressionId> lowerCall(const Call &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerAssign(const Assign &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerNew(const NewExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerObject(const ObjectExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerIfExpr(const IfExpr &node, SourceSpan span);
+  std::optional<HirExpressionId> lowerMatch(const MatchExpr &node, SourceSpan span);
   std::optional<HirStatementId> lowerScopedStatement(const StmtPtr &statement);
   std::optional<HirStatementId> lowerStatement(const StmtPtr &statement);
 };

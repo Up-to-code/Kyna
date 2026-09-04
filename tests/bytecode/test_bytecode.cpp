@@ -30,7 +30,7 @@ public:
 
 int main() {
   kyna::SourceManager sources;
-  const auto source = sources.add("pipeline", "set left = 20; set right = 22; return left + right;");
+  const auto source = sources.add("pipeline", "const left = 20; const right = 22; return left + right;");
   auto lexed = kyna::tokenize(*sources.find(source));
   auto parsed = kyna::parseModule(*sources.find(source), std::move(lexed.tokens));
   auto hir = kyna::lowerSyntaxToHir("pipeline", parsed.tree);
@@ -45,7 +45,7 @@ int main() {
 
   const auto controlSource = sources.add(
       "control-flow",
-      "let value = 0; while (value < 3) { value = value + 1; } if (value == 3) { return value; } else { return 0; }");
+      "var value = 0; while (value < 3) { value = value + 1; } if (value == 3) { return value; } else { return 0; }");
   auto controlLexed = kyna::tokenize(*sources.find(controlSource));
   auto controlParsed =
       kyna::parseModule(*sources.find(controlSource), std::move(controlLexed.tokens));
@@ -61,7 +61,7 @@ int main() {
 
   const auto recursiveSource = sources.add(
       "recursive",
-      "func factorial(n: int): int { if (n <= 1) { return 1; } else { return n * factorial(n - 1); } } return factorial(6);");
+      "fn factorial(n: int): int { if (n <= 1) { return 1; } else { return n * factorial(n - 1); } } return factorial(6);");
   auto recursiveLexed = kyna::tokenize(*sources.find(recursiveSource));
   auto recursiveParsed =
       kyna::parseModule(*sources.find(recursiveSource), std::move(recursiveLexed.tokens));
@@ -77,7 +77,7 @@ int main() {
 
   const auto failingSource = sources.add(
       "call-stack",
-      "func divide(value: int): float { return 10 / value; } return divide(0);");
+      "fn divide(value: int): float { return 10 / value; } return divide(0);");
   auto failingLexed = kyna::tokenize(*sources.find(failingSource));
   auto failingParsed =
       kyna::parseModule(*sources.find(failingSource), std::move(failingLexed.tokens));
@@ -172,8 +172,8 @@ int main() {
 
   const auto loopSource = sources.add(
       "loop-control",
-      "let total = 0; outer: loop (let i = 0; i < 5; i = i + 1) { "
-      "loop (let j = 0; j < 5; j = j + 1) { "
+      "var total = 0; outer: loop (var i = 0; i < 5; i = i + 1) { "
+      "loop (var j = 0; j < 5; j = j + 1) { "
       "if (j == 1) { continue; } if (i == 3) { break outer; } total = total + 1; "
       "} } return total;");
   auto loopLexed = kyna::tokenize(*sources.find(loopSource));
@@ -190,7 +190,7 @@ int main() {
 
   const auto ifExpressionSource = sources.add(
       "if-expression",
-      "set age = 21; set category = if (age >= 18) { let prefix = \"ad\"; prefix + \"ult\" } "
+      "const age = 21; const category = if (age >= 18) { var prefix = \"ad\"; prefix + \"ult\" } "
       "else { \"minor\" }; return category;");
   auto ifExpressionLexed = kyna::tokenize(*sources.find(ifExpressionSource));
   auto ifExpressionParsed = kyna::parseModule(*sources.find(ifExpressionSource),
@@ -208,7 +208,7 @@ int main() {
 
   const auto matchSource = sources.add(
       "match-expression",
-      "func label(value: int): str { return match (value) { 0 => \"zero\"; 1 => \"one\"; "
+      "fn label(value: int): str { return match (value) { 0 => \"zero\"; 1 => \"one\"; "
       "_ => \"other\"; }; } return label(1);");
   auto matchLexed = kyna::tokenize(*sources.find(matchSource));
   auto matchParsed = kyna::parseModule(*sources.find(matchSource), std::move(matchLexed.tokens));
@@ -225,9 +225,9 @@ int main() {
 
   const auto firstClassSource = sources.add(
       "first-class-functions",
-      "func add(left: int, right: int): int { return left + right; } "
-      "func apply(operation: any, left: int, right: int): any { "
-      "return operation(left, right); } set selected = add; return apply(selected, 20, 22);");
+      "fn add(left: int, right: int): int { return left + right; } "
+      "fn apply(operation: any, left: int, right: int): any { "
+      "return operation(left, right); } const selected = add; return apply(selected, 20, 22);");
   auto firstClassLexed = kyna::tokenize(*sources.find(firstClassSource));
   auto firstClassParsed =
       kyna::parseModule(*sources.find(firstClassSource), std::move(firstClassLexed.tokens));
@@ -250,10 +250,10 @@ int main() {
   const auto classSource = sources.add(
       "classes",
       "class Animal { public name: str; public init(name: str) { self.name = name; } "
-      "public func speak(): str { return self.name; } } "
-      "class Dog extends Animal { public override func speak(): str { "
+      "public fn speak(): str { return self.name; } } "
+      "class Dog extends Animal { public override fn speak(): str { "
       "return self.name + \" barks\"; } } "
-      "set pet = new Dog(\"Rex\"); return pet.speak();");
+      "const pet = new Dog(\"Rex\"); return pet.speak();");
   auto classLexed = kyna::tokenize(*sources.find(classSource));
   auto classParsed =
       kyna::parseModule(*sources.find(classSource), std::move(classLexed.tokens));
@@ -275,8 +275,8 @@ int main() {
 
   const auto superSource = sources.add(
       "super-dispatch",
-      "class Base { public func value(): int { return 40; } } "
-      "class Derived extends Base { public override func value(): int { "
+      "class Base { public fn value(): int { return 40; } } "
+      "class Derived extends Base { public override fn value(): int { "
       "return super.value() + 2; } } return new Derived().value();");
   auto superLexed = kyna::tokenize(*sources.find(superSource));
   auto superParsed =
@@ -296,19 +296,19 @@ int main() {
 
   const auto closureSource = sources.add(
       "closures",
-      "func makeAdder(base: int): any { func add(value: int): int { return base + value; } "
+      "fn makeAdder(base: int): any { fn add(value: int): int { return base + value; } "
       "return add; } "
-      "func makeCounter(start: int): any { let value = start; func next(): int { "
+      "fn makeCounter(start: int): any { var value = start; fn next(): int { "
       "value = value + 1; return value; } return next; } "
-      "func makeFactorial(): any { func factorial(value: int): int { "
+      "fn makeFactorial(): any { fn factorial(value: int): int { "
       "if (value <= 1) { return 1; } return value * factorial(value - 1); } "
       "return factorial; } "
-      "func makeNested(base: int): any { func middle(): any { "
-      "func inner(value: int): int { return base + value; } return inner; } "
+      "fn makeNested(base: int): any { fn middle(): any { "
+      "fn inner(value: int): int { return base + value; } return inner; } "
       "return middle(); } "
-      "set addForty = makeAdder(40); set first = makeCounter(0); "
-      "set second = makeCounter(10); set factorial = makeFactorial(); "
-      "set nested = makeNested(40); "
+      "const addForty = makeAdder(40); const first = makeCounter(0); "
+      "const second = makeCounter(10); const factorial = makeFactorial(); "
+      "const nested = makeNested(40); "
       "first(); first(); second(); "
       "return addForty(2) + first() + second() + factorial(5) + nested(2);");
   auto closureLexed = kyna::tokenize(*sources.find(closureSource));
@@ -331,8 +331,8 @@ int main() {
 
   const auto closureGcSource = sources.add(
       "closure-gc",
-      "func churn(): int { let sum = 0; loop (let i = 0; i < 600; i = i + 1) { "
-      "func current(): int { return i; } sum = sum + current(); } return sum; } "
+      "fn churn(): int { var sum = 0; loop (var i = 0; i < 600; i = i + 1) { "
+      "fn current(): int { return i; } sum = sum + current(); } return sum; } "
       "return churn();");
   auto closureGcLexed = kyna::tokenize(*sources.find(closureGcSource));
   auto closureGcParsed =
@@ -350,7 +350,7 @@ int main() {
   assert(closureGcResult.heapStats.collections > 0);
   assert(closureGcResult.heapStats.reclaimed > 0);
 
-  const auto nonCallableSource = sources.add("non-callable", "set value = 42; return value();");
+  const auto nonCallableSource = sources.add("non-callable", "const value = 42; return value();");
   auto nonCallableLexed = kyna::tokenize(*sources.find(nonCallableSource));
   auto nonCallableParsed =
       kyna::parseModule(*sources.find(nonCallableSource), std::move(nonCallableLexed.tokens));
@@ -367,8 +367,8 @@ int main() {
 
   const auto indirectAritySource = sources.add(
       "indirect-arity",
-      "func add(left: int, right: int): int { return left + right; } "
-      "set selected = add; return selected(1);");
+      "fn add(left: int, right: int): int { return left + right; } "
+      "const selected = add; return selected(1);");
   auto indirectArityLexed = kyna::tokenize(*sources.find(indirectAritySource));
   auto indirectArityParsed = kyna::parseModule(*sources.find(indirectAritySource),
                                                 std::move(indirectArityLexed.tokens));
@@ -386,7 +386,7 @@ int main() {
 
   const auto exceptionSource = sources.add(
       "bytecode-exceptions",
-      "let marker = 0; try { throw \"boom\"; } catch (failure) { marker = 40; } "
+      "var marker = 0; try { throw \"boom\"; } catch (failure) { marker = 40; } "
       "finally { marker = marker + 2; } return marker;");
   auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
   auto exceptionParsed =
@@ -407,7 +407,7 @@ int main() {
 
   const auto crossFrameSource = sources.add(
       "cross-frame-exceptions",
-      "func fail(): void { throw \"cross-frame\"; } "
+      "fn fail(): void { throw \"cross-frame\"; } "
       "try { fail(); return 0; } catch (failure) { return 42; }");
   auto crossFrameLexed = kyna::tokenize(*sources.find(crossFrameSource));
   auto crossFrameParsed =
@@ -425,7 +425,7 @@ int main() {
 
   const auto uncaughtSource = sources.add(
       "uncaught-exception",
-      "func fail(): void { throw \"uncaught\"; } fail();");
+      "fn fail(): void { throw \"uncaught\"; } fail();");
   auto uncaughtLexed = kyna::tokenize(*sources.find(uncaughtSource));
   auto uncaughtParsed =
       kyna::parseModule(*sources.find(uncaughtSource), std::move(uncaughtLexed.tokens));
@@ -442,7 +442,7 @@ int main() {
 
   const auto caughtRuntimeSource = sources.add(
       "caught-runtime-error",
-      "try { set impossible = 1 / 0; return 0; } "
+      "try { const impossible = 1 / 0; return 0; } "
       "catch (failure) { return 42; }");
   auto caughtRuntimeLexed = kyna::tokenize(*sources.find(caughtRuntimeSource));
   auto caughtRuntimeParsed = kyna::parseModule(*sources.find(caughtRuntimeSource),
@@ -461,7 +461,7 @@ int main() {
 
   const auto inspectedErrorSource = sources.add(
       "inspected-error",
-      "try { set impossible = 1 / 0; return \"missed\"; } "
+      "try { const impossible = 1 / 0; return \"missed\"; } "
       "catch (failure) { return failure.code + \"::\" + failure.message; }");
   auto inspectedErrorLexed = kyna::tokenize(*sources.find(inspectedErrorSource));
   auto inspectedErrorParsed = kyna::parseModule(*sources.find(inspectedErrorSource),
@@ -511,7 +511,7 @@ int main() {
 
   const auto collectionLiteralSource = sources.add(
       "collection-literals",
-      "set values = [20, 22]; set record = { answer: values[0] + values[1] }; "
+      "const values = [20, 22]; const record = { answer: values[0] + values[1] }; "
       "return record.answer;");
   auto collectionLiteralLexed = kyna::tokenize(*sources.find(collectionLiteralSource));
   auto collectionLiteralParsed = kyna::parseModule(*sources.find(collectionLiteralSource),
@@ -535,7 +535,7 @@ int main() {
 
   const auto collectionMutationSource = sources.add(
       "collection-mutation",
-      "let values = [1]; values[0] = 40; let record = { answer: 0 }; "
+      "var values = [1]; values[0] = 40; var record = { answer: 0 }; "
       "record.answer = values[0] + 2; return record[\"answer\"];");
   auto collectionMutationLexed = kyna::tokenize(*sources.find(collectionMutationSource));
   auto collectionMutationParsed = kyna::parseModule(*sources.find(collectionMutationSource),

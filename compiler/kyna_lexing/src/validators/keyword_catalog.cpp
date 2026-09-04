@@ -3,9 +3,14 @@
 
 namespace kyna {
 TokenKind keywordKind(const std::string &word) {
-  static const std::map<std::string, TokenKind> keywords = {{"let", TokenKind::Let},
-                                                            {"set", TokenKind::Set},
-                                                            {"func", TokenKind::Func},
+  static const std::map<std::string, TokenKind> keywords = {{"var", TokenKind::Var},
+                                                            {"const", TokenKind::Const},
+                                                            {"fn", TokenKind::Fn},
+                                                            // Legacy aliases reserved for
+                                                            // backward compatibility.
+                                                            {"let", TokenKind::Var},
+                                                            {"set", TokenKind::Const},
+                                                            {"func", TokenKind::Fn},
                                                             {"return", TokenKind::Return},
                                                             {"if", TokenKind::If},
                                                             {"else", TokenKind::Else},
@@ -13,6 +18,9 @@ TokenKind keywordKind(const std::string &word) {
                                                             {"loop", TokenKind::Loop},
                                                             {"break", TokenKind::Break},
                                                             {"continue", TokenKind::Continue},
+                                                            {"switch", TokenKind::Switch},
+                                                            {"case", TokenKind::Case},
+                                                            {"await", TokenKind::Await},
                                                             {"match", TokenKind::Match},
                                                             {"try", TokenKind::Try},
                                                             {"catch", TokenKind::Catch},

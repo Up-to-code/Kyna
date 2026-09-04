@@ -11,7 +11,7 @@ std::string statementKind(const Stmt &statement) {
         if constexpr (std::is_same_v<T, ImportDecl>)
           return "import";
         if constexpr (std::is_same_v<T, VarDecl>)
-          return node.mutableBinding ? "let" : "set";
+          return node.mutableBinding ? "var" : "const";
         if constexpr (std::is_same_v<T, FunctionDecl>)
           return "function";
         if constexpr (std::is_same_v<T, ClassDecl>)
@@ -26,6 +26,8 @@ std::string statementKind(const Stmt &statement) {
           return "while";
         if constexpr (std::is_same_v<T, LoopStmt>)
           return "loop";
+        if constexpr (std::is_same_v<T, SwitchStmt>)
+          return "switch";
         if constexpr (std::is_same_v<T, ReturnStmt>)
           return "return";
         if constexpr (std::is_same_v<T, ThrowStmt>)

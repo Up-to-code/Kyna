@@ -1,0 +1,4 @@
+# Structured backend logging (JSON lines). Prefer this over print for services.
+slogInfo("ready", { service: "kyna" });
+slogWarn("slow");
+slogError("failed", { code: "KNET" });

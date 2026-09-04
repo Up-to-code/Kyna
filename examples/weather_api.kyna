@@ -1,16 +1,16 @@
 # Live HTTPS and JSON smoke test using Open-Meteo (no API key required).
-func main(): void {
+fn main(): void {
     try {
-        set endpoint = "https://api.open-meteo.com/v1/forecast?latitude=30.0444&longitude=31.2357&current=temperature_2m,wind_speed_10m";
-        set response = fetch(endpoint, { timeout: 15000 });
-        set weather = response.json();
+        const endpoint = "https://api.open-meteo.com/v1/forecast?latitude=30.0444&longitude=31.2357&current=temperature_2m,wind_speed_10m";
+        const response = fetch(endpoint, { timeout: 15000 });
+        const weather = response.json();
 
         console.log("Open-Meteo", response.status, weather.timezone);
         console.log("temperature", weather.current.temperature_2m, "wind", weather.current.wind_speed_10m);
 
         createDirectory("weather-output");
         writeJsonFile("weather-output/current.json", weather);
-        set saved = readJsonFile("weather-output/current.json");
+        const saved = readJsonFile("weather-output/current.json");
         console.log("saved", saved.current.time);
     } catch (message) {
         console.log("Weather API request failed", message);

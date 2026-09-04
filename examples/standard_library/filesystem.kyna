@@ -1,16 +1,16 @@
 # Filesystem and JSON-file operations. Run from a disposable working directory.
-set directory = "kyna-filesystem-example";
-set textPath = directory + "/message.txt";
-set jsonPath = directory + "/metadata.json";
+const directory = "kyna-filesystem-example";
+const textPath = directory + "/message.txt";
+const jsonPath = directory + "/metadata.json";
 
 try {
     createDirectory(directory);
     writeFile(textPath, "Hello filesystem");
     writeJsonFile(jsonPath, { language: "Kyna", version: 1 });
 
-    set message = readFile(textPath);
-    set metadata = readJsonFile(jsonPath);
-    set entries = listDirectory(directory);
+    const message = readFile(textPath);
+    const metadata = readJsonFile(jsonPath);
+    const entries = listDirectory(directory);
     print("files", message, metadata.language, fileExists(textPath), len(entries));
 
     removePath(textPath);

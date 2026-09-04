@@ -1,5 +1,5 @@
-set status = 201;
-set meaning = match (status) {
+const status = 201;
+const meaning = match (status) {
     200 => "ok";
     201 => "created";
     404 => "missing";

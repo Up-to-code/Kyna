@@ -1,6 +1,6 @@
-# set cannot be reassigned. let is mutable but remains type-checked.
-set fixed = 10;
-let changing: int = 10;
+# const cannot be reassigned. var is mutable but remains type-checked.
+const fixed = 10;
+var changing: int = 10;
 changing = changing + 5;
 
 # Uncommenting `fixed = 20;` produces an immutable-binding diagnostic.

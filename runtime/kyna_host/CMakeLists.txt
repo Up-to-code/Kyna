@@ -8,6 +8,8 @@ kyna_add_module(kyna_host SOURCES
   src/capabilities/beast_http_server.cpp
   src/capabilities/curl_network.cpp
   src/capabilities/runtime_capabilities.cpp
+  src/capabilities/file_stream.cpp
+  src/capabilities/context.cpp
   src/database/unavailable_database.cpp
   src/database/postgres_database.cpp
   src/database/database_port.cpp

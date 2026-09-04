@@ -45,20 +45,29 @@ def main() -> int:
                 return
             captured.extend(chunk)
 
-    def send(data: bytes) -> None:
+    def send(data: bytes, settle: float = 0.55) -> None:
         # Each accepted line tears down one FTXUI app and starts the next. Give
         # the new raw-terminal reader time to take ownership before typing.
-        time.sleep(0.3)
+        time.sleep(settle)
         os.write(terminal, data)
-        drain(0.7)
+        drain(0.9)
+
+    def wait_exited(timeout: float):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            drain(0.1)
+            completed, candidate = os.waitpid(pid, os.WNOHANG)
+            if completed == pid:
+                return candidate
+        return None
 
     try:
-        drain(0.5)
+        drain(0.8)
         send(b"let total: int = 40\r")
         send(b"total = total + 2\r")
-        send(b"print(totl)")
-        send(b"\x1b[D\x1b[D")  # Move before the final 'l'.
-        send(b"a\r")             # Correct totl -> total and execute.
+        send(b"print(totl)", settle=0.4)
+        send(b"\x1b[D\x1b[D", settle=0.2)  # Move before the final 'l'.
+        send(b"a\r", settle=0.2)           # Correct totl -> total and execute.
         send(b"\x1b[A\r")       # Recall the corrected command and execute again.
         send(
             b"set pasted_fixed = 10;\n"
@@ -68,16 +77,19 @@ def main() -> int:
             b'print("pasted block", pasted_fixed, pasted_changing);\n'
         )
         send(b":pro\t\r")       # Complete :project and print workspace context.
-        send(b"\x04")            # Ctrl-D exits from an empty input.
-
-        deadline = time.monotonic() + 5
+        # macOS CI often delivers Ctrl-D while FTXUI is still leaving cooked
+        # mode / querying the terminal, which turns EOT into stdin EOF instead
+        # of Event::CtrlD. Wait for the next prompt, then retry.
+        drain(1.5)
         status = None
-        while time.monotonic() < deadline:
-            drain(0.1)
-            completed, candidate = os.waitpid(pid, os.WNOHANG)
-            if completed == pid:
-                status = candidate
+        for _ in range(5):
+            os.write(terminal, b"\x04")
+            status = wait_exited(0.7)
+            if status is not None:
                 break
+        if status is None:
+            os.write(terminal, b":quit\r")
+            status = wait_exited(3)
         if status is None:
             os.kill(pid, signal.SIGTERM)
             os.waitpid(pid, 0)

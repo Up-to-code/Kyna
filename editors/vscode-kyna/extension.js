@@ -11,9 +11,9 @@ let missingExecutableReported = false;
 let inspectionOutput;
 
 const wordCompletions = [
-  ['let', vscode.CompletionItemKind.Keyword, 'Mutable, type-locked binding', 'let ${1:name} = ${0:value};'],
-  ['set', vscode.CompletionItemKind.Keyword, 'Immutable binding', 'set ${1:name} = ${0:value};'],
-  ['func', vscode.CompletionItemKind.Keyword, 'Function declaration', 'func ${1:name}(${2:arg}: ${3:type}): ${4:void} {\n\t$0\n}'],
+  ['var', vscode.CompletionItemKind.Keyword, 'Mutable, type-locked binding', 'var ${1:name} = ${0:value};'],
+  ['const', vscode.CompletionItemKind.Keyword, 'Immutable binding', 'const ${1:name} = ${0:value};'],
+  ['fn', vscode.CompletionItemKind.Keyword, 'Function declaration', 'fn ${1:name}(${2:arg}: ${3:type}): ${4:void} {\n\t$0\n}'],
   ['class', vscode.CompletionItemKind.Class, 'Class declaration', 'class ${1:Name} {\n\t$0\n}'],
   ['intf', vscode.CompletionItemKind.Interface, 'Interface declaration (extends/generics/optional props)', 'intf ${1:Name}${2:<T>}${3: extends ${4:Parent}} {\n\t${5:prop}: ${6:type};\n\t$0\n}'],
   ['import', vscode.CompletionItemKind.Keyword, 'Namespace import', 'import * as ${2:module} from "${1:./module.kyna}";'],
@@ -28,7 +28,11 @@ const wordCompletions = [
   ['else', vscode.CompletionItemKind.Keyword, 'Alternative branch'],
   ['break', vscode.CompletionItemKind.Keyword, 'Exit the current or named loop', 'break${1:};'],
   ['continue', vscode.CompletionItemKind.Keyword, 'Continue the current or named loop', 'continue${1:};'],
-  ['loop', vscode.CompletionItemKind.Keyword, 'C-style loop', 'loop (let ${1:i} = 0; ${1:i} < ${2:count}; ${1:i} = ${1:i} + 1) {\n\t$0\n}'],
+  ['loop', vscode.CompletionItemKind.Keyword, 'C-style loop', 'loop (var ${1:i} = 0; ${1:i} < ${2:count}; ${1:i} = ${1:i} + 1) {\n\t$0\n}'],
+  ['switch', vscode.CompletionItemKind.Keyword, 'Switch on a value', 'switch (${1:value}) {\n\tcase ${2:case}: {\n\t\t$0\n\t}\n\tdefault: {\n\t}\n}'],
+  ['case', vscode.CompletionItemKind.Keyword, 'Switch case arm'],
+  ['default', vscode.CompletionItemKind.Keyword, 'Fallback switch arm'],
+  ['await', vscode.CompletionItemKind.Keyword, 'Wait for an async result', 'await ${0:expression}'],
   ['match', vscode.CompletionItemKind.Keyword, 'Match expression', 'match (${1:value}) {\n\t${2:pattern} => ${3:result};\n\t_ => ${0:fallback};\n}'],
   ['try', vscode.CompletionItemKind.Keyword, 'Handle a typed Error', 'try {\n\t$1\n} catch (${2:error}) {\n\t$3\n} finally {\n\t$0\n}'],
   ['catch', vscode.CompletionItemKind.Keyword, 'Catch a typed Error value'],
@@ -257,7 +261,11 @@ function validate(document, collection) {
   process.on('close', () => {
     if (validationProcesses.get(key) !== process) return;
     validationProcesses.delete(key);
-    if (document.isClosed || document.version !== documentVersion) return;
+    if (document.isClosed) return;
+    if (document.version !== documentVersion) {
+      scheduleValidation(document, collection);
+      return;
+    }
     const schemaStart = output.indexOf('{"schema":"kyna.diagnostic/v1"');
     const legacyStart = output.indexOf('{"version"');
     const jsonStart = schemaStart >= 0 ? schemaStart : legacyStart;
@@ -278,18 +286,21 @@ function validate(document, collection) {
 function scheduleValidation(document, collection) {
   const key = document.uri.toString();
   clearTimeout(validationTimers.get(key));
-  validationTimers.set(key, setTimeout(() => validate(document, collection), 250));
+  validationTimers.set(key, setTimeout(() => validate(document, collection), 200));
 }
 
 function declaredSymbols(text) {
   const symbols = [];
-  const expression = /\b(class|intf|func|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+  const expression = /\b(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
   for (const match of text.matchAll(expression)) {
     const kinds = {
       class: vscode.CompletionItemKind.Class,
       intf: vscode.CompletionItemKind.Interface,
+      fn: vscode.CompletionItemKind.Function,
       func: vscode.CompletionItemKind.Function,
+      var: vscode.CompletionItemKind.Variable,
       let: vscode.CompletionItemKind.Variable,
+      const: vscode.CompletionItemKind.Constant,
       set: vscode.CompletionItemKind.Constant
     };
     symbols.push([match[2], kinds[match[1]], `Declared ${match[1]}`]);
@@ -326,7 +337,7 @@ async function importedMemberCompletions(document, position) {
   const source = document.getText();
   const escapedReceiver = receiver.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const serverBinding = new RegExp(
-    `\\b(?:let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:http\\.server|[A-Za-z_][A-Za-z0-9_]*\\.createApp)\\s*\\(`
+    `\\b(?:var|const|let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:http\\.server|[A-Za-z_][A-Za-z0-9_]*\\.createApp)\\s*\\(`
   );
   if (serverBinding.test(source))
     return ['get', 'post', 'put', 'patch', 'delete', 'use', 'listen'].map(name =>
@@ -337,14 +348,14 @@ async function importedMemberCompletions(document, position) {
       name, vscode.CompletionItemKind.Method, `Kyna ${receiver} operation`
     ]));
   const responseBinding = new RegExp(
-    `\\b(?:let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:fetch|http\\.fetch)\\s*\\(`
+    `\\b(?:var|const|let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:fetch|http\\.fetch)\\s*\\(`
   );
   if (responseBinding.test(source))
     return ['ok', 'status', 'url', 'method', 'headers', 'text', 'json'].map(name =>
       completionItem([name, vscode.CompletionItemKind.Property, 'Kyna HTTP response member'])
     );
   const resultBinding = new RegExp(
-    `\\b(?:let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:fetchResult|http\\.tryFetch)\\s*\\(`
+    `\\b(?:var|const|let|set)\\s+${escapedReceiver}(?:\\s*:[^=;]+)?\\s*=\\s*(?:fetchResult|http\\.tryFetch)\\s*\\(`
   );
   if (resultBinding.test(source))
     return ['ok', 'response', 'error'].map(name =>
@@ -356,9 +367,9 @@ async function importedMemberCompletions(document, position) {
     const uri = vscode.Uri.file(path.resolve(path.dirname(document.fileName), declaration[1]));
     const text = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
     const exports = [];
-    const expression = /\bexport\s+(?:public\s+)?(class|intf|func|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    const expression = /\bexport\s+(?:public\s+)?(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
     for (const match of text.matchAll(expression))
-      exports.push(completionItem([match[2], match[1] === 'func' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Field, `Exported ${match[1]} from ${declaration[1]}`]));
+      exports.push(completionItem([match[2], match[1] === 'fn' || match[1] === 'func' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Field, `Exported ${match[1]} from ${declaration[1]}`]));
     return exports;
   } catch (_) {
     return [];
@@ -377,7 +388,7 @@ const completionProvider = {
 
 function declarationAt(document, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const expression = new RegExp(`\\b(?:class|intf|func|let|set)\\s+${escaped}\\b`);
+  const expression = new RegExp(`\\b(?:class|intf|fn|func|var|const|let|set)\\s+${escaped}\\b`);
   for (let line = 0; line < document.lineCount; line += 1) {
     const match = document.lineAt(line).text.match(expression);
     if (match) {
@@ -415,30 +426,120 @@ const definitionProvider = {
   }
 };
 
+const kynaKeywords = new Set(wordCompletions.map(([word]) => word));
+
+function captureDocumentation(lines, index) {
+  const docs = [];
+  for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+    const trimmed = lines[cursor].trim();
+    if (trimmed === '') continue;
+    const comment = trimmed.match(/^#\s?(.*)$/);
+    if (!comment) break;
+    docs.unshift(comment[1]);
+  }
+  return docs.join('\n\n');
+}
+
+function collectDeclarations(text) {
+  const declarations = new Map();
+  const lines = text.split('\n');
+  const modifiers = '(?:export\\s+|public\\s+|private\\s+|protected\\s+|static\\s+|override\\s+|final\\s+|abstract\\s+)*';
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    const declaration = line.match(
+      new RegExp(`^${modifiers}(class|intf|fn|func|var|const|let|set)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(.*)$`)
+    );
+    if (declaration) {
+      const [, kind, name, rest] = declaration;
+      let label, signature;
+      if (kind === 'class' || kind === 'intf') {
+        label = kind === 'class' ? 'class' : 'interface';
+        const parent = rest.match(/extends\s+([A-Za-z_][A-Za-z0-9_]*)/);
+        signature = `${kind} ${name}${parent ? ` extends ${parent[1]}` : ''}`;
+      } else if (kind === 'fn' || kind === 'func') {
+        label = 'function';
+        const params = rest.match(/^\s*\(([^)]*)\)/);
+        const tail = params ? rest.slice(params.index + params[0].length) : rest;
+        const returns = tail.match(/^\s*:\s*([^;{]+)/);
+        signature = `fn ${name}(${params ? params[1].trim() : ''})`
+          + (returns ? ` → ${returns[1].trim()}` : '');
+      } else {
+        label = kind;
+        const type = rest.match(/:\s*([^=;]+)/);
+        signature = name + (type ? ` : ${type[1].trim()}` : '');
+      }
+      declarations.set(name, {
+        label,
+        signature,
+        line: index + 1,
+        doc: captureDocumentation(lines, index)
+      });
+      continue;
+    }
+    const field = line.match(
+      new RegExp(`^${modifiers}([A-Za-z_][A-Za-z0-9_]*)\\s*:\\s*([^;={}]+)\\s*(=.*)?;`)
+    );
+    if (field && !kynaKeywords.has(field[1])) {
+      const [, name, type] = field;
+      declarations.set(name, {
+        label: 'field',
+        signature: `${name} : ${type.trim()}`,
+        line: index + 1,
+        doc: captureDocumentation(lines, index)
+      });
+      continue;
+    }
+    const method = line.match(
+      new RegExp(`^${modifiers}([A-Za-z_][A-Za-z0-9_]*)\\s*\\(([^)]*)\\)\\s*(?::\\s*([^;{]+))?\\s*(?:;|\\{)`)
+    );
+    if (method && !kynaKeywords.has(method[1])) {
+      const [, name, params, returns] = method;
+      declarations.set(name, {
+        label: name === 'init' ? 'constructor' : 'method',
+        signature: `${name}(${params.trim()})` + (returns ? ` → ${returns.trim()}` : ''),
+        line: index + 1,
+        doc: captureDocumentation(lines, index)
+      });
+    }
+  }
+  return declarations;
+}
+
 const hoverDetails = new Map(wordCompletions.map(([word, , detail]) => [word, detail]));
 const hoverProvider = {
   provideHover(document, position) {
     const range = document.getWordRangeAtPosition(position);
     if (!range) return undefined;
     const word = document.getText(range);
+    const fields = collectDeclarations(document.getText()).get(word);
+    if (fields) {
+      const markdown = new vscode.MarkdownString();
+      markdown.appendMarkdown(`**\`${fields.signature}\`** — *${fields.label}*\n\n`);
+      markdown.appendMarkdown(`**declared at line ${fields.line}**\n\n`);
+      if (fields.doc) markdown.appendMarkdown(`${fields.doc}\n\n`);
+      return new vscode.Hover(markdown, range);
+    }
     const detail = hoverDetails.get(word);
-    if (!detail) return undefined;
-    return new vscode.Hover(new vscode.MarkdownString(`**${word}** — ${detail}`), range);
+    if (detail) return new vscode.Hover(new vscode.MarkdownString(`**${word}** — ${detail}`), range);
+    return undefined;
   }
 };
 
 const symbolProvider = {
   provideDocumentSymbols(document) {
     const symbols = [];
-    const expression = /\b(class|intf|func|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    const expression = /\b(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
     for (let line = 0; line < document.lineCount; line += 1) {
       const text = document.lineAt(line).text;
       for (const match of text.matchAll(expression)) {
         const kinds = {
           class: vscode.SymbolKind.Class,
           intf: vscode.SymbolKind.Interface,
+          fn: vscode.SymbolKind.Function,
           func: vscode.SymbolKind.Function,
+          var: vscode.SymbolKind.Variable,
           let: vscode.SymbolKind.Variable,
+          const: vscode.SymbolKind.Constant,
           set: vscode.SymbolKind.Constant
         };
         const start = new vscode.Position(line, match.index);
@@ -963,7 +1064,10 @@ function activate(context) {
       validationProcesses.delete(key);
       diagnostics.delete(document.uri);
     }),
-    vscode.window.onDidChangeActiveTextEditor(updateButton),
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      updateButton(editor);
+      if (editor) scheduleValidation(editor.document, diagnostics);
+    }),
     manifestWatcher.onDidCreate(() => projectProvider.refresh()),
     manifestWatcher.onDidChange(() => projectProvider.refresh()),
     manifestWatcher.onDidDelete(() => projectProvider.refresh()),

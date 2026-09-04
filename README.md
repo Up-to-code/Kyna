@@ -31,7 +31,7 @@ Windows: `irm https://github.com/Up-to-code/Kyna/releases/latest/download/instal
 
 ## Why
 
-- Familiar syntax: `let` / `set`, functions, classes, modules, `match`
+- Familiar syntax: `var` / `const`, functions, classes, modules, `match`
 - Types that stay out of the way, and `?` when something can be null
 - Inspect the compiler: tokens → AST → HIR → MIR → bytecode
 - `ky new`, `ky check`, `ky fmt`, `ky dev` for scripts and HTTP backends
@@ -40,14 +40,14 @@ Windows: `irm https://github.com/Up-to-code/Kyna/releases/latest/download/instal
 ## Language
 
 ```kyna
-func greet(name: str): str {
+fn greet(name: str): str {
     return "Hello " + name;
 }
 
-let visits: int = 1;
+var visits: int = 1;  # mutable, with a locked type
 visits = visits + 1;
 
-set audience = if (visits > 1) {
+const audience = if (visits > 1) {  # immutable
     "returning visitor"
 } else {
     "new visitor"
@@ -56,14 +56,20 @@ set audience = if (visits > 1) {
 console.log(greet("Kyna"), audience);
 ```
 
-`let` is mutable. `set` is not. Types are non-nullable unless you write `str?`.
+Kyna uses `var` for mutable bindings and `const` for immutable bindings; the legacy spellings `let`, `set`, and `func` remain accepted as aliases. Types are inferred when safe, can be written explicitly, and are non-nullable by default. Add `?` when a value may be `null`:
+
+```kyna
+var nickname: str? = null;
+```
+
+Modules expose only explicitly exported declarations:
 
 ```kyna
 import "./math.kyna" as math;
 console.log(math.add(20, 22));
 ```
 
-More in [`examples/`](examples/) and the [language spec](docs/language-spec.md).
+The language also supports first-class functions, mutable and transitive lexical captures, recursion, single inheritance, structural interfaces, exhaustive `match`, `switch`/`case` arms, `await` expressions, and typed `try`/`catch`/`finally`. Browse the runnable [`examples/language/`](examples/language/) programs (start with `syntax_overview.kyna`) or read the complete [language specification](docs/language-spec.md).
 
 ## `ky`
 

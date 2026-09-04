@@ -1,4 +1,4 @@
 # The host injects environment access. Missing variables produce null.
-set value: str? = process.env("KYNA_LEARNING_VALUE");
-set missing: str? = process.env("KYNA_LEARNING_MISSING_91F4");
+const value: str? = process.env("KYNA_LEARNING_VALUE");
+const missing: str? = process.env("KYNA_LEARNING_MISSING_91F4");
 print("environment", value, missing == null);

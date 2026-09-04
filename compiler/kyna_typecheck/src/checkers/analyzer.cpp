@@ -1,6 +1,10 @@
-#include "kyna/semantics/program_analyzer.hpp"
-#include "kyna/semantics/modifier_query.hpp"
-#include "kyna/symbols/standard_library_symbols.hpp"
+#include <kyna/semantics/program_analyzer.hpp>
+#include <kyna/semantics/modifier_query.hpp>
+#include <kyna/symbols/standard_library_symbols.hpp>
+#include <kyna/types/type_bridge.hpp>
+#include <kyna/types/type_bridge.hpp>
+#include <kyna/types/signature_type.hpp>
+#include <kyna/types/basic_type.hpp>
 #include <algorithm>
 #include <map>
 #include <set>
@@ -22,33 +26,30 @@ Analyzer::Scope *Analyzer::bindingScope(const std::string &n) const {
 }
 bool Analyzer::defined(const std::string &n) const {
   return bindingScope(n) != nullptr || functions.contains(n) || classes.contains(n) ||
-         findStandardLibrarySymbol(n) != nullptr;
+         findStandardLibrarySymbol(n) != nullptr ||
+         (lexical && lexical->lookup(n) != nullptr);
+}
+void Analyzer::bindLexical(const std::string &name, const TypeRef &type, bool mutableBinding,
+                           SourceLocation location, bool exported) {
+  if (!lexical)
+    return;
+  lexical->insert(std::make_shared<semantics::VarSymbol>(name, types::typeFromRef(type),
+                                                         mutableBinding, location, exported));
 }
 bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
-  if (e.name == "any" || a.name == "any")
-    return true;
-  if (a.name == "null")
-    return e.nullable || e.name == "null" ||
-           std::any_of(e.unionTypes.begin(), e.unionTypes.end(),
-                       [](const auto &x) { return x.name == "null"; });
-  if (e.name == "num" && (a.name == "int" || a.name == "float"))
-    return true;
   if (const auto *contract = interfaces.find(e.name); contract && classes.contains(a.name)) {
     std::vector<std::string> stack;
     return classConforms(classes[a.name], effectiveContract(*contract, stack), e, {});
   }
-  if (e.name == a.name && (!a.nullable || e.nullable || e.name == "null")) {
-    if (e.typeArgs.size() != a.typeArgs.size())
-      return false;
+  if (!e.typeArgs.empty() || !a.typeArgs.empty()) {
+    if (e.name != a.name || e.typeArgs.size() != a.typeArgs.size())
+      return e.name == "any" || a.name == "any";
     for (std::size_t index = 0; index < e.typeArgs.size(); ++index)
       if (!compatible(e.typeArgs[index], a.typeArgs[index]))
         return false;
-    return true;
+    return !a.nullable || e.nullable || e.name == "null";
   }
-  for (auto &u : e.unionTypes)
-    if (compatible(u, a))
-      return true;
-  return false;
+  return types::isAssignable(types::typeFromRef(a), types::typeFromRef(e));
 }
 TypeRef Analyzer::merge(const TypeRef &a, const TypeRef &b) {
   if (compatible(a, b))
@@ -62,13 +63,19 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
   errors.clear();
   if (!interactive || !scope) {
     scope = std::make_shared<Scope>();
+    lexicalRoot = std::make_unique<semantics::Scope>();
+    lexical = lexicalRoot.get();
     for (const auto &[name, type] : externalBindings) {
       scope->types[name] = type;
       scope->mutableBindings[name] = false;
+      bindLexical(name, type, false, {}, false);
     }
     functions.clear();
     classes.clear();
     interfaces.clear();
+  } else if (!lexicalRoot) {
+    lexicalRoot = std::make_unique<semantics::Scope>();
+    lexical = lexicalRoot.get();
   }
   const auto previousTypes = scope->types;
   const auto previousMutability = scope->mutableBindings;
@@ -92,8 +99,20 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
           interfaces.find(f->name))
         error("top-level declaration '" + f->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
-      else
+      else {
         functions[f->name] = *f;
+        if (lexical) {
+          std::vector<types::TypePtr> params;
+          for (const auto &param : f->params)
+            params.push_back(types::typeFromRef(param.type));
+          types::TypePtr returnType = types::Universe::Any();
+          if (f->hasReturnType)
+            returnType = types::typeFromRef(f->returnType);
+          const auto *signature = types::SignatureType::make(std::move(params), returnType);
+          lexical->insert(std::make_shared<semantics::FuncSymbol>(f->name, signature, s->location,
+                                                                  f->exported));
+        }
+      }
     }
     if (auto c = std::get_if<ClassDecl>(&s->node)) {
       if (!declarations.insert(c->name).second || functions.contains(c->name) ||
@@ -101,8 +120,12 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
           interfaces.find(c->name))
         error("top-level declaration '" + c->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
-      else
+      else {
         classes[c->name] = *c;
+        if (lexical)
+          lexical->insert(
+              std::make_shared<semantics::ClassSymbol>(c->name, s->location, c->exported));
+      }
     }
     if (auto i = std::get_if<InterfaceDecl>(&s->node)) {
       if (!declarations.insert(i->name).second || functions.contains(i->name) ||
@@ -110,6 +133,21 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
           interfaces.find(i->name) || !interfaces.declareInterface(*i))
         error("top-level declaration '" + i->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
+    }
+  }
+  for (const auto &[name, klass] : classes) {
+    std::set<std::string> seen{name};
+    auto cursor = klass.parent;
+    while (!cursor.empty()) {
+      if (!seen.insert(cursor).second) {
+        error("class inheritance cycle involving '" + name + "'", {}, "KSEM1043",
+              "break the parent chain so each class appears once");
+        break;
+      }
+      auto found = classes.find(cursor);
+      if (found == classes.end())
+        break;
+      cursor = found->second.parent;
     }
   }
   for (auto &s : p)

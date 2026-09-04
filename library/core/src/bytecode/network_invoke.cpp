@@ -1,5 +1,6 @@
 #include "bytecode_private.hpp"
 #include "../codecs/json/json_value_codec.hpp"
+#include "../catalog/network/parse_ipv4.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -22,6 +23,14 @@ std::optional<NativeCallResult> networkBytecodeInvoke(
                                              ": " + networkFailure.message,
                              arguments[0]);
     return NativeCallResult{RuntimeValue(std::move(response->body)), std::nullopt};
+  }
+  if (name == "parseIP") {
+    if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+      return bytecodeFailure("KNET2010", "parseIP expects an address string");
+    const auto parsed = parseIPv4(std::get<std::string>(arguments[0].data));
+    if (!parsed)
+      return NativeCallResult{};
+    return NativeCallResult{RuntimeValue(*parsed), std::nullopt};
   }
   if (name == "fetchResult") {
     auto fetched = networkBytecodeInvoke("fetch", arguments, ctx);

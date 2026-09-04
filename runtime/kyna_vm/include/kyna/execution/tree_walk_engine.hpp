@@ -32,6 +32,7 @@ private:
   std::vector<std::shared_ptr<Environment>> moduleRoots;
   RuntimeCapabilities capabilities;
   int loopDepth{0};
+  int switchDepth{0};
   struct Flow {
     enum Kind { None, Return, Break, Continue };
     Kind kind{None};

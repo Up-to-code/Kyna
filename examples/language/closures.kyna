@@ -1,22 +1,22 @@
 # Nested functions capture lexical bindings by cell.
-func makeAdder(base: int): any {
-    func add(value: int): int {
+fn makeAdder(base: int): any {
+    fn add(value: int): int {
         return base + value;
     }
     return add;
 }
 
-func makeCounter(start: int): any {
-    let value = start;
-    func next(): int {
+fn makeCounter(start: int): any {
+    var value = start;
+    fn next(): int {
         value = value + 1;
         return value;
     }
     return next;
 }
 
-func makeFactorial(): any {
-    func factorial(value: int): int {
+fn makeFactorial(): any {
+    fn factorial(value: int): int {
         if (value <= 1) {
             return 1;
         }
@@ -25,9 +25,9 @@ func makeFactorial(): any {
     return factorial;
 }
 
-func makeNestedAdder(base: int): any {
-    func middle(): any {
-        func inner(value: int): int {
+fn makeNestedAdder(base: int): any {
+    fn middle(): any {
+        fn inner(value: int): int {
             return base + value;
         }
         return inner;
@@ -35,18 +35,19 @@ func makeNestedAdder(base: int): any {
     return middle();
 }
 
-set addForty = makeAdder(40);
-set firstCounter = makeCounter(0);
-set secondCounter = makeCounter(10);
-set factorial = makeFactorial();
-set nestedAdder = makeNestedAdder(40);
+const addForty = makeAdder(40);
+const firstCounter = makeCounter(0);
+const secondCounter = makeCounter(10);
+const factorial = makeFactorial();
+const nestedAdder = makeNestedAdder(40);
 
-set firstValue = firstCounter();
-set secondValue = firstCounter();
-set independentValue = secondCounter();
+const firstValue = firstCounter();
+const secondValue = firstCounter();
+const independentValue = secondCounter();
 
 print("addForty", addForty(2));
 print("firstCounter", firstValue, secondValue);
 print("secondCounter", independentValue);
 print("factorial", factorial(5));
 print("nestedAdder", nestedAdder(2));
+ 

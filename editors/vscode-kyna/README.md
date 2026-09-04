@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <code>v1.0.12</code>&nbsp;&nbsp;
+  <code>v1.0.15</code>&nbsp;&nbsp;
   <code>VS Code 1.85+</code>&nbsp;&nbsp;
   <code>.kyna</code>&nbsp;&nbsp;
   <code>MIT</code>
@@ -84,7 +84,7 @@ You can also package and install the VSIX manually:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyna/kyna-language-support-1.0.12.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-1.0.15.vsix --force
 ```
 
 ### Start coding
@@ -92,14 +92,14 @@ code --install-extension editors/vscode-kyna/kyna-language-support-1.0.12.vsix -
 Open or create a `.kyna` file:
 
 ```kyna
-func greet(name: str): str {
+fn greet(name: str): str {
     return "Hello " + name;
 }
 
-let visits: int = 1;
+var visits: int = 1;
 visits = visits + 1;
 
-set audience = if (visits > 1) {
+const audience = if (visits > 1) {
     "returning visitor"
 } else {
     "new visitor"

@@ -1,34 +1,34 @@
 # Read present and missing environment variables, then create, read, edit,
 # verify, list, and remove text and JSON files. Run from a disposable directory.
-set environmentValue: str? = process.env("KYNA_TEST_ENV");
-set missingValue: str? = processEnv("KYNA_TEST_MISSING_7D3A91");
+const environmentValue: str? = process.env("KYNA_TEST_ENV");
+const missingValue: str? = processEnv("KYNA_TEST_MISSING_7D3A91");
 
 if (environmentValue != "checkpoint-value" || missingValue != null) {
     error("environment checkpoint failed");
 }
 
-set directory = "kyna-env-file-checkpoint";
-set textPath = directory + "/message.txt";
-set jsonPath = directory + "/settings.json";
+const directory = "kyna-env-file-checkpoint";
+const textPath = directory + "/message.txt";
+const jsonPath = directory + "/settings.json";
 
 try {
     fs.createDirectory(directory);
 
     # writeFile/fs.write replace the complete file, so editing is read-modify-write.
     fs.write(textPath, "draft");
-    let text = fs.read(textPath);
+    var text = fs.read(textPath);
     text = textReplace(text, "draft", "published");
     fs.write(textPath, text + " by Kyna");
-    set editedText = fs.read(textPath);
+    const editedText = fs.read(textPath);
 
     fs.writeJson(jsonPath, { version: 1, enabled: false });
-    set initialSettings = fs.readJson(jsonPath);
+    const initialSettings = fs.readJson(jsonPath);
     fs.writeJson(jsonPath, {
         version: initialSettings.version + 1,
         enabled: true
     });
-    set editedSettings = fs.readJson(jsonPath);
-    set entries = fs.list(directory);
+    const editedSettings = fs.readJson(jsonPath);
+    const entries = fs.list(directory);
 
     if (editedText != "published by Kyna" || editedSettings.version != 2 ||
         editedSettings.enabled != true || len(entries) != 2 || !fs.exists(textPath)) {

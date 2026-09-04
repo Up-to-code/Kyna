@@ -98,6 +98,8 @@ private:
           using T = std::decay_t<decltype(node)>;
           if constexpr (std::is_same_v<T, Unary>) {
             expression(node.right, protectedByTry);
+          } else if constexpr (std::is_same_v<T, AwaitExpr>) {
+            expression(node.operand, protectedByTry);
           } else if constexpr (std::is_same_v<T, Binary>) {
             expression(node.left, protectedByTry);
             expression(node.right, protectedByTry);
@@ -166,6 +168,12 @@ private:
             statement(node.body, protectedByTry);
           } else if constexpr (std::is_same_v<T, ReturnStmt>) {
             expression(node.value, protectedByTry);
+          } else if constexpr (std::is_same_v<T, SwitchStmt>) {
+            expression(node.subject, protectedByTry);
+            for (const auto &arm : node.cases) {
+              expression(arm.value, protectedByTry);
+              statement(arm.body, protectedByTry);
+            }
           } else if constexpr (std::is_same_v<T, ThrowStmt>) {
             expression(node.value, protectedByTry);
           } else if constexpr (std::is_same_v<T, TryStmt>) {

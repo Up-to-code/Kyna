@@ -82,9 +82,9 @@ struct ExportDecl {
 };
 
 struct Stmt {
-  using Node = std::variant<VarDecl, ExprStmt, BlockStmt, IfStmt, WhileStmt, LoopStmt, BreakStmt,
-                            ContinueStmt, ReturnStmt, ThrowStmt, TryStmt, FunctionDecl, ClassDecl,
-                            InterfaceDecl, ImportDecl, ExportDecl, InvalidStmt>;
+  using Node = std::variant<VarDecl, ExprStmt, BlockStmt, IfStmt, WhileStmt, LoopStmt, SwitchStmt,
+                            BreakStmt, ContinueStmt, ReturnStmt, ThrowStmt, TryStmt, FunctionDecl,
+                            ClassDecl, InterfaceDecl, ImportDecl, ExportDecl, InvalidStmt>;
   Node node;
   SourceSpan location;
 };

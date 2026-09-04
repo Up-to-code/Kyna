@@ -1,7 +1,8 @@
 #include "../catalog_private.hpp"
 #include "network_private.hpp"
 #include "../../codecs/json/json_value_codec.hpp"
-#include "kyna/execution/tree_walk_engine.hpp"
+#include <kyna/execution/tree_walk_engine.hpp>
+#include "parse_ipv4.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -49,6 +50,18 @@ void installNetworkLibrary(Interpreter &interpreter) {
     return Value(std::move(response->body));
   };
   global->define("httpGet", Value(get), false);
+
+  auto parseIP = std::make_shared<Function>();
+  parseIP->native = true;
+  parseIP->nativeCall = [](const std::vector<Value> &arguments) {
+    if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
+      throw KynaError({"parseIP expects an address string", {1, 1}, false});
+    const auto parsed = parseIPv4(std::get<std::string>(arguments[0].data));
+    if (!parsed)
+      return Value();
+    return Value(*parsed);
+  };
+  global->define("parseIP", Value(parseIP), false);
 
   auto fetch = std::make_shared<Function>();
   fetch->native = true;

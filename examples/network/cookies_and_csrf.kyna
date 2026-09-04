@@ -1,6 +1,6 @@
 # Send cookies explicitly. Replace placeholders with values from a secure source.
 try {
-    set response = fetch("https://api.example.com/v1/session", {
+    const response = fetch("https://api.example.com/v1/session", {
         method: "POST",
         body: "{}",
         timeout: 10000,

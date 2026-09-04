@@ -51,6 +51,7 @@ EXPECTED_OUTPUT = {
     "examples/match.kyna": "one\n",
     "examples/modules/main.kyna": "42\n",
     "examples/language/advanced_control_flow.kyna": "visits 12\nshortCircuit false true\n",
+    "examples/language/await_and_network.kyna": "awaited int 42\nawaited fetch 3 Ada\n",
     "examples/language/bindings_and_nullability.kyna": (
         "bindings 42 2\nnullable true true\nequality true true\n"
     ),
@@ -73,6 +74,10 @@ EXPECTED_OUTPUT = {
         "keys [\"name\",\"version\"]\nencoded {\"items\":[20,22],\"ready\":true}\n"
     ),
     "examples/language/recursive_functions.kyna": "factorial(6) 720\nfibonacci(10) 55\n",
+    "examples/language/syntax_overview.kyna": (
+        "bindings Kyna 42\nelse-if B\nswitch missing\nswitch other\n"
+        "loop-broken 2\nawait 42\nlegacy let set 15\n"
+    ),
     "examples/language/unicode_text.kyna": (
         "length 12\nslice Héllo\nfind 8\ncontains true\nreplace Héllo Kyna\n"
         "case äbc KYNA\nsplit 3 two\n"
@@ -91,12 +96,20 @@ EXPECTED_OUTPUT = {
         "environment checkpoint-value true\nedited published by Kyna 2 2\n"
     ),
     "examples/standard_library/filesystem.kyna": "files Hello filesystem Kyna true 2\n",
+    "examples/standard_library/streaming_copy.kyna": "8 streamed\n",
     "examples/standard_library/memory_and_color.kyna": "colored output\nmemory str\n",
     "examples/standard_library/mutable_collections.kyna": (
         "mutation [3,1,3] 2\nkeys [\"name\",\"version\"]\n"
         "unique [3,1]\nsort [1,3,3] [1,3,3]\n"
     ),
     "examples/standard_library/process_and_time.kyna": "process str\n",
+    "examples/standard_library/queue.kyna": "false two one\n",
+    "examples/standard_library/structured_log.kyna": (
+        "{\"level\":\"info\",\"msg\":\"ready\",\"fields\":{\"service\":\"kyna\"}}\n"
+        "{\"level\":\"warn\",\"msg\":\"slow\"}\n"
+        "{\"level\":\"error\",\"msg\":\"failed\",\"fields\":{\"code\":\"KNET\"}}\n"
+    ),
+    "examples/network/parse_ip.kyna": "127.0.0.1 null 10.0.0.2\n",
 }
 
 RUN_IN_TEMPORARY_DIRECTORY = {
@@ -104,6 +117,7 @@ RUN_IN_TEMPORARY_DIRECTORY = {
     "examples/learning/06_system/document_files.kyna",
     "examples/standard_library/environment_and_file_edit.kyna",
     "examples/standard_library/filesystem.kyna",
+    "examples/standard_library/streaming_copy.kyna",
 }
 
 EXAMPLE_ENVIRONMENTS = {
@@ -140,6 +154,7 @@ BUILTIN_COVERAGE = {
     "writeFile": "examples/standard_library/filesystem.kyna",
     "readJsonFile": "examples/standard_library/filesystem.kyna",
     "writeJsonFile": "examples/standard_library/filesystem.kyna",
+    "copyFile": "examples/standard_library/streaming_copy.kyna",
     "createDirectory": "examples/standard_library/filesystem.kyna",
     "fileExists": "examples/standard_library/filesystem.kyna",
     "removePath": "examples/standard_library/filesystem.kyna",
@@ -176,6 +191,18 @@ BUILTIN_COVERAGE = {
     "logColor": "examples/standard_library/memory_and_color.kyna",
     "createApiStore": "examples/standard_library/api_store.kyna",
     "clockMs": "examples/standard_library/timing.kyna",
+    "timeNow": "examples/standard_library/timing.kyna",
+    "timeSleep": "examples/standard_library/timing.kyna",
+    "cryptoSha256": "examples/standard_library/crypto.kyna",
+    "createQueue": "examples/standard_library/queue.kyna",
+    "enqueue": "examples/standard_library/queue.kyna",
+    "dequeue": "examples/standard_library/queue.kyna",
+    "peekQueue": "examples/standard_library/queue.kyna",
+    "queueIsEmpty": "examples/standard_library/queue.kyna",
+    "slogInfo": "examples/standard_library/structured_log.kyna",
+    "slogWarn": "examples/standard_library/structured_log.kyna",
+    "slogError": "examples/standard_library/structured_log.kyna",
+    "parseIP": "examples/network/parse_ip.kyna",
     "profileLog": "examples/standard_library/timing.kyna",
     "measure": "examples/standard_library/timing.kyna",
 }
@@ -190,6 +217,7 @@ BYTECODE_EXAMPLES = {
     not in {
         "examples/modules/main.kyna",
         "examples/language/collection_algorithms.kyna",
+        "examples/language/bindings_and_nullability.kyna",
         "examples/standard_library/api_store.kyna",
         "examples/standard_library/core_values.kyna",
         "examples/standard_library/memory_and_color.kyna",
@@ -215,6 +243,7 @@ def invoke(
         [str(binary), command, str(source), "--no-color"],
         cwd=working_directory or root,
         text=True,
+        encoding="utf-8",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=process_environment,
@@ -279,7 +308,7 @@ def main() -> int:
                 binary, root, "run", root / relative,
                 environment=EXAMPLE_ENVIRONMENTS.get(relative)
             )
-        actual = ANSI.sub("", executed.stdout)
+        actual = ANSI.sub("", executed.stdout).replace("\r\n", "\n")
         if executed.returncode != 0:
             failures.append(f"{relative}: run exited {executed.returncode}: {executed.stderr.strip()}")
         elif actual != expected:

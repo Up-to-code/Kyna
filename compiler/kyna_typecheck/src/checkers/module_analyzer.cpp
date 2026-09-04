@@ -1,8 +1,10 @@
-#include "kyna/semantics/module_analyzer.hpp"
+#include <kyna/semantics/module_analyzer.hpp>
 #include "best_practice_checker.hpp"
-#include "kyna/semantics/program_analyzer.hpp"
+#include <kyna/semantics/export_cache.hpp>
+#include <kyna/semantics/program_analyzer.hpp>
 #include <algorithm>
 #include <optional>
+#include <set>
 
 namespace kyna {
 namespace {
@@ -81,6 +83,8 @@ bool AnalysisResult::ok() const {
 
 AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
   std::vector<Diagnostic> diagnostics;
+  std::vector<std::filesystem::path> cachedModules;
+  std::set<std::filesystem::path> rechecked;
   for (const auto &path : graph.initializationOrder) {
     auto found = graph.modules.find(path);
     if (found == graph.modules.end())
@@ -142,6 +146,19 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
         }
       }
     }
+    const bool isEntry = path == graph.entry;
+    auto sources = found->second.sourceFiles;
+    if (sources.empty())
+      sources.push_back(path);
+    bool dependencyRechecked = false;
+    for (const auto &dependency : found->second.dependencies)
+      if (rechecked.contains(dependency.canonicalPath))
+        dependencyRechecked = true;
+    const auto cacheFile = export_cache::cachePath(path);
+    if (!isEntry && !dependencyRechecked && export_cache::stampMatches(sources, cacheFile)) {
+      cachedModules.push_back(path);
+      continue;
+    }
     Analyzer analyzer;
     analyzer.setExternalBindings(std::move(imports));
     analyzer.setModuleExports(std::move(moduleExports));
@@ -151,12 +168,22 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
     diagnostics.insert(diagnostics.end(), moduleDiagnostics.begin(), moduleDiagnostics.end());
     auto practiceDiagnostics = checkBestPractices(found->second.syntax.module.declarations);
     diagnostics.insert(diagnostics.end(), practiceDiagnostics.begin(), practiceDiagnostics.end());
+    const bool moduleFailed =
+        std::any_of(moduleDiagnostics.begin(), moduleDiagnostics.end(),
+                    [](const Diagnostic &diagnostic) { return !diagnostic.warning; }) ||
+        std::any_of(practiceDiagnostics.begin(), practiceDiagnostics.end(),
+                    [](const Diagnostic &diagnostic) { return !diagnostic.warning; });
+    if (moduleFailed)
+      export_cache::invalidate(cacheFile);
+    else if (!isEntry)
+      export_cache::writeStamp(sources, cacheFile);
+    rechecked.insert(path);
   }
   const bool failed = std::any_of(diagnostics.begin(), diagnostics.end(),
                                   [](const Diagnostic &diagnostic) { return !diagnostic.warning; });
   if (failed)
-    return {std::nullopt, std::move(diagnostics)};
-  return {CheckedProgram{std::move(graph)}, std::move(diagnostics)};
+    return {std::nullopt, std::move(diagnostics), std::move(cachedModules)};
+  return {CheckedProgram{std::move(graph)}, std::move(diagnostics), std::move(cachedModules)};
 }
 
 } // namespace kyna

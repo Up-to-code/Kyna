@@ -27,6 +27,9 @@ struct Unary {
   TokenKind op;
   ExprPtr right;
 };
+struct AwaitExpr {
+  ExprPtr operand;
+};
 struct Binary {
   ExprPtr left;
   TokenKind op;
@@ -80,8 +83,9 @@ struct InvalidExpr {};
 
 struct Expr {
   using Node =
-      std::variant<Literal, Variable, SelfExpr, SuperExpr, Unary, Binary, Assign, Call, Member,
-                   Index, ArrayExpr, NewExpr, ObjectExpr, IfExpr, MatchExpr, InvalidExpr>;
+      std::variant<Literal, Variable, SelfExpr, SuperExpr, Unary, AwaitExpr, Binary, Assign,
+                   Call, Member, Index, ArrayExpr, NewExpr, ObjectExpr, IfExpr, MatchExpr,
+                   InvalidExpr>;
   Node node;
   SourceSpan location;
 };

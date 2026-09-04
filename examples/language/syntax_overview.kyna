@@ -1,0 +1,61 @@
+# A tour of the Kyna language syntax: bindings, control flow, switch,
+# await, and the legacy aliases.
+fn double(value: int): int {
+    return value * 2;
+}
+
+fn grade(score: int): str {
+    if (score >= 90) {
+        return "A";
+    } else if (score >= 80) {
+        return "B";
+    } else if (score >= 70) {
+        return "C";
+    } else {
+        return "F";
+    }
+}
+
+fn describe(code: int): str {
+    var label: str = "other";
+    switch (code) {
+        case 200: {
+            label = "ok";
+        }
+        case 404: {
+            label = "missing";
+        }
+        default: {
+            label = "other";
+        }
+    }
+    return label;
+}
+
+var name: str = "Kyna";
+const answer = 42;
+print("bindings", name, answer);
+
+print("else-if", grade(85));
+
+print("switch", describe(404));
+print("switch", describe(500));
+
+var count = 0;
+loop (count = 0; count < 3; count = count + 1) {
+    if (count == 2) {
+        break;
+    }
+}
+print("loop-broken", count);
+
+var awaited = await double(21);
+print("await", awaited);
+
+# Legacy spellings `let`, `set`, and `func` remain supported aliases.
+let legacy = "let";
+set legacyTwo = "set";
+func legacyAdd(a: int, b: int): int {
+    return a + b;
+}
+print("legacy", legacy, legacyTwo, legacyAdd(7, 8));
