@@ -39,6 +39,29 @@ types2/
 └── tuple.go        # Tuple: ordered list of variables (multi-return values)
 ```
 
+### Kyna Implementation Map
+
+The same one-type-per-file architecture is now represented in `compiler/kyna_types` without changing Kyna's existing surface syntax:
+
+| Go `types2` type | Kyna semantic type | Kyna role |
+| :--- | :--- | :--- |
+| `Basic` | `BasicType` | Interned primitive universe. |
+| `Array` | `ArrayType` | Fixed-length value aggregate; length is part of identity. |
+| `Slice` | `SliceType` | Dynamic reference descriptor behind `array<T>`. |
+| `Map` | `MapType` | Typed key/value associative reference. |
+| `Pointer` | `PointerType` | Typed storage reference. |
+| `Chan` | `ChannelType` | Send/receive, send-only, and receive-only channel directions. |
+| `Struct` | `StructType` | Ordered structural fields, tags, and embedding metadata. |
+| `Interface` | `InterfaceType` | Structural method sets and embedded contracts. |
+| `Signature` | `SignatureType` | Parameters, result, receiver, and variadic metadata. |
+| `Named` | `NamedType` | Nominal identity, underlying type, and value/pointer method metadata. |
+| `Alias` | `AliasType` | Alternate spelling with target identity. |
+| `TypeParam` | `TypeParam` | Generic parameter with a type constraint. |
+| `Union` | `UnionType` | Union members and constraint-style sets. |
+| `Tuple` | `TupleType` | Ordered internal parameter/result collection. |
+
+Kyna additionally retains `NullableType` because non-nullability and `T?` are established Kyna language rules rather than Go rules. This layer is the semantic foundation; source syntax, lowering, bytecode, and runtime support must still be added deliberately for constructs that are not already part of the implemented language.
+
 ---
 
 ## 2. Defined Types vs. Type Aliases

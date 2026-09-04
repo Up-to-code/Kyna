@@ -2,6 +2,8 @@
 
 The analyzer uses a polymorphic type graph (`kyna::types::Type`, Universe singletons for primitives, signatures, named types, unions, and nullability). Parser annotations remain `TypeRef` values and are converted at check time. Compatibility is directional: `int` and `float` fit `num`; `any` bypasses static compatibility only where explicitly written; a value fits a union if it fits one arm; `null` fits nullable types. Unrelated inferred types do not widen to `any`.
 
+The semantic type module also represents the complete Go-inspired family needed by later language phases: fixed arrays, dynamic slices, maps, pointers, structs, structural interfaces, tuples, directional channels, constrained type parameters, and aliases. These representations do not by themselves make every corresponding construct part of Kyna's source grammar or runtime; the existing Kyna `array<T>` spelling maps to slice semantics, and array literal element types are preserved through indexed access.
+
 Binding mutability is independent of type. The analyzer records `var`/`const` mutability and rejects assignments to `const`, while runtime cells repeat the check as a safety boundary. Members are similarly separate from bindings, allowing a mutable field through an immutable object reference.
 
 Function parameter types and explicit return contracts are checked. An omitted return annotation is currently inferred dynamically as a function result type at call sites; explicit annotations remain strict. `void` and `null` are distinct.

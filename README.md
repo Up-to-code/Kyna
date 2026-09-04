@@ -20,12 +20,14 @@
 </p>
 
 ```sh
-curl -fsSL https://github.com/Up-to-code/Kyna/releases/latest/download/install.sh | sh
+npm i -g @kyna-language/cli@preview
 ky new hello --template minimal
 cd hello && ky run
 ```
 
-Windows: `irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | iex`
+Without Node.js: `curl -fsSL https://github.com/Up-to-code/Kyna/releases/latest/download/install.sh | sh`
+
+Windows PowerShell without Node.js: `irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | iex`
 
 > Kyna is moving toward 1.0. The bytecode VM runs the lowered subset; a tree-walk engine still covers the rest. Read [status](docs/implementation-status.md) and the [roadmap](ROADMAP.md) before production use.
 

@@ -19,6 +19,18 @@ Each compiler module is a static library built by `kyna_add_module(...)` (see
 `cmake/KynaModule.cmake`). CMake uses **explicit source lists** (no globs), so
 every new or moved source file must be listed in that module's `CMakeLists.txt`.
 
+`spec/architecture/modules.json` is the authoritative internal target graph.
+Every compiler, runtime, library, SDK, and CLI target must appear there, and its
+dependency list must match the owning `CMakeLists.txt` exactly. Run
+`python3 build_tools/verify_repository_architecture.py` after adding a target or
+changing a link; the verifier rejects missing/stale targets, dependency drift,
+unknown targets, and cycles.
+
+The npm distribution adapter lives in `tools/npm-installer`. Its version must
+match the GitHub release tag and its installer must consume the same native
+archives and `SHA256SUMS` as the shell and PowerShell installers. Do not bundle
+a separately compiled language binary in npm or bypass checksum verification.
+
 ## Clean folder architecture
 
 Goal: **one thing per file, one domain per folder.** A domain owns the source
@@ -156,3 +168,18 @@ Benchmarks: `tools/benchmark/run_benchmark.py` compiles identical programs in th
 language and in C++, runs both, and reports a time-diff to detect performance
 regressions
 (see `tools/benchmark/README.md`).
+
+## Research and high-impact dependencies
+
+Research records live under `docs/go_architecture_study/`, `docs/githubs/`, and
+`docs/compiler-architecture-research.md`. Convert an external mechanism into a
+Kyna owner, interface, implementation location, verification rule, and status;
+do not copy a repository layout or add a library only because it is popular.
+
+LLVM, Cranelift, MLIR, allocators, hash libraries, query engines, and similar
+compiler infrastructure require representative before/after benchmarks and an
+adapter at an explicit seam. Record compilation latency, execution latency,
+peak memory, output size, binary/archive size, correctness results, supported
+targets, distribution cost, and rollback. Keep SHA-256 for release integrity;
+non-cryptographic hashes may only serve internal caches with collision-safe
+validation.

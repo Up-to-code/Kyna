@@ -4,6 +4,7 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 
 | Area | Current status |
 |---|---|
+| Repository architecture | domain-owned implementation folders and explicit source lists enforced; `spec/architecture/modules.json` is the authoritative internal target graph and verification rejects missing/stale targets, link drift, unknown dependencies, and cycles |
 | Source spans, lexer, parser recovery | implemented and tested |
 | Name/type analysis and class contracts | implemented baseline; standard-library symbols and basic call contracts are centralized in `kyna_symbols`; interfaces support `extends` inheritance, generic type parameters substituted at `implements`/`extends` sites, optional properties, call signatures, and index signatures |
 | Namespace modules and cycle diagnostics | implemented baseline; additionally supports JavaScript-style `import { a, b } from`, `import default from`, `import * as ns from`, `export default`, and `export { list }`, plus `.ky`/`.d.ky`/`.ky.d` file-extension aliases for program and ambient type-definition modules |
@@ -21,9 +22,10 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
 | Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
+| Incremental compilation and native backend | researched and architecturally staged; query engine, persistent cache, native backend, object emission, and linker integration are not implemented |
 | Raw sockets, DAP, LSP | not implemented |
 | Formatter and package manager | comment/string-preserving formatter with stdin/check/recursive modes and Git/path dependency locking implemented; a documentation generator and central registry are intentionally absent |
 | VS Code extension | 1.0.12: `.kyna` plus `kyna.toml`, compact Project and method-grouped Routes views, colored route icons, homepage/static/slug route wizard, click-to-open handlers and live endpoints, safe save-before-generation behavior, clear manifest CodeLens actions, stale Run/Dev cleanup, manifest-authoritative server settings, Express-style HTTP completions/snippets, symbols, definitions, hover, live diagnostics, CLI-backed formatting, `ky`/`kyna` discovery, task-backed terminals, compiler inspection, theme-aware assets, and official VSCE packaging |
-| Cross-platform distribution | standardized macOS/Linux/Windows archives, per-user shell/PowerShell installers, self-management, GHCR image, Dev Container, signing/notarization gates, checksums, and provenance workflow implemented; clean hosted-runner release validation remains a release gate |
+| Cross-platform distribution | zero-clone macOS/Linux/Windows archives, per-user shell/PowerShell installers, published `@kyna-language/cli` npm installer, self-management, GHCR image, Dev Container, signing/notarization gates, checksums, and provenance workflows implemented; clean hosted-runner release validation completed for `v1.0.0-preview.2`; other package-manager manifests and multi-version toolchain management are deferred |
 
 Kyna 1.0 must not be tagged until every mandatory gate in [ROADMAP.md](../ROADMAP.md) and [release-policy.md](release-policy.md) is complete.

@@ -6,11 +6,9 @@
   "dependencies": [
     "boost-asio",
     "boost-beast",
-    "catch2",
     "cli11",
     { "name": "curl", "features": ["ssl"] },
     "ftxui",
-    "nlohmann-json",
     "openssl",
     "libpq",
     "pugixml",
