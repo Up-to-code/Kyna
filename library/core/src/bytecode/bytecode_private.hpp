@@ -21,6 +21,7 @@ struct BytecodeAdapterContext {
   RuntimeCapabilities &capabilities;
   std::ostream &output;
   Heap &heap;
+  const NativeCallbacks *callbacks{nullptr};
 };
 
 std::optional<NativeCallResult> consoleBytecodeInvoke(
@@ -36,6 +37,8 @@ std::optional<NativeCallResult> networkBytecodeInvoke(
 std::optional<NativeCallResult> formatsBytecodeInvoke(
     std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
 std::optional<NativeCallResult> collectionsBytecodeInvoke(
+    std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
+std::optional<NativeCallResult> collectionCallbacksBytecodeInvoke(
     std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);
 std::optional<NativeCallResult> cryptoBytecodeInvoke(
     std::string_view name, std::span<const RuntimeValue> arguments, BytecodeAdapterContext &ctx);

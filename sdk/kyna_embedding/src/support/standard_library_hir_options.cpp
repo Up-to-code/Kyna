@@ -35,6 +35,12 @@ HirLoweringOptions standardLibraryHirOptions() {
        {"fs.remove", "removePath"},
        {"fs.list", "listDirectory"},
        {"collections.unique", "unique"},
+       {"collections.map", "map"},
+       {"collections.filter", "filter"},
+       {"collections.reduce", "reduce"},
+       {"collections.find", "find"},
+       {"collections.any", "any"},
+       {"collections.all", "all"},
        {"collections.sort", "sort"}}};
 }
 

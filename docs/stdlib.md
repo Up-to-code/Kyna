@@ -26,6 +26,13 @@ The Kyna runtime exposes standard-library functions through the global environme
 - `error(message)` for language errors caught by `try`/`catch`
 - `collectGarbage()` and `gcStats()` for heap diagnostics
 
+Global collection callbacks (`map`, `filter`, `reduce`, `find`, `any`, `all`),
+optional sort comparators, `call`, and `measure` execute on VM frames. Callbacks
+share the active heap, preserve mutable captures, and propagate catchable errors.
+The native callback interface roots intermediate results across garbage collection.
+See [the bytecode milestone](bytecode-milestone.md) for remaining method and
+module-execution gaps.
+
 `sort` returns a new sorted copy and runs in O(n log n) using introsort with
 median-of-three pivoting, an insertion-sort cutoff, and a heapsort fallback, so
 worst-case inputs stay fast. `cryptoSha256` returns the standard lowercase-hex

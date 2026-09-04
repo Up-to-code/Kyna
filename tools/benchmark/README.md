@@ -1,5 +1,14 @@
 # Benchmark harness
 
+The default binary is now `build-release/bin/ky`, with two warmups and ten
+measured repetitions. Add `--json-output report.json` for `kyna.benchmark/v1`
+results, and `--phase-metrics` for per-run `kyna.metrics/v1` compiler/VM timings.
+Use `--check --phase-metrics` for repeated checking, including the multi-module
+workload. Export caches are reused after warmups.
+Kyna-only `.kyna` workloads also run; `.cpp` companions add output parity checks.
+RSS is measured per process on macOS/Linux and reported as unavailable elsewhere.
+See [the milestone inventory](../../docs/bytecode-milestone.md) for limitations.
+
 Compiles identical workloads written once in this language and once in C++,
 runs each several times, and reports per-program median wall-clock time plus a
 `ky / cpp` ratio so a performance regression is easy to spot.
@@ -32,9 +41,12 @@ Options:
 
 | flag | default | meaning |
 | --- | --- | --- |
-| `--ky PATH` | `build-debug/bin/ky` | path to the language CLI |
+| `--ky PATH` | `build-release/bin/ky` | path to the language CLI |
 | `--programs DIR` | `tools/benchmark/programs` | directory of `.kyna`/`.cpp` pairs |
-| `--reps N` | `5` | repetitions per binary per program (median is reported) |
+| `--reps N` | `10` | repetitions per binary per program (median is reported) |
+| `--warmups N` | `2` | unrecorded warmups per workload |
+| `--json-output PATH` | off | write metadata, samples, RSS, and artifact sizes |
+| `--phase-metrics` | off | record compiler/VM phase metrics for each Kyna run |
 | `--threshold RATIO` | `50` | warn when `ky/cpp` exceeds this |
 | `--compiler` | `clang++` | C++ compiler used for the `.cpp` side |
 | `--fail-on-regression` | off | exit non-zero when any ratio exceeds the threshold |

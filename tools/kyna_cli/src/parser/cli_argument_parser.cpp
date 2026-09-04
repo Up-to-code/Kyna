@@ -40,6 +40,7 @@ Options parseArguments(int argc, char **argv) {
   app.add_flag("--no-color", noColor);
   app.add_flag("--progress", options.progress, "Show TTY progress animation");
   app.add_flag("--heap-stats", options.heapStats);
+  app.add_option("--metrics-file", options.metricsFile, "Write phase metrics JSON to a separate file");
   app.add_flag("--no-interactive", options.noInteractive);
   app.add_flag("-q,--quiet", options.quiet);
   app.add_option("--source-name", options.sourceName);

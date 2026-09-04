@@ -1,0 +1,318 @@
+{
+  "schema": "kyna.benchmark/v1",
+  "commit": "58619341eaed82a197fda6924b45357e2561b50b",
+  "dirty": true,
+  "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "python": "3.14.3",
+  "cpp_compiler": "Apple clang version 21.0.0 (clang-2100.3.30.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode-27.0.0-Beta.5.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+  "build_configuration": "Release",
+  "binary_sha256": "0d0debb60573fcfe53ba044bbf7c60364011ee0bd13b9f863bc5ee14ecf7ab69",
+  "binary_bytes": 7112512,
+  "repetitions": 10,
+  "warmups": 2,
+  "phase_metrics": false,
+  "measurement": "process wall time including launcher; per-process peak RSS",
+  "workloads": [
+    {
+      "name": "closures",
+      "source_sha256": "0bb33dcf47ae86bd0755f5c93995a8bff2af89e129603189d04c68a01963304a",
+      "output_sha256": "c0b6cc61a817cfe4aaa0dd7e63fcfb2380281f918cff27b9fe68c6e9aed0c3f1",
+      "kyna": {
+        "wall_seconds": [
+          0.015837416,
+          0.015939084,
+          0.015661333,
+          0.015536208,
+          0.015873125,
+          0.015317416,
+          0.015852333,
+          0.015926375,
+          0.015794792,
+          0.015814209
+        ],
+        "median_seconds": 0.0158258125,
+        "peak_rss_bytes": [
+          11681792,
+          11665408,
+          11698176,
+          11681792,
+          11714560,
+          11698176,
+          11714560,
+          11747328,
+          11698176,
+          11730944
+        ],
+        "phases": []
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "collections",
+      "source_sha256": "8b99bb166e279df410279062a5f2fe2f3eea92ea0dd506a79432f42eb89d3053",
+      "output_sha256": "c94072a3b9b9de9ef231705bceb786b818e32e4034e5f18cb40a9b736437c26e",
+      "kyna": {
+        "wall_seconds": [
+          0.016155833,
+          0.015659625,
+          0.015648542,
+          0.015335791,
+          0.015593625,
+          0.015774959,
+          0.015597042,
+          0.015596916,
+          0.015949708,
+          0.015478875
+        ],
+        "median_seconds": 0.015622792,
+        "peak_rss_bytes": [
+          11681792,
+          11698176,
+          11550720,
+          11730944,
+          11649024,
+          11649024,
+          11665408,
+          11665408,
+          11599872,
+          11665408
+        ],
+        "phases": []
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "nested_loops",
+      "source_sha256": "b292f6a163570b2d8b54ce6c1e1a0ebba32a7c5c5cd8cf8b9b71891c2069f0d6",
+      "output_sha256": "dfabb2ca86607c96964cd5bf18d8fb6f9019378a094d7cab407559e749d5d952",
+      "kyna": {
+        "wall_seconds": [
+          0.019650416,
+          0.017680834,
+          0.01750525,
+          0.017876167,
+          0.017581167,
+          0.017558583,
+          0.017253792,
+          0.017356583,
+          0.01806975,
+          0.018118958
+        ],
+        "median_seconds": 0.0176310005,
+        "peak_rss_bytes": [
+          11665408,
+          11698176,
+          11665408,
+          11632640,
+          11616256,
+          11583488,
+          11649024,
+          11665408,
+          11730944,
+          11632640
+        ],
+        "phases": []
+      },
+      "cpp": {
+        "wall_seconds": [
+          0.005007583,
+          0.004275084,
+          0.004477833,
+          0.007168667,
+          0.004195458,
+          0.004035,
+          0.004607708,
+          0.00409,
+          0.003852291,
+          0.004435917
+        ],
+        "median_seconds": 0.0043555005,
+        "peak_rss_bytes": [
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936
+        ],
+        "phases": []
+      },
+      "cpp_binary_bytes": 33440
+    },
+    {
+      "name": "objects",
+      "source_sha256": "3dac6da6d1dd621c489cd9cd9bcfd4c3f7fe1276e468f8878b5500e1ad7d322a",
+      "output_sha256": "c53287c86c50a889ed2d476b02483064365754d5a3424d7e44ec3aaeb95eba93",
+      "kyna": {
+        "wall_seconds": [
+          0.020504667,
+          0.017372,
+          0.016700333,
+          0.01633075,
+          0.016475042,
+          0.015889708,
+          0.016761041,
+          0.016376167,
+          0.017124083,
+          0.018686083
+        ],
+        "median_seconds": 0.016730687,
+        "peak_rss_bytes": [
+          12091392,
+          12107776,
+          12025856,
+          12124160,
+          12091392,
+          12058624,
+          12075008,
+          12042240,
+          12058624,
+          12075008
+        ],
+        "phases": []
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "primes",
+      "source_sha256": "38ddcb9d970980ef38e5132c9b39bbc6d30df68d367b965885e8789614eefaa6",
+      "output_sha256": "609902f4bc8cf2fe4ddbe36c2c6bceb557be4297d74d86af889a12b939a44fed",
+      "kyna": {
+        "wall_seconds": [
+          0.077426834,
+          0.076444833,
+          0.078152958,
+          0.078581708,
+          0.081759333,
+          0.080276708,
+          0.077496625,
+          0.07658475,
+          0.077028167,
+          0.076992584
+        ],
+        "median_seconds": 0.07746172949999999,
+        "peak_rss_bytes": [
+          11730944,
+          11747328,
+          11747328,
+          11780096,
+          11714560,
+          11665408,
+          11730944,
+          11649024,
+          11714560,
+          11763712
+        ],
+        "phases": []
+      },
+      "cpp": {
+        "wall_seconds": [
+          0.004411,
+          0.004441083,
+          0.004634834,
+          0.00452675,
+          0.004214958,
+          0.00446875,
+          0.004464333,
+          0.004325875,
+          0.004408625,
+          0.004293625
+        ],
+        "median_seconds": 0.0044260415,
+        "peak_rss_bytes": [
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320
+        ],
+        "phases": []
+      },
+      "cpp_binary_bytes": 33432
+    },
+    {
+      "name": "startup",
+      "source_sha256": "a941b5e0600e3f8c80fdcf7896ffb3265e49d77ac77b9ce0012fcabc6ec92d4c",
+      "output_sha256": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+      "kyna": {
+        "wall_seconds": [
+          0.014827375,
+          0.014578583,
+          0.014840584,
+          0.01482775,
+          0.015259917,
+          0.014997042,
+          0.014250708,
+          0.014561125,
+          0.014444,
+          0.014529833
+        ],
+        "median_seconds": 0.014702979000000001,
+        "peak_rss_bytes": [
+          11534336,
+          11452416,
+          11550720,
+          11550720,
+          11517952,
+          11468800,
+          11468800,
+          11517952,
+          11468800,
+          11485184
+        ],
+        "phases": []
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "unicode",
+      "source_sha256": "b7f7666ec957a5700e1977a2d29e6f1cdde3c7a82a7714bfc74b3e7595fc7250",
+      "output_sha256": "ad5f9478d603fe97eae2bbff07f76fe7f18610343b5f3bc8e00945ee51b30d2c",
+      "kyna": {
+        "wall_seconds": [
+          0.015746208,
+          0.015205333,
+          0.015566083,
+          0.01546925,
+          0.015121792,
+          0.01591925,
+          0.01501325,
+          0.015444125,
+          0.015456,
+          0.015772834
+        ],
+        "median_seconds": 0.015462625,
+        "peak_rss_bytes": [
+          11763712,
+          11780096,
+          11780096,
+          11730944,
+          11698176,
+          11730944,
+          11714560,
+          11796480,
+          11747328,
+          11698176
+        ],
+        "phases": []
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    }
+  ],
+  "provenance": "Initial Release build before VM callback implementation. Working tree metadata reflects the harness development, not a pristine source snapshot. Local discovery measurement; not a release gate."
+}

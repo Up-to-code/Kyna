@@ -11,31 +11,32 @@
 namespace kyna::detail {
 
 BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree,
-                                      RuntimeCapabilities capabilities) {
+                                      RuntimeCapabilities capabilities, bool collectMetrics) {
+  std::vector<PhaseMetric> metrics;
+  PhaseTimer timer(collectMetrics ? &metrics : nullptr);
   auto hir = lowerSyntaxToHir(name, tree, standardLibraryHirOptions());
+  timer.finish("hir");
   if (!hir.program) {
     const bool onlyUnsupported =
         !hir.diagnostics.empty() &&
         std::all_of(hir.diagnostics.begin(), hir.diagnostics.end(),
                     [](const Diagnostic &diagnostic) { return diagnostic.code == "KHIR1201"; });
     return {!onlyUnsupported, onlyUnsupported ? std::vector<Diagnostic>{}
-                                             : std::move(hir.diagnostics), {}};
+                                             : std::move(hir.diagnostics), {}, std::move(metrics)};
   }
   auto mir = lowerHirToMir(*hir.program);
+  timer.finish("mir");
   if (!mir.program)
-    return {true, std::move(mir.diagnostics), {}};
+    return {true, std::move(mir.diagnostics), {}, std::move(metrics)};
   auto bytecode = compileMirToBytecode(*mir.program);
+  timer.finish("bytecode");
   if (!bytecode.module)
-    return {true, std::move(bytecode.diagnostics), {}};
+    return {true, std::move(bytecode.diagnostics), {}, std::move(metrics)};
   auto nativeLibrary = createBytecodeStandardLibrary(std::move(capabilities), std::cout);
+  timer.finish("native_setup");
   auto execution = BytecodeVirtualMachine().execute(*bytecode.module, nativeLibrary.get());
-  const bool predicateFallback = std::any_of(
-      execution.diagnostics.begin(), execution.diagnostics.end(), [](const Diagnostic &diagnostic) {
-        return diagnostic.code == "KCOL1014";
-      });
-  if (predicateFallback)
-    return {false, {}, execution.heapStats};
-  return {true, std::move(execution.diagnostics), execution.heapStats};
+  timer.finish("vm_execute");
+  return {true, std::move(execution.diagnostics), execution.heapStats, std::move(metrics)};
 }
 
 } // namespace kyna::detail

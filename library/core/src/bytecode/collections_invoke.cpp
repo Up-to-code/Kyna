@@ -45,12 +45,27 @@ std::optional<NativeCallResult> collectionsBytecodeInvoke(
     return NativeCallResult{RuntimeValue(result), std::nullopt};
   }
   if (name == "sort" || name == "bubbleSort") {
-    if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
+    if (arguments.empty() || arguments.size() > 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data) ||
+        (arguments.size() == 2 && (!ctx.callbacks || !ctx.callbacks->arity ||
+                                   !ctx.callbacks->arity(arguments[1]))))
       return bytecodeFailure("KCOL1007", std::string(name) +
                                              " currently expects one array in bytecode execution");
     auto *result = ctx.heap.allocateArray();
     result->elements = std::get<ArrayPtr>(arguments[0].data)->elements;
-    const auto less = [](const RuntimeValue &left, const RuntimeValue &right) {
+    RuntimeValue protectedResult(result);
+    auto roots = ctx.heap.rootScope();
+    roots.protect(protectedResult);
+    // Sorting moves values through native temporary storage, outside VM roots.
+    const auto originalElements = result->elements;
+    for (const auto &element : originalElements) roots.protect(element);
+    const auto less = [&](const RuntimeValue &left, const RuntimeValue &right) {
+      if (arguments.size() == 2) {
+        // Preserve the established should-swap comparator convention.
+        const std::vector<RuntimeValue> values{right, left};
+        auto outcome = ctx.callbacks->invoke(arguments[1], values);
+        if (outcome.failure) throw *outcome.failure;
+        return outcome.value.isTruthy();
+      }
       if (const auto leftInteger = std::get_if<std::int64_t>(&left.data)) {
         if (const auto rightInteger = std::get_if<std::int64_t>(&right.data))
           return *leftInteger < *rightInteger;
@@ -66,9 +81,13 @@ std::optional<NativeCallResult> collectionsBytecodeInvoke(
       if (const auto leftString = std::get_if<std::string>(&left.data))
         if (const auto rightString = std::get_if<std::string>(&right.data))
           return *leftString < *rightString;
-      return left.typeName() < right.typeName();
+      throw NativeCallFailure{"KCOL1007", "sort supports only numbers or strings", {}};
     };
-    std::stable_sort(result->elements.begin(), result->elements.end(), less);
+    try {
+      std::stable_sort(result->elements.begin(), result->elements.end(), less);
+    } catch (const NativeCallFailure &failure) {
+      return NativeCallResult{{}, failure};
+    }
     return NativeCallResult{RuntimeValue(result), std::nullopt};
   }
   if (name == "createQueue") {

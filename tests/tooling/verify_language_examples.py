@@ -216,11 +216,8 @@ BYTECODE_EXAMPLES = {
     if relative
     not in {
         "examples/modules/main.kyna",
-        "examples/language/collection_algorithms.kyna",
         "examples/language/bindings_and_nullability.kyna",
         "examples/standard_library/api_store.kyna",
-        "examples/standard_library/core_values.kyna",
-        "examples/standard_library/memory_and_color.kyna",
     }
 }
 

@@ -1,0 +1,5 @@
+var values = [];
+loop (var i = 0; i < 1000; i = i + 1) { push(values, { value: i }); }
+var total = 0;
+loop (var j = 0; j < len(values); j = j + 1) { total = total + values[j].value; }
+print(total);

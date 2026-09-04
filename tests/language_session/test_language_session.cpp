@@ -419,6 +419,68 @@ int main() {
       "all(collectionInput, kynaEven) || keyedValue[\"content-type\"] != \"application/json\") { "
       "error(\"collection algorithms failed\"); }");
   assert(collectionsResult.ok());
+  const auto writesBeforeCallbackFailure = files->writes;
+  const auto requestsBeforeCallbackFailure = network->requests;
+  const auto processesBeforeCallbackFailure = processes->runs;
+  const auto callbackFailure = deterministicSession.runSource(
+      "callback-effects-once.kyna",
+      "fn reject(value: int): int { throw \"callback failed\"; } "
+      "writeFile(\"effect.txt\", \"once\"); "
+      "fetch(\"https://example.test\"); processRun(\"deterministic\"); "
+      "map([1, 2], reject);");
+  assert(!callbackFailure.ok());
+  assert(files->writes == writesBeforeCallbackFailure + 1);
+  assert(network->requests == requestsBeforeCallbackFailure + 1);
+  assert(processes->runs == processesBeforeCallbackFailure + 1);
+  kyna::LanguageSessionOptions measuredOptions;
+  measuredOptions.capabilities = {files, processes, network, clock, database, host, nullptr};
+  measuredOptions.collectMetrics = true;
+  kyna::LanguageSession measuredSession(measuredOptions);
+  const auto measuredWrites = files->writes;
+  const auto measuredFailure = measuredSession.runSource("vm-callback-failure.kyna",
+      "fn reject(x: int): int { throw \"failed\"; } "
+      "writeFile(\"effect.txt\", \"once\"); map([1], reject);");
+  assert(!measuredFailure.ok());
+  assert(files->writes == measuredWrites + 1);
+  bool failedInVm = false;
+  for (const auto &metric : measuredFailure.metrics) {
+    assert(metric.phase != "tree_execute");
+    failedInVm = failedInVm || metric.phase == "vm_execute";
+  }
+  assert(failedInVm);
+  assert(!measuredFailure.diagnostics.back().callFrames.empty());
+  assert(measuredFailure.diagnostics.back().callFrames.front().function == "reject");
+  const auto measuredCallbacks = measuredSession.runSource(
+      "nested-callbacks.kyna",
+      "fn double(x: int): int { return x * 2; } "
+      "fn nested(x: int): int { const mapped = map([x], double); collectGarbage(); return mapped[0]; } "
+      "fn sum(a: int, b: int): int { return a + b; } "
+      "var values = []; loop (var i = 0; i < 1000; i = i + 1) { push(values, i); } "
+      "const mapped = map(values, nested); "
+      "if (reduce(mapped, sum, 0) != 999000) { error(\"nested callbacks\"); } "
+      "fn reject(x: int): int { throw \"caught callback\"; } "
+      "var caught = false; try { map([1], reject); } catch (failure) { caught = true; } "
+      "if (!caught) { error(\"callback exception lost\"); }");
+  assert(measuredCallbacks.ok());
+  bool usedVm = false;
+  for (const auto &metric : measuredCallbacks.metrics) {
+    assert(metric.phase != "tree_execute");
+    usedVm = usedVm || metric.phase == "vm_execute";
+  }
+  assert(usedVm);
+  const auto sortedCallbacks = measuredSession.runSource("sort-callback.kyna",
+      "fn swap(a: int, b: int): bool { collectGarbage(); return a > b; } "
+      "const input = [3, 1, 2]; const output = sort(input, swap); "
+      "if (input[0] != 3 || output[0] != 1 || output[2] != 3) { error(\"sort copy\"); }");
+  assert(sortedCallbacks.ok());
+  const auto emptyCallbacks = measuredSession.runSource("empty-callbacks.kyna",
+      "fn yes(x: int): bool { return true; } "
+      "fn sum(a: int, b: int): int { return a + b; } "
+      "if (any([], yes) || !all([], yes) || find([], yes) != null || "
+      "len(filter([], yes)) != 0 || reduce([], sum, 42) != 42) { error(\"empty\"); } "
+      "fn indexed(x: int, index: int): int { return x + index; } "
+      "const values = map([10, 10], indexed); if (values[1] != 11) { error(\"index\"); }");
+  assert(emptyCallbacks.ok());
   auto failedNetwork = deterministicSession.runSource(
       "network-failure.kyna",
       "const response = fetch(\"https://failure.test\", { timeout: 1000 });");

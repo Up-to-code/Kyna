@@ -23,6 +23,24 @@ std::string readInput(const std::string &path, std::istream &standardInput, std:
 
 int renderResult(const LanguageResult &result, const Options &options, LanguageSession &session,
                  std::ostream &errors) {
+  if (!options.metricsFile.empty()) {
+    std::ofstream metrics(options.metricsFile, std::ios::binary);
+    metrics << "{\"schema\":\"kyna.metrics/v1\",\"executed\":"
+            << (result.executed ? "true" : "false") << ",\"phases\":[";
+    bool first = true;
+    for (const auto &phase : result.metrics) {
+      if (!first) metrics << ',';
+      first = false;
+      metrics << "{\"phase\":\"" << phase.phase << "\",\"nanoseconds\":"
+              << phase.nanoseconds << '}';
+    }
+    metrics << "]}\n";
+    metrics.close();
+    if (!metrics) {
+      errors << "ky: could not write metrics file\n";
+      return 2;
+    }
+  }
   for (const auto &diagnostic : result.diagnostics)
     if (diagnostic.code == "KHTTP0130")
       return 130;
@@ -74,7 +92,8 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
               "  --no-interactive            Disable prompts and animation\n"
               "  --quiet                     Suppress non-essential output\n"
               "  --json                      Emit machine-readable output\n"
-              "  --heap-stats                Print garbage-collector statistics after run\n\n"
+              "  --heap-stats                Print garbage-collector statistics after run\n"
+              "  --metrics-file <path>       Write phase metrics JSON separately\n\n"
               "The legacy `kyna` executable is a supported 1.x alias.\n";
     return 0;
   }
@@ -125,6 +144,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
   }
   LanguageSessionOptions sessionOptions;
   sessionOptions.modulePaths = effective.modulePaths;
+  sessionOptions.collectMetrics = !effective.metricsFile.empty();
   LanguageSession session(std::move(sessionOptions));
   switch (effective.command) {
   case Command::Run:

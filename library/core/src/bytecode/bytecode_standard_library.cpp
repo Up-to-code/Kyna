@@ -13,7 +13,14 @@ public:
 
   NativeCallResult invoke(std::string_view name, std::span<const RuntimeValue> arguments,
                           Heap &heap) override {
-    detail::BytecodeAdapterContext context{capabilities, standardOutput, heap};
+    return invokeWithCallbacks(name, arguments, heap, {});
+  }
+
+  NativeCallResult invokeWithCallbacks(std::string_view name,
+      std::span<const RuntimeValue> arguments, Heap &heap, const NativeCallbacks &callbacks) override {
+    detail::BytecodeAdapterContext context{capabilities, standardOutput, heap, &callbacks};
+    if (auto result = detail::collectionCallbacksBytecodeInvoke(name, arguments, context))
+      return std::move(*result);
     if (auto result = detail::consoleBytecodeInvoke(name, arguments, context))
       return std::move(*result);
     if (auto result = detail::textBytecodeInvoke(name, arguments, context))
@@ -51,7 +58,8 @@ const std::vector<std::string> &bytecodeStandardLibraryFunctionNames() {
       "fetchResult", "parseIP",
       "responseJson", "responseText", "jsonParse",
       "jsonStringify", "tomlParse", "tomlStringify", "xmlParse", "xmlStringify",
-      "push", "pop", "keys", "unique", "sort", "bubbleSort",
+      "push", "pop", "keys", "unique", "sort", "bubbleSort", "map", "filter", "reduce",
+      "find", "any", "all", "call", "measure", "collectGarbage", "gcStats", "logColor",
       "createQueue", "enqueue", "dequeue", "peekQueue", "queueIsEmpty",
       "textContains", "textFind", "textSlice", "textReplace", "textSplit", "textTrim",
       "textLower", "textUpper", "cryptoSha256", "slogInfo", "slogWarn", "slogError"};

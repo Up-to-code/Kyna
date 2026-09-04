@@ -1,0 +1,9 @@
+fn count(seed: int) {
+  var value = seed;
+  fn next(): int { value = value + 1; return value; }
+  return next;
+}
+const next = count(0);
+var total = 0;
+loop (var i = 0; i < 1000; i = i + 1) { total = total + next(); }
+print(total);

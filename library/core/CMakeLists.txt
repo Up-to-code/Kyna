@@ -21,6 +21,7 @@ kyna_add_module(kyna_standard_library SOURCES
   src/bytecode/network_invoke.cpp
   src/bytecode/formats_invoke.cpp
   src/bytecode/collections_invoke.cpp
+  src/bytecode/collection_callbacks_invoke.cpp
   src/bytecode/crypto_invoke.cpp
   src/codecs/format/format_value_codec.cpp
   src/codecs/json/json_value_codec.cpp

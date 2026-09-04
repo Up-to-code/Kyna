@@ -1,0 +1,2 @@
+import "./modules/numbers.kyna" as numbers;
+print(numbers.answer());

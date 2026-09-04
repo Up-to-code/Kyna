@@ -1,0 +1,5 @@
+fn double(value: int): int { return value * 2; }
+fn sum(total: int, value: int): int { return total + value; }
+var values = [];
+loop (var i = 0; i < 1000; i = i + 1) { push(values, i); }
+print(reduce(map(values, double), sum, 0));

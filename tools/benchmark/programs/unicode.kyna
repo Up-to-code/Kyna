@@ -1,0 +1,5 @@
+var total = 0;
+loop (var i = 0; i < 1000; i = i + 1) {
+  total = total + len(textUpper(textTrim("  Héllo 世界  ")));
+}
+print(total);

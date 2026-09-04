@@ -144,6 +144,10 @@ add_subdirectory(tools/kyna_cli)
 
 if(KYNA_BUILD_TESTS)
   enable_testing()
+  add_test(NAME kyna_phase_metrics
+           COMMAND Python3::Interpreter
+                   "${CMAKE_CURRENT_SOURCE_DIR}/tests/tooling/verify_phase_metrics.py"
+                   "$<TARGET_FILE:kyna>")
   add_test(NAME kyna_repository_architecture
            COMMAND Python3::Interpreter
                    "${CMAKE_CURRENT_SOURCE_DIR}/build_tools/verify_repository_architecture.py")

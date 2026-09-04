@@ -20,6 +20,9 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
   constexpr std::size_t MaximumCallFrames = 4096;
   Heap heap;
   std::vector<BytecodeCallFrame> frames;
+  std::size_t exceptionBoundary = 0;
+  std::size_t nativeDepth = 0;
+  std::function<BytecodeExecutionResult(std::size_t)> executeFrames;
   const auto &entry = module.functions[module.entryFunction];
   frames.push_back(
       {module.entryFunction, std::vector<RuntimeValue>(entry.registerCount), 0, std::nullopt,
@@ -35,7 +38,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     if (frame.registerCells[index])
       frame.registerCells[index]->value = std::move(value);
   };
-  const auto collectAtSafepoint = [&] {
+  const auto collectAtSafepoint = [&](bool force = false) {
     HeapRoots roots;
     for (const auto &activeFrame : frames) {
       for (const auto &value : activeFrame.registers)
@@ -49,7 +52,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
         if (cell)
           roots.captureCells.push_back(cell);
     }
-    heap.maybeCollectRoots(roots);
+    if (force) heap.collectRoots(roots);
+    else heap.maybeCollectRoots(roots);
   };
   const auto findVmMethod = [&](std::uint32_t classIndex, const std::string &name) {
     std::optional<std::uint32_t> cursor{classIndex};
@@ -84,7 +88,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     std::optional<std::size_t> handledFrame;
     const BytecodeFunction::ExceptionHandler *matched = nullptr;
     std::size_t faultInstruction = frames.back().instructionPointer;
-    for (std::size_t count = frames.size(); count > 0; --count) {
+    for (std::size_t count = frames.size(); count > exceptionBoundary; --count) {
       const auto frameIndex = count - 1;
       const auto &candidateFunction = module.functions[frames[frameIndex].function];
       for (const auto &handler : candidateFunction.exceptionHandlers)
@@ -106,7 +110,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       if (!std::holds_alternative<std::nullptr_t>(error->cause.data))
         diagnostic.notes.push_back("cause: " + error->cause.display());
       diagnostic.help = "catch this error with 'try/catch' or fix the failing operation";
-      return BytecodeExecutionResult{{}, {std::move(diagnostic)}, heap.stats()};
+      return BytecodeExecutionResult{RuntimeValue(error), {std::move(diagnostic)}, heap.stats()};
     }
 
     frames.resize(*handledFrame + 1);
@@ -121,7 +125,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     return unwindError(heap.allocateError(std::move(message), std::move(code), cause), span);
   };
 
-  while (!frames.empty()) {
+  executeFrames = [&](std::size_t baseDepth) -> BytecodeExecutionResult {
+  while (frames.size() > baseDepth) {
     auto &frame = frames.back();
     const auto &function = module.functions[frame.function];
     if (frame.instructionPointer >= function.instructions.size())
@@ -412,17 +417,85 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
       arguments.reserve(module.callArguments[instruction.second].size());
       for (const auto argument : module.callArguments[instruction.second])
         arguments.push_back(readRegister(frame, argument));
-      auto result = nativeAdapter->invoke(name, arguments, heap);
+      const auto destination = instruction.destination;
+      const auto span = instruction.span;
+      auto roots = heap.rootScope();
+      for (const auto &argument : arguments) roots.protect(argument);
+      const auto targetOf = [&](const RuntimeValue &callee) -> std::optional<std::uint32_t> {
+        if (const auto ref = std::get_if<VmFunctionReference>(&callee.data)) return ref->function;
+        if (const auto closure = std::get_if<VmClosure *>(&callee.data); closure && *closure)
+          return (*closure)->function;
+        if (const auto method = std::get_if<VmBoundMethod *>(&callee.data); method && *method)
+          return (*method)->function;
+        return std::nullopt;
+      };
+      NativeCallbacks callbacks;
+      callbacks.collect = [&] { collectAtSafepoint(true); };
+      callbacks.arity = [&](const RuntimeValue &callee) -> std::optional<std::size_t> {
+        const auto target = targetOf(callee);
+        if (!target || *target >= module.functions.size()) return std::nullopt;
+        const bool bound = std::holds_alternative<VmBoundMethod *>(callee.data);
+        const auto count = module.functions[*target].parameterCount;
+        if (bound && count == 0) return std::nullopt;
+        return count - (bound ? 1u : 0u);
+      };
+      callbacks.invoke = [&](const RuntimeValue &callee, std::span<const RuntimeValue> values)
+          -> NativeCallResult {
+        const auto arity = callbacks.arity(callee);
+        if (!arity) return {{}, NativeCallFailure{"KVM2010", "value is not callable", callee}};
+        if (*arity != values.size())
+          return {{}, NativeCallFailure{"KVM2011", "callback argument count mismatch", {}}};
+        if (frames.size() >= MaximumCallFrames || nativeDepth >= 64)
+          return {{}, NativeCallFailure{"KVM2004", "maximum native callback depth exceeded", {}}};
+        const auto targetIndex = *targetOf(callee);
+        const auto &target = module.functions[targetIndex];
+        BytecodeCallFrame called{targetIndex, std::vector<RuntimeValue>(target.registerCount),
+            0, std::nullopt, std::nullopt, span, {},
+            std::vector<VmCaptureCell *>(target.registerCount, nullptr)};
+        std::size_t offset = 0;
+        if (const auto closure = std::get_if<VmClosure *>(&callee.data))
+          called.captures = (*closure)->captures;
+        if (const auto method = std::get_if<VmBoundMethod *>(&callee.data)) {
+          called.registers[0] = RuntimeValue((*method)->receiver);
+          offset = 1;
+        }
+        for (std::size_t i = 0; i < values.size(); ++i) called.registers[i + offset] = values[i];
+        const auto boundary = frames.size();
+        const auto savedBoundary = exceptionBoundary;
+        exceptionBoundary = boundary;
+        ++nativeDepth;
+        frames.push_back(std::move(called));
+        auto outcome = executeFrames(boundary);
+        frames.resize(boundary);
+        --nativeDepth;
+        exceptionBoundary = savedBoundary;
+        if (!outcome.ok()) {
+          if (const auto error = std::get_if<ErrorObject *>(&outcome.value.data); error && *error)
+            return {{}, NativeCallFailure{(*error)->code, (*error)->message, (*error)->cause,
+                                          std::move(outcome.diagnostics.front())}};
+          const auto &diagnostic = outcome.diagnostics.front();
+          return {{}, NativeCallFailure{diagnostic.code, diagnostic.message, {}, diagnostic}};
+        }
+        return {std::move(outcome.value), std::nullopt};
+      };
+      auto result = nativeAdapter->invokeWithCallbacks(name, arguments, heap, callbacks);
       if (result.failure) {
+        auto callbackDiagnostic = std::move(result.failure->diagnostic);
         if (auto failure = raise(std::move(result.failure->code),
-                                 std::move(result.failure->message), instruction.span,
-                                 std::move(result.failure->cause)))
+                                 std::move(result.failure->message), span,
+                                 std::move(result.failure->cause))) {
+          if (callbackDiagnostic) {
+            failure->diagnostics.front().location = callbackDiagnostic->location;
+            failure->diagnostics.front().callFrames = std::move(callbackDiagnostic->callFrames);
+          }
           return *std::move(failure);
+        }
         continue;
       }
-      writeRegister(frame, instruction.destination, std::move(result.value));
+      writeRegister(frames.back(), destination, std::move(result.value));
       collectAtSafepoint();
-      break;
+      ++frames.back().instructionPointer;
+      continue;
     }
     case OpCode::LoadMember: {
       const auto &object = readRegister(frame, instruction.first);
@@ -703,7 +776,7 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     case OpCode::Return: {
       auto result = frame.returnOverride ? *frame.returnOverride
                                          : readRegister(frame, instruction.first);
-      if (frames.size() == 1)
+      if (frames.size() == baseDepth + 1)
         return {std::move(result), {}, heap.stats()};
       const auto destination = *frame.returnDestination;
       frames.pop_back();
@@ -714,6 +787,8 @@ BytecodeVirtualMachine::execute(const BytecodeModule &module,
     ++frame.instructionPointer;
   }
   return {{}, {}, heap.stats()};
+  };
+  return executeFrames(0);
 }
 
 } // namespace kyna

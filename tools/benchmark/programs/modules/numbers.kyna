@@ -1,0 +1,1 @@
+export fn answer(): int { return 42; }

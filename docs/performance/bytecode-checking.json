@@ -1,0 +1,1429 @@
+{
+  "schema": "kyna.benchmark/v1",
+  "commit": "58619341eaed82a197fda6924b45357e2561b50b",
+  "dirty": true,
+  "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "python": "3.14.3",
+  "cpp_compiler": "Apple clang version 21.0.0 (clang-2100.3.30.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode-27.0.0-Beta.5.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+  "build_configuration": "Release",
+  "binary_sha256": "4d5437741d65570bac49e5eca1b92c63466372379ecef32d8b9fc9312f4f4289",
+  "binary_bytes": 7180608,
+  "repetitions": 10,
+  "warmups": 2,
+  "phase_metrics": true,
+  "command": "check",
+  "cache_policy": "warmups reuse export caches",
+  "measurement": "process wall time including launcher; per-process peak RSS",
+  "workloads": [
+    {
+      "name": "closures",
+      "source_sha256": "0bb33dcf47ae86bd0755f5c93995a8bff2af89e129603189d04c68a01963304a",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.015459875,
+          0.015183083,
+          0.018802292,
+          0.017367125,
+          0.015921833,
+          0.01553025,
+          0.016116416,
+          0.01599025,
+          0.016022917,
+          0.016658916
+        ],
+        "median_seconds": 0.0160065835,
+        "peak_rss_bytes": [
+          11403264,
+          11468800,
+          11304960,
+          11337728,
+          11337728,
+          11354112,
+          11337728,
+          11419648,
+          11337728,
+          11354112
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35542
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35708
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 135208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 39292
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103084
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35791
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 108625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 105625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 101250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103833
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34708
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "collections",
+      "source_sha256": "8b99bb166e279df410279062a5f2fe2f3eea92ea0dd506a79432f42eb89d3053",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.016522834,
+          0.016131208,
+          0.016140334,
+          0.016357292,
+          0.016756167,
+          0.0165225,
+          0.0160265,
+          0.015909083,
+          0.016162875,
+          0.016342667
+        ],
+        "median_seconds": 0.016252771,
+        "peak_rss_bytes": [
+          11403264,
+          11386880,
+          11436032,
+          11386880,
+          11386880,
+          11370496,
+          11386880,
+          11337728,
+          11403264,
+          11370496
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 112542
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36708
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107542
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 116333
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35583
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 114584
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 46375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 140792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 53083
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 151042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 39583
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 102417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34916
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 102250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35791
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 117250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 39834
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 161875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 40833
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "multimodule",
+      "source_sha256": "2bcb2112d1b80128a88cd9fb9defd05ddc7b27df0ed56d3cfab7b23cf9de80c7",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.01623425,
+          0.016288375,
+          0.016616709,
+          0.017226959,
+          0.016458416,
+          0.015912833,
+          0.015767958,
+          0.018715292,
+          0.018802541,
+          0.018435
+        ],
+        "median_seconds": 0.0165375625,
+        "peak_rss_bytes": [
+          11288576,
+          11321344,
+          11337728,
+          11321344,
+          11354112,
+          11321344,
+          11354112,
+          11304960,
+          11337728,
+          11337728
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 154041
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 50667
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 158084
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 55875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 178042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 54333
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 164542
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 76500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 140709
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 49166
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 137750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 66542
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 133334
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 48791
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 183500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 79041
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 155750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 57167
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 205792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 59125
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "nested_loops",
+      "source_sha256": "b292f6a163570b2d8b54ce6c1e1a0ebba32a7c5c5cd8cf8b9b71891c2069f0d6",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.016225,
+          0.015891667,
+          0.015739959,
+          0.016283666,
+          0.015862917,
+          0.016028333,
+          0.015472,
+          0.015511958,
+          0.015974625,
+          0.01699025
+        ],
+        "median_seconds": 0.015933146000000002,
+        "peak_rss_bytes": [
+          11370496,
+          11370496,
+          11386880,
+          11337728,
+          11321344,
+          11386880,
+          11370496,
+          11403264,
+          11403264,
+          11370496
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 95791
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33834
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 106667
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34292
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 101208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34042
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 95625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34208
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 94042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 30833
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 113541
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35959
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 118458
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 110166
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33084
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "objects",
+      "source_sha256": "3dac6da6d1dd621c489cd9cd9bcfd4c3f7fe1276e468f8878b5500e1ad7d322a",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.016148333,
+          0.015707875,
+          0.015843083,
+          0.016232167,
+          0.015159625,
+          0.015826834,
+          0.015797542,
+          0.016296916,
+          0.015429542,
+          0.015613166
+        ],
+        "median_seconds": 0.015812188,
+        "peak_rss_bytes": [
+          11337728,
+          11354112,
+          11419648,
+          11386880,
+          11288576,
+          11304960,
+          11337728,
+          11354112,
+          11304960,
+          11288576
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 116667
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35542
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 92958
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35667
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 116083
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 125875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36083
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89125
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33292
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 88750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31666
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 83042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 90417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32625
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89334
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33416
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 93291
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34167
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "primes",
+      "source_sha256": "38ddcb9d970980ef38e5132c9b39bbc6d30df68d367b965885e8789614eefaa6",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.015379959,
+          0.015537,
+          0.015593042,
+          0.015865917,
+          0.015316584,
+          0.015429625,
+          0.0162125,
+          0.018882416,
+          0.016853209,
+          0.017742042
+        ],
+        "median_seconds": 0.0157294795,
+        "peak_rss_bytes": [
+          11386880,
+          11354112,
+          11337728,
+          11370496,
+          11403264,
+          11403264,
+          11370496,
+          11386880,
+          11386880,
+          11386880
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 70875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103708
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35958
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 112834
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35125
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 101125
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 171792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36583
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 111250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35791
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 111750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 153750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 39709
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 99667
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37916
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 110292
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36917
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "startup",
+      "source_sha256": "a941b5e0600e3f8c80fdcf7896ffb3265e49d77ac77b9ce0012fcabc6ec92d4c",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.015973083,
+          0.016765125,
+          0.016439542,
+          0.016712125,
+          0.017992625,
+          0.016572292,
+          0.016385167,
+          0.015983958,
+          0.016974709,
+          0.016314958
+        ],
+        "median_seconds": 0.016505917000000002,
+        "peak_rss_bytes": [
+          11223040,
+          11239424,
+          11255808,
+          11223040,
+          11304960,
+          11223040,
+          11239424,
+          11239424,
+          11272192,
+          11206656
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 189875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 22334
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 23250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 94375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 21542
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 92958
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 22375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 132167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 43208
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 94084
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 22041
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 87083
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 21750
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 88209
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 21333
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 95375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 19875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 22417
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "unicode",
+      "source_sha256": "b7f7666ec957a5700e1977a2d29e6f1cdde3c7a82a7714bfc74b3e7595fc7250",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kyna": {
+        "wall_seconds": [
+          0.017128959,
+          0.016456417,
+          0.016053834,
+          0.015729833,
+          0.016108,
+          0.016296208,
+          0.016136,
+          0.01634125,
+          0.016279584,
+          0.016053708
+        ],
+        "median_seconds": 0.016207792,
+        "peak_rss_bytes": [
+          11321344,
+          11370496,
+          11321344,
+          11272192,
+          11337728,
+          11288576,
+          11304960,
+          11288576,
+          11321344,
+          11272192
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 101167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 95500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29167
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 87666
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 28375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 96833
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29583
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 109000
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31042
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 114250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31750
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 127500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31625
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 109917
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31792
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107959
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 28458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": false,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 139459
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 40166
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    }
+  ],
+  "provenance": "Local implementation checkpoint, not VM-only milestone completion. Uncontrolled host load; do not use as a release regression gate."
+}

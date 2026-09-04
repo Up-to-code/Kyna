@@ -2,6 +2,11 @@
 
 This directory contains executable, phased engineering plans to refactor Kyna's architecture, eliminate technical debt, and adopt Go's production-grade patterns.
 
+These original study plans are historical design inputs, not completion records.
+Use the [current bytecode milestone inventory](../bytecode-milestone.md) and
+[implementation status](../implementation-status.md) for verified progress and
+remaining work; several original unchecked steps already have implementations.
+
 ---
 
 ## Phased Execution Roadmap

@@ -2,6 +2,12 @@
 
 Kyna 1.0 is an active compatibility-reset implementation. This table distinguishes working, tested behavior from remaining release gates; it is not a promise that every roadmap item has landed.
 
+The [bytecode milestone inventory](bytecode-milestone.md) records the current
+consolidation checkpoint. Global collection callbacks, `call`, `measure`, explicit
+GC, heap statistics, and colored logging now execute through VM natives. Runtime
+failures never trigger program replay. Modules, persistent REPL state, server
+execution, and full native-object/method parity still prevent a VM-only release.
+
 | Area | Current status |
 |---|---|
 | Repository architecture | domain-owned implementation folders and explicit source lists enforced; `spec/architecture/modules.json` is the authoritative internal target graph and verification rejects missing/stale targets, link drift, unknown dependencies, and cycles |
@@ -17,11 +23,11 @@ Kyna 1.0 is an active compatibility-reset implementation. This table distinguish
 | CLI11 command grammar | primary `ky` plus the `kyna` 1.x alias; projects, route generation, run/check, formatter, dependency locking, serve/dev, doctor, self-management, REPL, and compiler inspection implemented |
 | FTXUI terminal experience | interactive template selector with arrows or j/k, Kyna-purple presentation, terminal-aware diagnostics and execution animation; broader phase progress reporting remains open |
 | Managed heap | iterative tracing, temporary roots, heap-owned VM closures/capture cells, VM allocation safepoints, cycle reclamation, and per-execution statistics implemented; generational collection remains open |
-| Text, JSON, TOML, XML, collections, filesystem, process | Unicode text, JSON, native toml++/pugixml document conversion, collection operations, filesystem primitives, file editing, process execution/environment, and clocks execute through VM adapters; namespace calls lower to canonical VM natives; callback collection algorithms remain open |
+| Text, JSON, TOML, XML, collections, filesystem, process | Unicode text, JSON, native toml++/pugixml document conversion, collection operations, filesystem primitives, file editing, process execution/environment, and clocks execute through VM adapters; global collection callbacks and optional sort comparators use VM frames; complete array-method/native-object dispatch remains open |
 | HTTP/HTTPS | libcurl client plus an injected Boost.Asio/Beast server capability; router methods, middleware, parameters/query/headers/body, JSON/text helpers, loopback-safe defaults, body limits, timeouts, overrides, and graceful interruption are implemented |
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
-| Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and direct production natives are implemented; classes, modules, callback collection algorithms, and async operations remain open |
+| Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and global collection callback natives are implemented; complete class semantics, modules, native object methods, persistent sessions, and async operations remain open |
 | Incremental compilation and native backend | researched and architecturally staged; query engine, persistent cache, native backend, object emission, and linker integration are not implemented |
 | Raw sockets, DAP, LSP | not implemented |
 | Formatter and package manager | comment/string-preserving formatter with stdin/check/recursive modes and Git/path dependency locking implemented; a documentation generator and central registry are intentionally absent |

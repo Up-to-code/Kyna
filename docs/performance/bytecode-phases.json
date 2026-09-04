@@ -1,0 +1,2923 @@
+{
+  "schema": "kyna.benchmark/v1",
+  "commit": "58619341eaed82a197fda6924b45357e2561b50b",
+  "dirty": true,
+  "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "python": "3.14.3",
+  "cpp_compiler": "Apple clang version 21.0.0 (clang-2100.3.30.1)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode-27.0.0-Beta.5.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+  "build_configuration": "Release",
+  "binary_sha256": "4d5437741d65570bac49e5eca1b92c63466372379ecef32d8b9fc9312f4f4289",
+  "binary_bytes": 7180608,
+  "repetitions": 10,
+  "warmups": 2,
+  "phase_metrics": true,
+  "command": "run",
+  "cache_policy": "warmups reuse export caches",
+  "measurement": "process wall time including launcher; per-process peak RSS",
+  "workloads": [
+    {
+      "name": "closures",
+      "source_sha256": "0bb33dcf47ae86bd0755f5c93995a8bff2af89e129603189d04c68a01963304a",
+      "output_sha256": "c0b6cc61a817cfe4aaa0dd7e63fcfb2380281f918cff27b9fe68c6e9aed0c3f1",
+      "kyna": {
+        "wall_seconds": [
+          0.01533225,
+          0.015230709,
+          0.016144541,
+          0.0164605,
+          0.015978834,
+          0.015965375,
+          0.015476792,
+          0.015746333,
+          0.016549375,
+          0.015899208
+        ],
+        "median_seconds": 0.0159322915,
+        "peak_rss_bytes": [
+          11796480,
+          11747328,
+          11780096,
+          11730944,
+          11780096,
+          11763712,
+          11747328,
+          11763712,
+          11796480,
+          11763712
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89666
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32417
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 37500
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 19125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 12292
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 147125
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 85333
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35667
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 27583
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13042
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7167
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 152208
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 104500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36875
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 29417
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12958
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8125
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 189666
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 113500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37042
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 30000
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 14625
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7667
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 160333
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 99583
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28042
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12041
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6792
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 164667
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 96791
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34917
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 36667
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11708
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8625
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 149625
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 95417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33958
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26500
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7958
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 152916
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34708
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25250
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12208
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6833
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 148459
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 114417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37000
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28458
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13250
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7583
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 959
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 162750
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100459
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33750
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26042
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7583
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 147708
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "collections",
+      "source_sha256": "8b99bb166e279df410279062a5f2fe2f3eea92ea0dd506a79432f42eb89d3053",
+      "output_sha256": "c94072a3b9b9de9ef231705bceb786b818e32e4034e5f18cb40a9b736437c26e",
+      "kyna": {
+        "wall_seconds": [
+          0.015523209,
+          0.015720708,
+          0.015728125,
+          0.015819166,
+          0.015648208,
+          0.015898708,
+          0.015315833,
+          0.016118459,
+          0.015884041,
+          0.016049333
+        ],
+        "median_seconds": 0.0157736455,
+        "peak_rss_bytes": [
+          11960320,
+          11943936,
+          11960320,
+          11960320,
+          11927552,
+          11960320,
+          11927552,
+          11976704,
+          11960320,
+          11960320
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 111000
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37750
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28458
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11959
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7125
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 484417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37458
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25125
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11458
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6917
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 473750
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103833
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34875
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26500
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9250
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6250
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 459041
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 104250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32916
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23959
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 15166
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8084
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 291
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 482584
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 90666
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32917
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28833
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6625
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 1041
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 517667
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100667
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37583
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25750
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9625
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6875
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 470958
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98584
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 39250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 27792
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 9875
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 471333
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100958
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37583
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24458
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10959
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7041
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 875
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 481250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 111792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38792
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28000
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10958
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7584
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 488458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37125
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 27791
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11667
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8167
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 250
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 519708
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "multimodule",
+      "source_sha256": "2bcb2112d1b80128a88cd9fb9defd05ddc7b27df0ed56d3cfab7b23cf9de80c7",
+      "output_sha256": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+      "kyna": {
+        "wall_seconds": [
+          0.015563959,
+          0.015653291,
+          0.015473708,
+          0.01577925,
+          0.01566375,
+          0.01512675,
+          0.015091708,
+          0.014879875,
+          0.014730792,
+          0.015188833
+        ],
+        "median_seconds": 0.0153312705,
+        "peak_rss_bytes": [
+          11370496,
+          11370496,
+          11386880,
+          11370496,
+          11386880,
+          11403264,
+          11386880,
+          11354112,
+          11403264,
+          11386880
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 138000
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 54417
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 13334
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 143375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 56583
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 14417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 134542
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 48458
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 13583
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 161750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 58625
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 15417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 144042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 53417
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 14291
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 111875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 43625
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 12041
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 134625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 54708
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 12417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 119917
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 56625
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 13041
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 118208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 50417
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 12500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107458
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 46917
+              },
+              {
+                "phase": "tree_execute",
+                "nanoseconds": 13500
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "nested_loops",
+      "source_sha256": "b292f6a163570b2d8b54ce6c1e1a0ebba32a7c5c5cd8cf8b9b71891c2069f0d6",
+      "output_sha256": "dfabb2ca86607c96964cd5bf18d8fb6f9019378a094d7cab407559e749d5d952",
+      "kyna": {
+        "wall_seconds": [
+          0.01631225,
+          0.016213208,
+          0.016355,
+          0.016797625,
+          0.016638916,
+          0.016235208,
+          0.016809958,
+          0.016836417,
+          0.016535333,
+          0.016396292
+        ],
+        "median_seconds": 0.0164658125,
+        "peak_rss_bytes": [
+          11714560,
+          11714560,
+          11747328,
+          11681792,
+          11714560,
+          11714560,
+          11714560,
+          11714560,
+          11780096,
+          11698176
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 87584
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29958
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23208
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5458
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 250
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1620042
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 83084
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 30000
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22542
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9458
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5875
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1599166
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24375
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6416
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 84
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1580666
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 100042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31166
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23917
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9500
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5916
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1573334
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 94917
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34291
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25667
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10625
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6916
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1557875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 92625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 30417
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22459
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9583
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5833
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1575417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 104625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32708
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23042
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9083
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5583
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 84
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1559083
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 87458
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31958
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23833
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11084
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6708
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1588125
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 84750
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29500
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24958
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10583
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5709
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1571375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 86708
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23625
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10875
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5500
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 1594875
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": {
+        "wall_seconds": [
+          0.003905375,
+          0.003544416,
+          0.003725542,
+          0.00356575,
+          0.003899917,
+          0.003694708,
+          0.003561458,
+          0.003754292,
+          0.004089667,
+          0.003470875
+        ],
+        "median_seconds": 0.003710125,
+        "peak_rss_bytes": [
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936,
+          1703936
+        ],
+        "phases": []
+      },
+      "cpp_binary_bytes": 33440
+    },
+    {
+      "name": "objects",
+      "source_sha256": "3dac6da6d1dd621c489cd9cd9bcfd4c3f7fe1276e468f8878b5500e1ad7d322a",
+      "output_sha256": "c53287c86c50a889ed2d476b02483064365754d5a3424d7e44ec3aaeb95eba93",
+      "kyna": {
+        "wall_seconds": [
+          0.0165505,
+          0.016356375,
+          0.016258,
+          0.015890958,
+          0.015354042,
+          0.015579,
+          0.01567975,
+          0.01533925,
+          0.01569075,
+          0.015797875
+        ],
+        "median_seconds": 0.0157443125,
+        "peak_rss_bytes": [
+          12107776,
+          12173312,
+          12124160,
+          12075008,
+          12124160,
+          12124160,
+          12107776,
+          12075008,
+          12173312,
+          12124160
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103250
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34916
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23666
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10834
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8000
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 794083
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 120208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38334
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22917
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10875
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7083
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 808500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 85792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 30625
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23334
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11791
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6667
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 802166
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 97208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31042
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22292
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11917
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6958
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 83
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 769250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 77167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 30916
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 21333
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10292
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6875
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 844375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 88208
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 33917
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24458
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11917
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7083
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 774333
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 91167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31458
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22709
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11166
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7667
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 786209
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 86000
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22541
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11500
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6917
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 769500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 85375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24166
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12417
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7042
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 41
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 780167
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 32208
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23292
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11166
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6834
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 756459
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "primes",
+      "source_sha256": "38ddcb9d970980ef38e5132c9b39bbc6d30df68d367b965885e8789614eefaa6",
+      "output_sha256": "609902f4bc8cf2fe4ddbe36c2c6bceb557be4297d74d86af889a12b939a44fed",
+      "kyna": {
+        "wall_seconds": [
+          0.073584708,
+          0.072913083,
+          0.07344425,
+          0.072594708,
+          0.073507959,
+          0.073931209,
+          0.074296,
+          0.073455166,
+          0.074813792,
+          0.07262175
+        ],
+        "median_seconds": 0.0734815625,
+        "peak_rss_bytes": [
+          11780096,
+          11747328,
+          11747328,
+          11812864,
+          11812864,
+          11829248,
+          11730944,
+          11780096,
+          11763712,
+          11812864
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 102625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36042
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26875
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12375
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7291
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 58065750
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 86291
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 34667
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25208
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12542
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7208
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 57630417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89417
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36375
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28333
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13250
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 9833
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 57765375
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 98000
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38125
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28458
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 12833
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 9125
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 57745084
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 36250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26708
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 14167
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8125
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 58180084
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 107875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 38625
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 28125
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 14041
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8459
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 58040875
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 99666
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35334
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24542
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7583
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 58545958
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 103125
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 42500
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 27375
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 14125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7792
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 57944167
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 102834
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35125
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26875
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 13042
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8375
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 58331458
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 115500
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 35250
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26875
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 14292
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 8541
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 56983167
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": {
+        "wall_seconds": [
+          0.004445583,
+          0.004120458,
+          0.004115959,
+          0.004379625,
+          0.004469708,
+          0.004272125,
+          0.004266292,
+          0.004137375,
+          0.004468958,
+          0.004242334
+        ],
+        "median_seconds": 0.0042692085,
+        "peak_rss_bytes": [
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320,
+          1720320
+        ],
+        "phases": []
+      },
+      "cpp_binary_bytes": 33432
+    },
+    {
+      "name": "startup",
+      "source_sha256": "a941b5e0600e3f8c80fdcf7896ffb3265e49d77ac77b9ce0012fcabc6ec92d4c",
+      "output_sha256": "73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049",
+      "kyna": {
+        "wall_seconds": [
+          0.014419333,
+          0.014631917,
+          0.014631667,
+          0.014639416,
+          0.014712625,
+          0.0147285,
+          0.014516625,
+          0.014727209,
+          0.014747334,
+          0.014824042
+        ],
+        "median_seconds": 0.014676020500000001,
+        "peak_rss_bytes": [
+          11550720,
+          11599872,
+          11632640,
+          11632640,
+          11599872,
+          11599872,
+          11599872,
+          11567104,
+          11599872,
+          11599872
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 70917
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 18541
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 17250
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5000
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4167
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 166
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 13500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 74333
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 21375
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 20917
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5292
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4958
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 83
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 13500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 69167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 19208
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 18500
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5458
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4417
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 11459
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 68834
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 20333
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 19375
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5167
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4625
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 12292
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 70042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 18500
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 17708
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5042
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4041
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 11541
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 68625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 19416
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 18291
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 4709
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 3791
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 14417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 72917
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 25125
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 18541
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 4959
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4083
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 13250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 74875
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 20833
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 20459
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4083
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 125
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 12125
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 85792
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 19292
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 18625
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 5334
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4250
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 833
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 15542
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 65083
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 18625
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 20333
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 6209
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 4625
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 14292
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    },
+    {
+      "name": "unicode",
+      "source_sha256": "b7f7666ec957a5700e1977a2d29e6f1cdde3c7a82a7714bfc74b3e7595fc7250",
+      "output_sha256": "ad5f9478d603fe97eae2bbff07f76fe7f18610343b5f3bc8e00945ee51b30d2c",
+      "kyna": {
+        "wall_seconds": [
+          0.016651125,
+          0.016670167,
+          0.016795292,
+          0.016760042,
+          0.016738875,
+          0.016072125,
+          0.016028083,
+          0.015359917,
+          0.015399709,
+          0.015636292
+        ],
+        "median_seconds": 0.016361624999999998,
+        "peak_rss_bytes": [
+          11845632,
+          11862016,
+          11862016,
+          11812864,
+          11862016,
+          11829248,
+          11845632,
+          11862016,
+          11812864,
+          11829248
+        ],
+        "phases": [
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 96667
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29458
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24333
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 8750
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5750
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 869916
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 87375
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31083
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 24792
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10750
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7625
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 250
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 910083
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 78333
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 27625
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 21209
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 8416
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6125
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 84
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 893250
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 99708
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 28000
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 25542
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 10125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6708
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 209
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 856416
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 96583
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 37917
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 26958
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 11083
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 7417
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 919417
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 82042
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 28208
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23500
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 8833
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5792
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 854042
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 89833
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 31750
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22667
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9125
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 6000
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 798334
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 75625
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 27459
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22333
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 9250
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5750
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 167
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 809500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 83583
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 29292
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 22417
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 8458
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5959
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 958
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 788500
+              }
+            ]
+          },
+          {
+            "schema": "kyna.metrics/v1",
+            "executed": true,
+            "phases": [
+              {
+                "phase": "load_lex_parse",
+                "nanoseconds": 78167
+              },
+              {
+                "phase": "resolve_check",
+                "nanoseconds": 27917
+              },
+              {
+                "phase": "hir",
+                "nanoseconds": 23167
+              },
+              {
+                "phase": "mir",
+                "nanoseconds": 8708
+              },
+              {
+                "phase": "bytecode",
+                "nanoseconds": 5542
+              },
+              {
+                "phase": "native_setup",
+                "nanoseconds": 208
+              },
+              {
+                "phase": "vm_execute",
+                "nanoseconds": 798375
+              }
+            ]
+          }
+        ]
+      },
+      "cpp": null,
+      "cpp_binary_bytes": null
+    }
+  ],
+  "provenance": "Local implementation checkpoint, not VM-only milestone completion. Uncontrolled host load; do not use as a release regression gate."
+}

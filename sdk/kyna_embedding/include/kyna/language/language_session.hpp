@@ -13,12 +13,20 @@ namespace kyna {
 struct LanguageSessionOptions {
   std::vector<std::filesystem::path> modulePaths;
   RuntimeCapabilities capabilities{productionRuntimeCapabilities()};
+  bool collectMetrics{false};
+};
+
+// PhaseMetric records elapsed monotonic nanoseconds for one completed phase.
+struct PhaseMetric {
+  std::string phase;
+  std::uint64_t nanoseconds{0};
 };
 
 struct LanguageResult {
   std::vector<Diagnostic> diagnostics;
   bool executed{false};
   HeapStats heapStats;
+  std::vector<PhaseMetric> metrics;
   [[nodiscard]] bool ok() const;
 };
 
@@ -49,7 +57,8 @@ private:
   TreeWalkInterpreter executor;
   Analyzer interactiveAnalyzer;
 
-  AnalysisResult compile(const std::filesystem::path &entry, std::vector<Diagnostic> &frontEnd);
+  AnalysisResult compile(const std::filesystem::path &entry, std::vector<Diagnostic> &frontEnd,
+                         std::vector<PhaseMetric> *metrics = nullptr);
 };
 
 } // namespace kyna

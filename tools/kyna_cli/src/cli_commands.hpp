@@ -49,6 +49,7 @@ struct Options {
   bool interactiveTerminal{false};
   bool progress{false};
   bool heapStats{false};
+  std::string metricsFile;
   bool noInteractive{false};
   bool quiet{false};
   bool formatCheck{false};
