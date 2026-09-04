@@ -19,14 +19,12 @@ irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | ie
 npm, when Node.js is already installed:
 
 ```sh
-npm i -g kyna
+npm i -g @kyna-language/cli@preview
 ```
-
-The equivalent organization-qualified command is `npm i -g @kyna-language/cli`. The release workflow generates both package names from the same source and version.
 
 The npm installer is version-locked to the corresponding GitHub tag and verifies the same native archive against `SHA256SUMS`. It does not contain or compile a separate implementation of the language.
 
-Use `npm i -g kyna@latest` for an explicit stable installation, `npm i -g kyna@preview` for the latest prerelease, `npm i -g kyna@<version>` to pin a release, and `npm update -g kyna` to update an existing global installation. npm distribution tags select a published package version; the package then downloads only the matching GitHub tag.
+Use `npm i -g @kyna-language/cli@latest` for an explicit stable installation, `npm i -g @kyna-language/cli@preview` for the latest prerelease, `npm i -g @kyna-language/cli@<version>` to pin a release, and `npm update -g @kyna-language/cli` to update an existing global installation. npm distribution tags select a published package version; the package then downloads only the matching GitHub tag.
 
 Piping a remote script executes code from the network. A more inspectable installation downloads the script first, reviews it, and then runs it:
 

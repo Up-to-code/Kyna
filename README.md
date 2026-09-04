@@ -20,7 +20,7 @@
 </p>
 
 ```sh
-npm i -g kyna
+npm i -g @kyna-language/cli@preview
 ky new hello --template minimal
 cd hello && ky run
 ```

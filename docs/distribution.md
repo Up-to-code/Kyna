@@ -14,21 +14,20 @@ curl -fsSL https://github.com/Up-to-code/Kyna/releases/latest/download/install.s
 irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | iex
 ```
 
-Tagged releases also publish the matching verified npm installer under the official organization and its short alias:
+Tagged releases also publish the matching verified npm installer under the official organization:
 
 ```sh
-npm i -g kyna
-npm i -g @kyna-language/cli
+npm i -g @kyna-language/cli@preview
 ```
 
 The npm package version is locked to the GitHub release tag. Its postinstall script downloads the same native archive and `SHA256SUMS`, restricts redirects to GitHub release hosts, verifies the archive, and exposes both `ky` and `kyna`. It does not compile Kyna on the user's machine or require a repository clone.
 
 ```sh
-npm i -g kyna@latest       # latest stable release
-npm i -g kyna@preview      # latest prerelease
-npm i -g kyna@1.2.3        # exact release
-npm update -g kyna         # update the installed stable package
-npm outdated -g kyna       # inspect available updates
+npm i -g @kyna-language/cli@latest     # latest stable release
+npm i -g @kyna-language/cli@preview    # latest prerelease
+npm i -g @kyna-language/cli@1.2.3      # exact release
+npm update -g @kyna-language/cli       # update the installed stable package
+npm outdated -g @kyna-language/cli     # inspect available updates
 ```
 
 The release action derives the npm version from the Git tag, downloads and executes the newly published GitHub binary as a smoke test, and then publishes that immutable npm version. A stable tag advances npm's `latest` distribution tag; a prerelease tag advances `preview`. Re-running a completed version repairs its distribution tag instead of attempting to overwrite the published package.
@@ -56,7 +55,7 @@ This is the current zero-clone installation path. Homebrew, Scoop, WinGet, and L
 - `kyna-linux-x86_64.tar.gz`
 - `kyna-windows-x86_64.zip`
 - `kyna-language-support-<version>.vsix`
-- `install.sh`, `install.ps1`, `SHA256SUMS`, the canonical `@kyna-language/cli` npm package, and its `kyna` short alias
+- `install.sh`, `install.ps1`, `SHA256SUMS`, and the canonical `@kyna-language/cli` npm package
 - GitHub build-provenance attestations
 
 Each CLI archive contains `bin/ky`, the `bin/kyna` alias, templates, the license, documentation, and runnable examples. Stable macOS binaries are Developer ID signed and notarized; stable Windows binaries are Authenticode signed. Missing signing credentials block a stable release. Unsigned tagged builds must be marked prerelease and installed with an explicit version.

@@ -17,7 +17,7 @@ const result = spawnSync(executable, process.argv.slice(2), { stdio: "inherit" }
 
 if (result.error) {
   console.error(`Kyna could not start its native executable: ${result.error.message}`);
-  console.error("Reinstall with: npm i -g kyna");
+  console.error("Reinstall with: npm i -g @kyna-language/cli");
   process.exit(1);
 }
 

@@ -151,6 +151,9 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Enable npm trusted publishing
+        run: npm install --global npm@11.5.1
       - name: Set the package version
         working-directory: tools/npm-installer
         shell: bash
@@ -166,8 +169,6 @@ jobs:
       - name: Publish or synchronize the installer
         working-directory: tools/npm-installer
         shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
@@ -176,19 +177,12 @@ jobs:
             channel=latest
           fi
           if npm view "@kyna-language/cli@$version" version >/dev/null 2>&1; then
-            npm dist-tag add "@kyna-language/cli@$version" "$channel"
+            published=$(npm view "@kyna-language/cli" "dist-tags.$channel")
+            test "$published" = "$version"
+            echo "@kyna-language/cli@$version is already published on $channel"
           else
-            npm publish --access public --provenance --tag "$channel"
+            npm publish --access public --tag "$channel"
           fi
-
-          npm pkg set name=kyna
-          npm install --package-lock-only --ignore-scripts
-          if npm view "kyna@$version" version >/dev/null 2>&1; then
-            npm dist-tag add "kyna@$version" "$channel"
-          else
-            npm publish --provenance --tag "$channel"
-          fi
-          npm access grant read-write @kyna-language:developers kyna
 
   container:
     name: Publish container
