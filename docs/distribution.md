@@ -2,33 +2,52 @@
 
 Kyna publishes native `ky` archives, the `kyna` 1.x compatibility alias, per-user installers, a VS Code extension, and a Linux container from protected release tags.
 
-## Per-user installation
+## Install the current preview
 
-Stable releases use:
-
-```sh
-curl -fsSL https://github.com/Up-to-code/Kyna/releases/latest/download/install.sh | sh
-```
-
-```powershell
-irm https://github.com/Up-to-code/Kyna/releases/latest/download/install.ps1 | iex
-```
-
-Tagged releases also publish the matching verified npm installer under the official organization:
+The official npm package is the recommended path:
 
 ```sh
-npm i -g @kyna-language/cli@preview
+npm install --global @kyna-language/cli@preview
 ```
 
 The npm package version is locked to the GitHub release tag. Its postinstall script downloads the same native archive and `SHA256SUMS`, restricts redirects to GitHub release hosts, verifies the archive, and exposes both `ky` and `kyna`. It does not compile Kyna on the user's machine or require a repository clone.
 
+Bun users must explicitly trust the package so Bun runs that verified
+postinstall step:
+
 ```sh
-npm i -g @kyna-language/cli@latest     # latest stable release
-npm i -g @kyna-language/cli@preview    # latest prerelease
-npm i -g @kyna-language/cli@1.2.3      # exact release
-npm update -g @kyna-language/cli       # update the installed stable package
-npm outdated -g @kyna-language/cli     # inspect available updates
+bun add --global --trust @kyna-language/cli@preview
 ```
+
+The published JavaScript command shim currently requires Node.js 18+ even when
+Bun performs the installation.
+
+Install the same preview directly on macOS or Linux without a JavaScript
+package manager:
+
+```sh
+curl -fsSL https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.sh | sh -s -- --channel preview --version 1.0.0-preview.3
+```
+
+Windows PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.ps1'))) -Channel preview -Version 1.0.0-preview.3
+```
+
+Preview scripts require an explicit version so they never resolve an unsigned
+prerelease through the stable channel.
+
+## Versions and updates
+
+```sh
+npm install --global @kyna-language/cli@preview         # install or update preview
+npm install --global @kyna-language/cli@1.0.0-preview.3 # exact preview
+npm outdated --global @kyna-language/cli                # inspect available updates
+```
+
+After the first signed stable release, omit the tag or use
+`@kyna-language/cli@latest`.
 
 The release action derives the npm version from the Git tag, downloads and executes the newly published GitHub binary as a smoke test, and then publishes that immutable npm version. A stable tag advances npm's `latest` distribution tag; a prerelease tag advances `preview`. Re-running a completed version repairs its distribution tag instead of attempting to overwrite the published package.
 

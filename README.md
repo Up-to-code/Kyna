@@ -29,7 +29,30 @@ npm install --global @kyna-language/cli@preview
 ky --version
 ```
 
-The package supports macOS and Linux on x64/ARM64, and Windows on x64. It
+Other installation paths:
+
+<details>
+<summary>Bun, curl, and Windows PowerShell</summary>
+
+```sh
+# Bun must be allowed to run the verified native-install step.
+bun add --global --trust @kyna-language/cli@preview
+
+# macOS or Linux without a package manager.
+curl -fsSL https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.sh | sh -s -- --channel preview --version 1.0.0-preview.3
+```
+
+```powershell
+# Windows PowerShell without a package manager.
+& ([scriptblock]::Create((irm 'https://github.com/Up-to-code/Kyna/releases/download/v1.0.0-preview.3/install.ps1'))) -Channel preview -Version 1.0.0-preview.3
+```
+
+The Bun package path currently requires Node.js 18+ for the command shim. The
+direct installers do not require Node.js.
+
+</details>
+
+Each installer supports macOS and Linux on x64/ARM64, and Windows on x64. It
 downloads the matching native release, verifies its SHA-256 checksum, and
 provides both `ky` and `kyna` commands.
 
