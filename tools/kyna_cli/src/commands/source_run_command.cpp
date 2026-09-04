@@ -1,5 +1,6 @@
 #include "../cli_commands.hpp"
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -11,10 +12,10 @@ public:
   ProgressAnimation(bool enabled, std::ostream &target) : output(target) {
     if (!enabled)
       return;
-    worker = std::jthread([this](std::stop_token stopped) {
+    worker = std::thread([this] {
       constexpr std::array frames{"◐", "◓", "◑", "◒"};
       std::size_t frame = 0;
-      while (!stopped.stop_requested()) {
+      while (!stopRequested.load(std::memory_order_relaxed)) {
         output << "\r" << frames[frame++ % frames.size()]
                << " Kyna is waking the bytecode…" << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
@@ -25,14 +26,15 @@ public:
   ~ProgressAnimation() {
     if (!worker.joinable())
       return;
-    worker.request_stop();
+    stopRequested.store(true, std::memory_order_relaxed);
     worker.join();
     output << "\r\x1b[2K" << std::flush;
   }
 
 private:
   std::ostream &output;
-  std::jthread worker;
+  std::atomic<bool> stopRequested{false};
+  std::thread worker;
 };
 
 } // namespace
