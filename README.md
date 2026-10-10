@@ -1,5 +1,11 @@
 # Kyna
 
+[![Kyna — 30-second programming language demo](docs/media/kyna-cover.jpg)](docs/media/kyna-30s.mp4)
+
+Watch Kyna run real code and catch a type error in the [30-second demo](docs/media/kyna-30s.mp4), or [watch it on TikTok](https://www.tiktok.com/@e.nsan/video/7694926382526106898).
+
+**Tags:** `Kyna` · `ProgrammingLanguage` · `Coding` · `Compiler` · `OpenSource` · `BuildInPublic` · `Developer`
+
 <p align="center">
   <img src="editors/vscode-kyna/assets/kyna-k.svg" width="96" alt="Kyna logo">
 </p>
