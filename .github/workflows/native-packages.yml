@@ -10,18 +10,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            qt-arch: gcc_64
+          - os: windows-latest
+            qt-arch: win64_msvc2019_64
+          - os: macos-latest
+            qt-arch: clang_64
     runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          arch: ${{ matrix.qt-arch }}
+          install-deps: true
       - uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: vcpkg.json
       - name: Configure optional packages
         shell: bash
-        run: cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -DKYNA_WITH_GUI=ON -DKYNA_WITH_GEOMETRY=ON -DKYNA_WITH_ML=ON '-DVCPKG_MANIFEST_FEATURES=gui;geometry;ml' -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+        run: cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release -DKYNA_WITH_GUI=ON -DKYNA_WITH_GEOMETRY=ON -DKYNA_WITH_ML=ON '-DVCPKG_MANIFEST_FEATURES=geometry;ml' -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
       - run: cmake --build build-native --config Release --parallel 3
       - run: ctest --test-dir build-native -C Release --output-on-failure
       - uses: actions/upload-artifact@v6
