@@ -11,10 +11,13 @@
 namespace kyna::detail {
 
 BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree,
-                                      RuntimeCapabilities capabilities, bool collectMetrics) {
+                                      RuntimeCapabilities capabilities, bool collectMetrics,
+                                      const std::vector<NativeFunction> &nativeFunctions) {
   std::vector<PhaseMetric> metrics;
   PhaseTimer timer(collectMetrics ? &metrics : nullptr);
-  auto hir = lowerSyntaxToHir(name, tree, standardLibraryHirOptions());
+  auto loweringOptions = standardLibraryHirOptions();
+  for (const auto &function : nativeFunctions) loweringOptions.nativeFunctions.push_back(function.name);
+  auto hir = lowerSyntaxToHir(name, tree, std::move(loweringOptions));
   timer.finish("hir");
   if (!hir.program) {
     const bool onlyUnsupported =
@@ -34,7 +37,24 @@ BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree 
     return {true, std::move(bytecode.diagnostics), {}, std::move(metrics)};
   auto nativeLibrary = createBytecodeStandardLibrary(std::move(capabilities), std::cout);
   timer.finish("native_setup");
-  auto execution = BytecodeVirtualMachine().execute(*bytecode.module, nativeLibrary.get());
+  class Adapter final : public BytecodeNativeAdapter {
+  public:
+    Adapter(BytecodeNativeAdapter &standard, const std::vector<NativeFunction> &functions)
+        : standard(standard), functions(functions) {}
+    NativeCallResult invoke(std::string_view name, std::span<const Value> arguments, Heap &heap) override {
+      return invokeWithCallbacks(name, arguments, heap, {});
+    }
+    NativeCallResult invokeWithCallbacks(std::string_view name, std::span<const Value> arguments,
+                                         Heap &heap, const NativeCallbacks &callbacks) override {
+      for (const auto &function : functions)
+        if (function.name == name) return invokeNativeFunction(function, arguments, heap, callbacks);
+      return standard.invokeWithCallbacks(name, arguments, heap, callbacks);
+    }
+  private:
+    BytecodeNativeAdapter &standard;
+    const std::vector<NativeFunction> &functions;
+  } adapter(*nativeLibrary, nativeFunctions);
+  auto execution = BytecodeVirtualMachine().execute(*bytecode.module, &adapter);
   timer.finish("vm_execute");
   return {true, std::move(execution.diagnostics), execution.heapStats, std::move(metrics)};
 }

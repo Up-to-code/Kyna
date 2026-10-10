@@ -1,0 +1,4 @@
+import type { Count } from "./type_contract_modules/t.ky";
+import { increment } from "./type_contract_modules/numbers.ky";
+var value: Count = increment(41);
+print(value);

@@ -50,7 +50,7 @@ TARGET_LINK_PATTERN = re.compile(
 INTERNAL_TARGET_PATTERN = re.compile(r"\bkyna(?:_[A-Za-z0-9_]+)?\b")
 OWNED_AREAS = ("compiler", "runtime", "library", "sdk", "tools")
 TARGET_DECLARATION_PATTERN = re.compile(
-    r"\b(?:kyna_add_module|add_library|add_executable)\s*\(\s*"
+    r"\b(?:kyna_add_module|add_library|add_executable|qt_add_executable)\s*\(\s*"
     r"(kyna(?:_[A-Za-z0-9_]+)?)\b"
 )
 

@@ -44,7 +44,8 @@ private:
 
 HirLoweringOptions standardLibraryHirOptions();
 BytecodeAttempt executeBytecodeSubset(const std::string &name, const SyntaxTree &tree,
-                                      RuntimeCapabilities capabilities, bool collectMetrics = false);
+                                      RuntimeCapabilities capabilities, bool collectMetrics = false,
+                                      const std::vector<NativeFunction> &nativeFunctions = {});
 std::string escapeJson(std::string_view value);
 std::string statementKind(const Stmt &statement);
 std::string statementName(const Stmt &statement);

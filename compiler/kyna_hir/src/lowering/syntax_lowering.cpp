@@ -95,7 +95,9 @@ HirLoweringResult SyntaxLowerer::lower(const SyntaxTree &tree) {
       if (std::holds_alternative<ImportDecl>(statement->node) ||
           std::holds_alternative<FunctionDecl>(statement->node) ||
           std::holds_alternative<ClassDecl>(statement->node) ||
-          std::holds_alternative<InterfaceDecl>(statement->node))
+          std::holds_alternative<InterfaceDecl>(statement->node) ||
+          std::holds_alternative<TypeAliasDecl>(statement->node) ||
+          std::holds_alternative<ExportDecl>(statement->node))
         continue;
       if (const auto lowered = lowerStatement(statement))
         program.body.push_back(*lowered);

@@ -5,6 +5,7 @@ kyna_add_module(kyna_typecheck SOURCES
   src/checkers/check_control_flow.cpp
   src/checkers/interface_checker.cpp
   src/checkers/type_checker.cpp
+  src/checkers/type_contracts.cpp
   src/checkers/check_operators.cpp
   src/checkers/check_invocations.cpp
   src/checkers/check_conditionals.cpp

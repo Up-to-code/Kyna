@@ -76,15 +76,23 @@ struct ImportDecl {
   std::string defaultName;
   std::vector<ImportSpecifier> named;
   std::string namespaceAlias;
+  bool typeOnly{false};
 };
 struct ExportDecl {
   std::vector<std::string> names;
+  bool typeOnly{false};
+};
+struct TypeAliasDecl {
+  std::string name;
+  TypeRef target;
+  bool exported{false};
 };
 
 struct Stmt {
   using Node = std::variant<VarDecl, ExprStmt, BlockStmt, IfStmt, WhileStmt, LoopStmt, SwitchStmt,
                             BreakStmt, ContinueStmt, ReturnStmt, ThrowStmt, TryStmt, FunctionDecl,
-                            ClassDecl, InterfaceDecl, ImportDecl, ExportDecl, InvalidStmt>;
+                            ClassDecl, InterfaceDecl, ImportDecl, ExportDecl, TypeAliasDecl,
+                            InvalidStmt>;
   Node node;
   SourceSpan location;
 };

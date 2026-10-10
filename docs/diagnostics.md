@@ -25,3 +25,31 @@ Loop-control validation uses `KSEM1301` for `break`/`continue` outside a loop, `
 Match validation uses `KSEM1401` for a non-exhaustive expression, `KSEM1402` for arms made unreachable by a wildcard, `KSEM1403` for duplicate literal patterns, and `KSEM1404` for a pattern incompatible with the subject type.
 
 These diagnostics are emitted by the compiler rather than reconstructed by editor tooling, so CLI text, CLI JSON, and VS Code agree on the rule and source span.
+
+Additional checked-contract codes:
+
+| Code | Meaning |
+|---|---|
+| KSEM1305–KSEM1307 | nonconstant, duplicate, or incompatible switch case |
+| KSEM1501 | recursive type alias |
+| KSEM1502 | invalid generic argument count |
+| KSEM1503 | recursive function requires a return annotation |
+| KSEM1504 | type used as a runtime value, or value exported as a type |
+| KSEM1505 | incompatible binding or assignment |
+| KSEM1601–KSEM1603 | incompatible logical, ordered comparison, or remainder operand |
+| KCLI1001 | invalid CLI usage (exit 2) |
+| KNATIVE1001 | native module loading/registration failed (exit 2) |
+| KNATIVE1002–KNATIVE1004 | native arity, argument, or result contract failure |
+| KNATIVE1005 | native implementation exception |
+| KNATIVE1006–KNATIVE1007 | resource or callback lifetime/runtime/thread failure |
+| KPACKAGE1005 | unsafe, oversized, or malformed native artifact |
+| KBUILD1001 | invalid or occupied application output path |
+| KBUILD1002 | unavailable, duplicate, or invalid dependency |
+| KBUILD1003 | entry, staging, or filesystem failure |
+
+The extension routes imported-file diagnostics to their source URI, preserves
+related locations, converts byte offsets to UTF-16 editor ranges, discards
+superseded checks, and retains previous findings when the CLI fails or returns
+malformed JSON. Unsaved entry text is checked through stdin. Unsaved imported
+files use bounded temporary source overlays. Checks containing overlays bypass
+persistent export-cache reads and writes, preserving the disk contract cache.

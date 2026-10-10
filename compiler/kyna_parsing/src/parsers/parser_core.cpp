@@ -48,7 +48,8 @@ ParseResult Parser::parseRecovering(const SourceFile &source) {
             [&](const auto &node) {
               using T = std::decay_t<decltype(node)>;
               if constexpr (std::is_same_v<T, VarDecl> || std::is_same_v<T, FunctionDecl> ||
-                            std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl>) {
+                            std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl> ||
+                            std::is_same_v<T, TypeAliasDecl>) {
                 if (node.exported)
                   module.exports.insert(node.name);
               }
@@ -63,6 +64,9 @@ ParseResult Parser::parseRecovering(const SourceFile &source) {
     if (current == before && !check(TokenKind::End))
       ++current;
   }
+  for (const auto &statement : module.declarations)
+    if (const auto *exports = std::get_if<ExportDecl>(&statement->node))
+      module.exports.insert(exports->names.begin(), exports->names.end());
   return {SyntaxTree{std::move(module)}, std::move(diagnostics), incomplete};
 }
 void Parser::synchronize() {
@@ -77,6 +81,7 @@ void Parser::synchronize() {
     case TokenKind::Fn:
     case TokenKind::Class:
     case TokenKind::Intf:
+    case TokenKind::Type:
     case TokenKind::If:
     case TokenKind::While:
     case TokenKind::Loop:

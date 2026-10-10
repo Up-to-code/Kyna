@@ -6,7 +6,7 @@ The semantic type module also represents the complete Go-inspired family needed 
 
 Binding mutability is independent of type. The analyzer records `var`/`const` mutability and rejects assignments to `const`, while runtime cells repeat the check as a safety boundary. Members are similarly separate from bindings, allowing a mutable field through an immutable object reference.
 
-Function parameter types and explicit return contracts are checked. An omitted return annotation is currently inferred dynamically as a function result type at call sites; explicit annotations remain strict. `void` and `null` are distinct.
+Function parameter types and explicit return contracts are checked. An omitted return annotation is inferred from checked return statements; recursive inference requires an explicit return annotation. Explicit annotations remain strict. `void` and `null` are distinct.
 
 ## Interfaces
 
@@ -35,3 +35,15 @@ class Circle implements Named<float> {
 - `implements` requires compatible public fields and methods; method parameter and return types are checked after generic substitution.
 
 Type-definition files (`.kyna.d`, `.d.ky`, `.ky.d`) are ambient: they declare interfaces used only at compile time and never execute.
+
+## Aliases and function values
+
+`type Count = int;` names an existing type. Export aliases and structural
+interfaces from ordinary source files and use `import type` to keep the import
+out of runtime initialization. `any` remains an explicit escape hatch; imports
+do not silently erase checked signatures.
+
+Function values can be annotated as `fn(int, str): bool`. Their argument and
+return contracts remain checked when assigned to bindings or imported. An
+unannotated recursive function requires an explicit return annotation to break
+the inference cycle. Alias cycles and invalid generic arity are diagnosed.

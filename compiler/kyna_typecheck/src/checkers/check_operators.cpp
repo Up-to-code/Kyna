@@ -6,8 +6,11 @@ namespace kyna {
 
 TypeRef Analyzer::checkUnary(const Unary &n, SourceLocation loc) {
   auto x = expr(n.right);
-  if (n.op == TokenKind::Bang)
+  if (n.op == TokenKind::Bang) {
+    if (x.name != "bool" && x.name != "any")
+      error("'!' requires a boolean operand", loc, "KSEM1601");
     return analyzerNamedType("bool");
+  }
   if (x.name != "int" && x.name != "float" && x.name != "num" && x.name != "any")
     error("unary '-' requires a numeric operand", loc);
   return x;
@@ -15,18 +18,33 @@ TypeRef Analyzer::checkUnary(const Unary &n, SourceLocation loc) {
 
 TypeRef Analyzer::checkBinary(const Binary &n, SourceLocation loc) {
   auto a = expr(n.left), b = expr(n.right);
-  if (n.op == TokenKind::EqualEqual || n.op == TokenKind::BangEqual ||
-      n.op == TokenKind::AndAnd || n.op == TokenKind::OrOr || n.op == TokenKind::Less ||
-      n.op == TokenKind::LessEqual || n.op == TokenKind::Greater ||
-      n.op == TokenKind::GreaterEqual)
+  const auto numeric = [](const TypeRef &type) {
+    return !type.nullable && (type.name == "int" || type.name == "float" || type.name == "num" || type.name == "any");
+  };
+  if (n.op == TokenKind::EqualEqual || n.op == TokenKind::BangEqual)
     return analyzerNamedType("bool");
+  if (n.op == TokenKind::AndAnd || n.op == TokenKind::OrOr) {
+    if ((a.name != "bool" && a.name != "any") || (b.name != "bool" && b.name != "any") || a.nullable || b.nullable)
+      error("logical operators require boolean operands", loc, "KSEM1601");
+    return analyzerNamedType("bool");
+  }
+  if (n.op == TokenKind::Less || n.op == TokenKind::LessEqual || n.op == TokenKind::Greater || n.op == TokenKind::GreaterEqual) {
+    if (!numeric(a) || !numeric(b))
+      error("ordered comparisons require numeric operands", loc, "KSEM1602");
+    return analyzerNamedType("bool");
+  }
+  if (n.op == TokenKind::Percent) {
+    if ((a.name != "int" && a.name != "any") || (b.name != "int" && b.name != "any") || a.nullable || b.nullable)
+      error("'%' requires integer operands", loc, "KSEM1603");
+    return analyzerNamedType("int");
+  }
   if (n.op == TokenKind::Plus && (a.name == "str" || b.name == "str"))
     return analyzerNamedType("str");
   if (a.name == "any" || b.name == "any")
     return analyzerNamedType("any");
   if ((a.name == "int" || a.name == "float" || a.name == "num" || a.name == "any") &&
       (b.name == "int" || b.name == "float" || b.name == "num" || b.name == "any"))
-    return (a.name == "float" || b.name == "float")
+    return (n.op == TokenKind::Slash || a.name == "float" || b.name == "float")
                ? analyzerNamedType("float")
                : (a.name == "int" && b.name == "int" ? analyzerNamedType("int")
                                                      : analyzerNamedType("num"));
@@ -41,7 +59,7 @@ TypeRef Analyzer::checkAssign(const Assign &n, SourceLocation loc) {
       if (!bs->mutableBindings[v->name])
         error("cannot assign to immutable binding '" + v->name + "'", loc);
       if (!compatible(bs->types[v->name], b))
-        error("cannot assign " + b.str() + " to " + bs->types[v->name].str(), loc);
+        error("cannot assign " + b.str() + " to " + bs->types[v->name].str(), loc, "KSEM1505");
     }
   } else if (!std::holds_alternative<Member>(n.target->node) &&
              !std::holds_alternative<Index>(n.target->node))

@@ -16,6 +16,7 @@ struct AnalysisResult {
   [[nodiscard]] bool ok() const;
 };
 
-AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph);
+AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph,
+                                  const std::map<std::string, TypeRef> &nativeBindings = {});
 
 } // namespace kyna

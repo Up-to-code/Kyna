@@ -2,7 +2,7 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
@@ -16,6 +16,23 @@
   "activationEvents": ["onLanguage:kyna", "onLanguage:kyna-manifest", "workspaceContains:kyna.toml"],
   "main": "./extension.js",
   "contributes": {
+    "problemMatchers": [
+      {
+        "name": "kyna",
+        "owner": "kyna-runtime",
+        "source": "kyna",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+): (error|warning)\\[([^\\]]+)\\]: (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      }
+    ],
     "languages": [
       {
         "id": "kyna",
@@ -207,6 +224,7 @@
     "@vscode/vsce": "3.9.2"
   },
   "scripts": {
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "node --test test/*.test.js"
   }
 }

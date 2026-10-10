@@ -5,11 +5,13 @@
 #include "kyna/source/source_manager.hpp"
 #include <filesystem>
 #include <vector>
+#include <map>
 
 namespace kyna {
 
 struct ModuleLoadOptions {
   std::vector<std::filesystem::path> modulePaths;
+  std::map<std::filesystem::path, std::string> sourceOverlays{};
 };
 
 struct ModuleLoadResult {

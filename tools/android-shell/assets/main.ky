@@ -1,0 +1,19 @@
+var window = guiWindow("Kyna Android smoke", 640, 480);
+var layout = guiColumn(window);
+var title = guiText(layout, "Kyna native GUI");
+var input = guiInput(layout, "Hello");
+fn printInput(): void { console.log(guiRead(input)); }
+var button = guiButton(layout, "Print input", printInput);
+var sawInactive: bool = false;
+var sawResume: bool = false;
+var completed: bool = false;
+fn lifecycle(state: string): void {
+    if (state == "inactive" || state == "hidden" || state == "suspended") { sawInactive = true; }
+    if (state == "active" && sawInactive) { sawResume = true; }
+}
+var subscription = guiOnLifecycle(lifecycle);
+fn shutdown(): void { completed = true; guiQuit(); }
+var timer = guiAfter(12000, shutdown);
+collectGarbage();
+guiRun();
+if (!completed || !sawInactive || !sawResume) { throw "Android callback/lifecycle smoke did not complete"; }

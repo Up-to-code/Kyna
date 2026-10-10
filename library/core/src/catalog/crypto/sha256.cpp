@@ -1,4 +1,4 @@
-#include "sha256.hpp"
+#include <kyna/stdlib/sha256.hpp>
 
 #include <array>
 #include <cstdint>

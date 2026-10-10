@@ -7,16 +7,16 @@
 
 namespace kyna::cli {
 namespace {
-constexpr std::array<std::string_view, 21> commandNames{
+constexpr std::array<std::string_view, 22> commandNames{
     "run", "check", "repl", "tokens", "ast", "hir", "mir", "bytecode", "inspect",
     "new", "init", "generate", "g", "fmt", "dev", "serve", "add", "remove", "install",
-    "doctor", "self"};
+    "doctor", "self", "build"};
 bool isCommand(std::string_view value) {
   return std::find(commandNames.begin(), commandNames.end(), value) != commandNames.end();
 }
 std::vector<std::string> normalizedArguments(int argc, char **argv) {
   std::vector<std::string> result{argv[0]};
-  if (argc > 1 && std::string_view(argv[1])[0] != '-' && !isCommand(argv[1]))
+  if (argc > 1 && !std::string_view(argv[1]).empty() && std::string_view(argv[1])[0] != '-' && !isCommand(argv[1]))
     result.emplace_back("run");
   for (int index = 1; index < argc; ++index) result.emplace_back(argv[index]);
   return result;
@@ -33,6 +33,7 @@ Options parseArguments(int argc, char **argv) {
   app.add_flag("-h,--help", help, "Show command help");
   app.add_flag("-V,--version", version, "Show the Kyna version");
   app.add_option("--module-path", options.modulePaths, "Add a module search directory");
+  app.add_option("--native-library", options.nativeLibraries, "Load a trusted native module (repeatable)");
   app.add_option("--diagnostic-format", diagnosticFormat)->check(CLI::IsMember({"text", "json"}));
   app.add_option("--format", outputFormat)->check(CLI::IsMember({"text", "json"}));
   app.add_flag("--json", json, "Emit machine-readable JSON");
@@ -44,6 +45,7 @@ Options parseArguments(int argc, char **argv) {
   app.add_flag("--no-interactive", options.noInteractive);
   app.add_flag("-q,--quiet", options.quiet);
   app.add_option("--source-name", options.sourceName);
+  app.add_option("--source-overlay", options.sourceOverlay, "TOML unsaved module overlays");
 
   const auto addSource = [&](const char *name, const char *description) {
     auto *command = app.add_subcommand(name, description);
@@ -92,6 +94,9 @@ Options parseArguments(int argc, char **argv) {
   remove->add_option("name", options.dependencyName)->required(); remove->fallthrough();
   auto *install = app.add_subcommand("install", "Resolve dependencies");
   install->add_flag("--locked", options.locked); install->fallthrough();
+  auto *build = addSource("build", "Build an application bundle or authored CMake binding");
+  build->add_option("-o,--output", options.buildOutput);
+  build->add_flag("--native", options.buildNative);
   auto *doctor = app.add_subcommand("doctor", "Diagnose the environment"); doctor->fallthrough();
   auto *self = app.add_subcommand("self", "Manage the installed CLI");
   auto *selfUpdate = self->add_subcommand("update", "Update the CLI");
@@ -102,7 +107,14 @@ Options parseArguments(int argc, char **argv) {
   auto storage = normalizedArguments(argc, argv);
   std::vector<char *> arguments; for (auto &argument : storage) arguments.push_back(argument.data());
   try { app.parse(static_cast<int>(arguments.size()), arguments.data()); }
-  catch (const CLI::ParseError &error) { options.command = Command::Invalid; options.error = error.what(); return options; }
+  catch (const CLI::ParseError &error) {
+    options.command = Command::Invalid; options.error = error.what();
+    for (std::size_t index = 1; index < storage.size(); ++index)
+      if (storage[index] == "--json" || storage[index] == "--diagnostic-format=json" ||
+          (storage[index] == "--diagnostic-format" && index + 1 < storage.size() && storage[index + 1] == "json"))
+        options.jsonDiagnostics = true;
+    return options;
+  }
 
   if (help) options.command = Command::Help; else if (version) options.command = Command::Version;
   else if (*run) options.command = Command::Run; else if (*check) options.command = Command::Check;
@@ -115,6 +127,7 @@ Options parseArguments(int argc, char **argv) {
   else if (*format) options.command = Command::Format;
   else if (*dev) options.command = Command::Dev; else if (*serve) options.command = Command::Serve;
   else if (*add) options.command = Command::Add; else if (*remove) options.command = Command::Remove;
+  else if (*build) options.command = Command::Build;
   else if (*install) options.command = Command::Install; else if (*doctor) options.command = Command::Doctor;
   else if (*selfUpdate) options.command = Command::SelfUpdate; else if (*selfUninstall) options.command = Command::SelfUninstall;
   else { options.command = Command::Invalid; options.error = "a command or source file is required"; }

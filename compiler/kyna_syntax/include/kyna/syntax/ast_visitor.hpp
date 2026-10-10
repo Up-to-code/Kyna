@@ -55,6 +55,7 @@ public:
   virtual Result visitFunctionDecl(const FunctionDecl &) { return Result{}; }
   virtual Result visitClassDecl(const ClassDecl &) { return Result{}; }
   virtual Result visitInterfaceDecl(const InterfaceDecl &) { return Result{}; }
+  virtual Result visitTypeAlias(const TypeAliasDecl &) { return Result{}; }
   virtual Result visitImport(const ImportDecl &) { return Result{}; }
   virtual Result visitExport(const ExportDecl &) { return Result{}; }
 
@@ -146,6 +147,8 @@ Result ASTVisitor<Result>::visitNode(const Node &n) {
     return visitClassDecl(n);
   else if constexpr (std::is_same_v<Node, InterfaceDecl>)
     return visitInterfaceDecl(n);
+  else if constexpr (std::is_same_v<Node, TypeAliasDecl>)
+    return visitTypeAlias(n);
   else if constexpr (std::is_same_v<Node, ImportDecl>)
     return visitImport(n);
   else if constexpr (std::is_same_v<Node, ExportDecl>)

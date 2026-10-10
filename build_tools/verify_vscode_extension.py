@@ -43,6 +43,8 @@ def main() -> int:
         for command in manifest.get("contributes", {}).get("commands", [])
     }
     implementation = (EXTENSION / "extension.js").read_text(encoding="utf-8")
+    # Inspect packaged modules as well as the activation entry point.
+    implementation += "\n" + "\n".join(file.read_text(encoding="utf-8") for file in sorted((EXTENSION / "src").glob("*.js")))
     registered = set(re.findall(r"registerCommand\('([^']+)'", implementation))
     if commands != registered:
         failures.append(

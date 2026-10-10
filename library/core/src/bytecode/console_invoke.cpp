@@ -46,7 +46,12 @@ std::optional<NativeCallResult> consoleBytecodeInvoke(
       return bytecodeFailure("KSTD2004", "logColor expects a color and message");
     const auto color = colors.find(std::get<std::string>(arguments[0].data));
     if (color == colors.end()) return bytecodeFailure("KSTD2004", "unknown log color");
-    ctx.output << "\033[" << color->second << 'm' << arguments[1].display() << "\033[0m\n";
+    if (ctx.capabilities.consoleColors)
+      ctx.output << "\033[" << color->second << 'm';
+    ctx.output << arguments[1].display();
+    if (ctx.capabilities.consoleColors)
+      ctx.output << "\033[0m";
+    ctx.output << '\n';
     return NativeCallResult{};
   }
   if (name == "print" || name == "log") {

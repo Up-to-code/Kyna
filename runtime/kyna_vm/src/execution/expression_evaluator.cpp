@@ -1,5 +1,6 @@
 #include "kyna/semantics/modifier_query.hpp"
 #include "expression_operations.hpp"
+#include <limits>
 #include "kyna/execution/tree_walk_engine.hpp"
 
 namespace kyna {
@@ -36,8 +37,11 @@ Value Interpreter::eval(const ExprPtr &e) {
           auto v = eval(n.right);
           if (n.op == TokenKind::Bang)
             return Value(!v.isTruthy());
-          if (auto i = std::get_if<int64_t>(&v.data))
+          if (auto i = std::get_if<int64_t>(&v.data)) {
+            if (*i == std::numeric_limits<int64_t>::min())
+              throw KynaError({"integer overflow while negating value", e->location, false, "KRT2204"});
             return Value(-*i);
+          }
           if (auto d = std::get_if<double>(&v.data))
             return Value(-*d);
           throw KynaError({"unary '-' requires a number", {1, 1}, false});
@@ -52,7 +56,9 @@ Value Interpreter::eval(const ExprPtr &e) {
             auto l = eval(n.left);
             return l.isTruthy() ? Value(true) : Value(eval(n.right).isTruthy());
           }
-          return evaluateExpressionBinary(n.op, eval(n.left), eval(n.right), e->location);
+          const auto left = eval(n.left);
+          const auto right = eval(n.right);
+          return evaluateExpressionBinary(n.op, left, right, e->location);
         } else if constexpr (std::is_same_v<T, Assign>) {
           Value v = eval(n.value);
           if (auto x = std::get_if<Variable>(&n.target->node))

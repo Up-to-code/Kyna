@@ -1,0 +1,10 @@
+var total = 0;
+loop (var i = 0; i < 10000; i = i + 1) {
+  switch (i % 4) {
+    case 0: { total = total + 1; }
+    case 1: { total = total + 2; }
+    case 2: { total = total + 3; }
+    default: { total = total + 4; }
+  }
+}
+print(total);

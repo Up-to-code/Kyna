@@ -30,7 +30,7 @@ that their stdout matches, so an implementation drift is reported, not trusted.
 ## Usage
 
 ```sh
-# from the repo root; uses build-debug/bin/ky and clang++ by default
+# from the repo root; uses build-release/bin/ky and clang++ by default
 python3 tools/benchmark/run_benchmark.py
 
 # custom binary / compiler / repetitions
@@ -69,3 +69,20 @@ for the same input. Both files will be picked up automatically. Keep the
 workload CPU-bound and single-threaded for a fair comparison, and keep the C++
 side deterministic (no allocations beyond what the language does is required,
 but both must print the same value).
+
+## Baseline comparisons
+
+Capture a report with `--json-output baseline.json`, then use
+`--baseline-report baseline.json --max-regression-percent 20` on a later run.
+The harness rejects mismatched OS/architecture/build/mode, changed workloads,
+relative imported source files, C++ source, failed executions, or changed output.
+It reports relative median changes separately from the Kyna/C++ ratio.
+`--fail-on-regression` makes either threshold a failing exit; otherwise noisy
+performance results remain informational. Use an idle machine, matching build
+settings, and repeated measurements. Check-mode timing still validates results
+with a separate execution before timing the checker.
+
+The switch and typed-callback pairs compare identical output against C++.
+The type-contract workload exercises aliases, type-only imports, and checked
+function contracts across source modules. Native library workloads await their
+actual package implementations.

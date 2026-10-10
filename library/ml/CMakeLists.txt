@@ -1,0 +1,11 @@
+find_package(Armadillo REQUIRED)
+find_path(MLPACK_INCLUDE_DIR mlpack/methods/linear_regression/linear_regression.hpp REQUIRED)
+find_path(CEREAL_INCLUDE_DIR cereal/cereal.hpp REQUIRED)
+add_library(kyna_ml MODULE src/bindings/linear_regression.cpp)
+target_include_directories(kyna_ml PRIVATE ../native/include ../../sdk/kyna_embedding/include ${MLPACK_INCLUDE_DIR} ${CEREAL_INCLUDE_DIR} ${ARMADILLO_INCLUDE_DIRS})
+target_link_libraries(kyna_ml PRIVATE ${ARMADILLO_LIBRARIES})
+target_compile_features(kyna_ml PRIVATE cxx_std_20)
+set_target_properties(kyna_ml PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/native" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/native")
+
+install(TARGETS kyna_ml LIBRARY DESTINATION lib/kyna/native RUNTIME DESTINATION lib/kyna/native)
+install(FILES ${CMAKE_SOURCE_DIR}/examples/native/packages/ml.ky DESTINATION share/kyna/packages)

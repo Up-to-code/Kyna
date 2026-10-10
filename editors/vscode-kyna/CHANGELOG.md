@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.16
+
+- Route compiler diagnostics and related locations to their actual source files.
+- Convert UTF-8 compiler ranges to UTF-16 editor positions and discard stale checks.
+- Split executable discovery, diagnostic handling, and completion catalogs into focused modules.
+- Add type import/export keywords and completions, and match runtime failures in task terminals.
+
 ## 1.0.12
 
 - Add a ready-to-run `GET /` homepage to new backend projects.

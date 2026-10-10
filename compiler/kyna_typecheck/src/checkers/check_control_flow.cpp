@@ -3,11 +3,40 @@
 
 #include <algorithm>
 #include <set>
+#include <optional>
+#include <sstream>
+#include <iomanip>
+#include <kyna/lexing/token.hpp>
 
 namespace kyna {
+namespace {
+std::optional<std::string> caseKey(const ExprPtr &expression) {
+  if (const auto *literal = std::get_if<Literal>(&expression->node)) {
+    if (literal->kind == Literal::Kind::Int || literal->kind == Literal::Kind::Float) {
+      try {
+        std::ostringstream key;
+        key << "number:" << std::hexfloat << std::stold(literal->value);
+        return key.str();
+      } catch (const std::exception &) { return std::nullopt; }
+    }
+    return std::to_string(static_cast<int>(literal->kind)) + ":" + literal->value;
+  }
+  if (const auto *unary = std::get_if<Unary>(&expression->node);
+      unary && unary->op == TokenKind::Minus) {
+    if (const auto *literal = std::get_if<Literal>(&unary->right->node);
+        literal && (literal->kind == Literal::Kind::Int || literal->kind == Literal::Kind::Float)) {
+      try { std::ostringstream key; key << "number:" << std::hexfloat << -std::stold(literal->value); return key.str(); }
+      catch (const std::exception &) { return std::nullopt; }
+    }
+  }
+  return std::nullopt;
+}
+}
 
 void Analyzer::checkBlock(const BlockStmt &n, SourceLocation) {
   auto old = scope;
+  const auto oldFunctions = functions;
+  const auto oldInferred = inferredReturns;
   auto *oldLexical = lexical;
   scope = std::make_shared<Scope>();
   scope->parent = old;
@@ -20,6 +49,7 @@ void Analyzer::checkBlock(const BlockStmt &n, SourceLocation) {
               statement->location, "KSEM1102", "rename or remove one of the nested declarations");
       scope->types[function->name] = analyzerNamedType("func");
       scope->mutableBindings[function->name] = false;
+      functions[function->name] = *function;
     }
   for (auto &x : n.statements)
     stmt(x);
@@ -27,6 +57,8 @@ void Analyzer::checkBlock(const BlockStmt &n, SourceLocation) {
     expr(n.tail);
   scope = old;
   lexical = oldLexical;
+  functions = oldFunctions;
+  inferredReturns = oldInferred;
 }
 
 void Analyzer::checkIf(const IfStmt &n) {
@@ -39,6 +71,9 @@ void Analyzer::checkIf(const IfStmt &n) {
 }
 
 void Analyzer::checkWhile(const WhileStmt &n) {
+  if (!n.label.empty() && std::find(activeLoopLabels.begin(), activeLoopLabels.end(), n.label) != activeLoopLabels.end())
+    error("loop label '" + n.label + "' is already active", n.condition->location,
+          "KSEM1303", "use a unique label for each nested loop");
   auto condition = expr(n.condition);
   if (condition.name != "bool" && condition.name != "any")
     error("while condition must be bool", n.condition->location, "KSEM1304",
@@ -72,6 +107,7 @@ void Analyzer::checkLoop(const LoopStmt &n, SourceLocation loc) {
 void Analyzer::checkSwitch(const SwitchStmt &n, SourceLocation loc) {
   const auto subject = expr(n.subject);
   bool seenDefault = false;
+  std::set<std::string> cases;
   for (const auto &arm : n.cases) {
     if (arm.isDefault) {
       if (seenDefault)
@@ -80,9 +116,16 @@ void Analyzer::checkSwitch(const SwitchStmt &n, SourceLocation loc) {
       continue;
     }
     const auto value = expr(arm.value);
+    const auto key = caseKey(arm.value);
+    if (!key)
+      error("switch case must be a literal constant", arm.value->location, "KSEM1305",
+            "use a literal or a negated numeric literal");
+    else if (!cases.insert(*key).second)
+      error("duplicate switch case", arm.value->location, "KSEM1306",
+            "remove the duplicate case");
     if (!compatible(subject, value))
       error("case value has type " + value.str() + ", but subject has type " + subject.str(),
-            arm.value->location);
+            arm.value->location, "KSEM1307", "use a case value compatible with the switch subject");
   }
   ++switchDepth;
   for (const auto &arm : n.cases)
@@ -131,6 +174,8 @@ void Analyzer::checkReturn(const ReturnStmt &n) {
   if (!inFunction)
     error("return must be inside a function", n.value ? n.value->location : SourceLocation{});
   TypeRef actual = n.value ? expr(n.value) : analyzerNamedType("void");
+  if (inFunction)
+    returnedTypes.push_back(actual);
   if (inFunction && !compatible(currentReturn, actual))
     error("return type " + actual.str() + " does not satisfy " + currentReturn.str(),
           n.value ? n.value->location : SourceLocation{});

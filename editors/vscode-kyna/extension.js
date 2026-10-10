@@ -5,130 +5,12 @@ const childProcess = require('child_process');
 
 const languageSelector = { language: 'kyna', scheme: 'file' };
 const manifestSelector = { language: 'kyna-manifest', scheme: 'file' };
-const validationTimers = new Map();
-const validationProcesses = new Map();
-let missingExecutableReported = false;
+const { executable } = require('./src/cli');
+const { createDiagnostics } = require('./src/diagnostics');
+const { validate, scheduleValidation, closeDocument, disposeValidation, dependencyChanged } = createDiagnostics(executable);
 let inspectionOutput;
 
-const wordCompletions = [
-  ['var', vscode.CompletionItemKind.Keyword, 'Mutable, type-locked binding', 'var ${1:name} = ${0:value};'],
-  ['const', vscode.CompletionItemKind.Keyword, 'Immutable binding', 'const ${1:name} = ${0:value};'],
-  ['fn', vscode.CompletionItemKind.Keyword, 'Function declaration', 'fn ${1:name}(${2:arg}: ${3:type}): ${4:void} {\n\t$0\n}'],
-  ['class', vscode.CompletionItemKind.Class, 'Class declaration', 'class ${1:Name} {\n\t$0\n}'],
-  ['intf', vscode.CompletionItemKind.Interface, 'Interface declaration (extends/generics/optional props)', 'intf ${1:Name}${2:<T>}${3: extends ${4:Parent}} {\n\t${5:prop}: ${6:type};\n\t$0\n}'],
-  ['import', vscode.CompletionItemKind.Keyword, 'Namespace import', 'import * as ${2:module} from "${1:./module.kyna}";'],
-  ['import-named', vscode.CompletionItemKind.Keyword, 'Named import', 'import { ${2:a}, ${3:b} } from "${1:./module.kyna}";'],
-  ['import-default', vscode.CompletionItemKind.Keyword, 'Default import', 'import ${2:name} from "${1:./module.kyna}";'],
-  ['import-legacy', vscode.CompletionItemKind.Keyword, 'Legacy namespace import', 'import "${1:./module.kyna}" as ${2:module};'],
-  ['export', vscode.CompletionItemKind.Keyword, 'Export a named declaration', 'export ${0}'],
-  ['export-default', vscode.CompletionItemKind.Keyword, 'Default export', 'export default ${0}'],
-  ['export-list', vscode.CompletionItemKind.Keyword, 'Export list', 'export { ${1:a}, ${2:b} };'],
-  ['if', vscode.CompletionItemKind.Keyword, 'Conditional', 'if (${1:condition}) {\n\t$0\n}'],
-  ['while', vscode.CompletionItemKind.Keyword, 'While loop', 'while (${1:condition}) {\n\t$0\n}'],
-  ['else', vscode.CompletionItemKind.Keyword, 'Alternative branch'],
-  ['break', vscode.CompletionItemKind.Keyword, 'Exit the current or named loop', 'break${1:};'],
-  ['continue', vscode.CompletionItemKind.Keyword, 'Continue the current or named loop', 'continue${1:};'],
-  ['loop', vscode.CompletionItemKind.Keyword, 'C-style loop', 'loop (var ${1:i} = 0; ${1:i} < ${2:count}; ${1:i} = ${1:i} + 1) {\n\t$0\n}'],
-  ['switch', vscode.CompletionItemKind.Keyword, 'Switch on a value', 'switch (${1:value}) {\n\tcase ${2:case}: {\n\t\t$0\n\t}\n\tdefault: {\n\t}\n}'],
-  ['case', vscode.CompletionItemKind.Keyword, 'Switch case arm'],
-  ['default', vscode.CompletionItemKind.Keyword, 'Fallback switch arm'],
-  ['await', vscode.CompletionItemKind.Keyword, 'Wait for an async result', 'await ${0:expression}'],
-  ['match', vscode.CompletionItemKind.Keyword, 'Match expression', 'match (${1:value}) {\n\t${2:pattern} => ${3:result};\n\t_ => ${0:fallback};\n}'],
-  ['try', vscode.CompletionItemKind.Keyword, 'Handle a typed Error', 'try {\n\t$1\n} catch (${2:error}) {\n\t$3\n} finally {\n\t$0\n}'],
-  ['catch', vscode.CompletionItemKind.Keyword, 'Catch a typed Error value'],
-  ['finally', vscode.CompletionItemKind.Keyword, 'Always execute cleanup code'],
-  ['throw', vscode.CompletionItemKind.Keyword, 'Raise an Error or value', 'throw ${0:error};'],
-  ['return', vscode.CompletionItemKind.Keyword, 'Return from a function', 'return ${0:value};'],
-  ['new', vscode.CompletionItemKind.Constructor, 'Construct a class', 'new ${1:Class}($0)'],
-  ['init', vscode.CompletionItemKind.Constructor, 'Class constructor', 'init(${1:arg}: ${2:type}) {\n\t$0\n}'],
-  ['public', vscode.CompletionItemKind.Keyword, 'Public member visibility'],
-  ['private', vscode.CompletionItemKind.Keyword, 'Private member visibility'],
-  ['protected', vscode.CompletionItemKind.Keyword, 'Protected member visibility'],
-  ['static', vscode.CompletionItemKind.Keyword, 'Class-level member'],
-  ['override', vscode.CompletionItemKind.Keyword, 'Explicit method override'],
-  ['final', vscode.CompletionItemKind.Keyword, 'Prevent extension or override'],
-  ['abstract', vscode.CompletionItemKind.Keyword, 'Abstract class or method'],
-  ['implements', vscode.CompletionItemKind.Keyword, 'Declare interface conformance'],
-  ['extends', vscode.CompletionItemKind.Keyword, 'Declare a parent class'],
-  ['self', vscode.CompletionItemKind.Variable, 'Current receiver'],
-  ['super', vscode.CompletionItemKind.Variable, 'Parent receiver'],
-  ['true', vscode.CompletionItemKind.Value, 'Boolean true'],
-  ['false', vscode.CompletionItemKind.Value, 'Boolean false'],
-  ['null', vscode.CompletionItemKind.Value, 'Null value'],
-  ...['int', 'float', 'num', 'str', 'char', 'bool', 'void', 'any'].map(word =>
-    [word, vscode.CompletionItemKind.TypeParameter, `Kyna ${word} type`]),
-  ...['print', 'typeOf', 'len', 'push', 'pop', 'keys', 'readFile', 'writeFile', 'processRun',
-    'readJsonFile', 'writeJsonFile', 'createDirectory', 'fileExists', 'removePath',
-    'listDirectory', 'processEnv', 'sleep', 'wait', 'httpGet', 'fetch', 'fetchResult', 'build',
-    'collectGarbage', 'gcStats',
-    'log', 'logColor', 'console', 'error', 'filter', 'sort', 'bubbleSort', 'map', 'reduce',
-    'find', 'any', 'all', 'unique', 'call', 'jsonParse', 'jsonStringify',
-    'tomlParse', 'tomlStringify', 'xmlParse', 'xmlStringify', 'process', 'createApiStore',
-    'osName', 'osArchitecture', 'osWorkingDirectory', 'terminalIsInteractive',
-    'terminalSupportsColor',
-    'textContains', 'textFind', 'textSlice',
-    'textReplace', 'textSplit', 'textTrim', 'textLower', 'textUpper']
-    .map(word => [word, vscode.CompletionItemKind.Function, 'Kyna standard-library function']),
-  ['fs', vscode.CompletionItemKind.Module, 'Kyna filesystem namespace'],
-  ['http', vscode.CompletionItemKind.Module, 'Kyna HTTP namespace'],
-  ['json', vscode.CompletionItemKind.Module, 'Kyna JSON namespace'],
-  ['toml', vscode.CompletionItemKind.Module, 'Kyna TOML namespace'],
-  ['xml', vscode.CompletionItemKind.Module, 'Kyna XML namespace'],
-  ['os', vscode.CompletionItemKind.Module, 'Injected operating-system information'],
-  ['terminal', vscode.CompletionItemKind.Module, 'Injected terminal information'],
-  ['db', vscode.CompletionItemKind.Module, 'Kyna parameterized SQL namespace'],
-  ['collections', vscode.CompletionItemKind.Module, 'Kyna collection algorithms namespace']
-];
-
-const namespaceMembers = {
-  console: ['log'],
-  process: ['json', 'stringify', 'run', 'env'],
-  fs: ['read', 'write', 'readJson', 'writeJson', 'createDirectory', 'exists', 'remove', 'list'],
-  http: ['fetch', 'tryFetch', 'server', 'response', 'json', 'redirect'],
-  json: ['parse', 'stringify'],
-  toml: ['parse', 'stringify'],
-  xml: ['parse', 'stringify'],
-  os: ['name', 'architecture', 'cwd'],
-  terminal: ['interactive', 'supportsColor'],
-  db: ['query', 'execute'],
-  collections: ['map', 'reduce', 'find', 'any', 'all', 'unique']
-};
-
-function executable(document) {
-  const configured = vscode.workspace.getConfiguration('kyna').get('executable', '');
-  if (configured) return configured;
-  const folder = document ? vscode.workspace.getWorkspaceFolder(document.uri) : undefined;
-  const candidates = [];
-  const executableNames = process.platform === 'win32'
-    ? ['ky.exe', 'kyna.exe']
-    : ['ky', 'kyna'];
-  if (folder) {
-    for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
-      for (const name of executableNames)
-        candidates.push(path.join(folder.uri.fsPath, buildName, 'bin', name));
-    for (const name of executableNames) {
-      candidates.push(path.join(folder.uri.fsPath, 'build', 'bin', name));
-      candidates.push(path.join(folder.uri.fsPath, 'build', 'tools', 'kyna_cli', name));
-    }
-  }
-  if (document) {
-    let directory = path.dirname(document.fileName);
-    for (;;) {
-      for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
-        for (const name of executableNames)
-          candidates.push(path.join(directory, buildName, 'bin', name));
-      for (const name of executableNames) {
-        candidates.push(path.join(directory, 'build', 'bin', name));
-        candidates.push(path.join(directory, 'build', 'tools', 'kyna_cli', name));
-      }
-      const parent = path.dirname(directory);
-      if (parent === directory) break;
-      directory = parent;
-    }
-  }
-  return candidates.find(candidate => fs.existsSync(candidate)) || 'ky';
-}
-
+const { wordCompletions, namespaceMembers } = require('./src/language-catalog');
 function formatDocument(document, token) {
   return new Promise((resolve, reject) => {
     const process = childProcess.spawn(executable(document),
@@ -189,7 +71,8 @@ async function runActive(command) {
     'Kyna',
     new vscode.ProcessExecution(program, arguments, {
       cwd: path.dirname(editor.document.fileName)
-    })
+    }),
+    ['$kyna']
   );
   task.presentationOptions = {
     reveal: vscode.TaskRevealKind.Always,
@@ -219,83 +102,14 @@ async function inspectActive(command, title) {
     });
 }
 
-function toDiagnostic(entry, document) {
-  const startLine = Math.max(0, (entry.range?.start?.line || 1) - 1);
-  const startColumn = Math.max(0, (entry.range?.start?.column || 1) - 1);
-  const endLine = Math.max(startLine, (entry.range?.end?.line || startLine + 1) - 1);
-  const endColumn = Math.max(startColumn + 1, (entry.range?.end?.column || startColumn + 2) - 1);
-  const range = new vscode.Range(
-    new vscode.Position(Math.min(startLine, document.lineCount - 1), startColumn),
-    new vscode.Position(Math.min(endLine, document.lineCount - 1), endColumn)
-  );
-  const severity = entry.severity === 'warning'
-    ? vscode.DiagnosticSeverity.Warning
-    : vscode.DiagnosticSeverity.Error;
-  const diagnostic = new vscode.Diagnostic(range, entry.message, severity);
-  diagnostic.code = entry.code;
-  diagnostic.source = 'kyna';
-  return diagnostic;
-}
-
-function validate(document, collection) {
-  if (document.languageId !== 'kyna') return;
-  const key = document.uri.toString();
-  validationProcesses.get(key)?.kill();
-  const documentVersion = document.version;
-  const process = childProcess.spawn(executable(document),
-    ['check', '-', '--source-name', document.fileName, '--diagnostic-format', 'json', '--no-color'],
-    { cwd: path.dirname(document.fileName), stdio: ['pipe', 'pipe', 'pipe'] });
-  validationProcesses.set(key, process);
-  let output = '';
-  process.stdout.on('data', chunk => { output += chunk.toString(); });
-  process.stderr.on('data', chunk => { output += chunk.toString(); });
-  process.on('error', error => {
-    if (validationProcesses.get(key) !== process) return;
-    validationProcesses.delete(key);
-    collection.delete(document.uri);
-    if (!missingExecutableReported) {
-      missingExecutableReported = true;
-      vscode.window.showWarningMessage(`Kyna diagnostics could not start: ${error.message}. Set kyna.executable.`);
-    }
-  });
-  process.on('close', () => {
-    if (validationProcesses.get(key) !== process) return;
-    validationProcesses.delete(key);
-    if (document.isClosed) return;
-    if (document.version !== documentVersion) {
-      scheduleValidation(document, collection);
-      return;
-    }
-    const schemaStart = output.indexOf('{"schema":"kyna.diagnostic/v1"');
-    const legacyStart = output.indexOf('{"version"');
-    const jsonStart = schemaStart >= 0 ? schemaStart : legacyStart;
-    if (jsonStart < 0) {
-      collection.delete(document.uri);
-      return;
-    }
-    try {
-      const payload = JSON.parse(output.slice(jsonStart).trim());
-      collection.set(document.uri, (payload.diagnostics || []).map(item => toDiagnostic(item, document)));
-    } catch (_) {
-      collection.delete(document.uri);
-    }
-  });
-  process.stdin.end(document.getText());
-}
-
-function scheduleValidation(document, collection) {
-  const key = document.uri.toString();
-  clearTimeout(validationTimers.get(key));
-  validationTimers.set(key, setTimeout(() => validate(document, collection), 200));
-}
-
 function declaredSymbols(text) {
   const symbols = [];
-  const expression = /\b(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+  const expression = /\b(class|intf|type|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
   for (const match of text.matchAll(expression)) {
     const kinds = {
       class: vscode.CompletionItemKind.Class,
       intf: vscode.CompletionItemKind.Interface,
+      type: vscode.CompletionItemKind.Interface,
       fn: vscode.CompletionItemKind.Function,
       func: vscode.CompletionItemKind.Function,
       var: vscode.CompletionItemKind.Variable,
@@ -318,8 +132,8 @@ function completionItem(definition) {
 
 async function importPathCompletions(document, position) {
   const before = document.lineAt(position.line).text.slice(0, position.character);
-  if (!/\bimport\s+"[^"]*$/.test(before)) return null;
-  const files = await vscode.workspace.findFiles('**/*.kyna', '**/{node_modules,build,build-*}/**', 300);
+  if (!/\b(?:import\s+(?:type\s+)?|from\s+)"[^"]*$/.test(before)) return null;
+  const files = await vscode.workspace.findFiles('**/*.{ky,kyna}', '**/{node_modules,build,build-*}/**', 300);
   return files.map(uri => {
     let relative = path.relative(path.dirname(document.fileName), uri.fsPath).replace(/\\/g, '/');
     if (!relative.startsWith('.')) relative = `./${relative}`;
@@ -361,13 +175,14 @@ async function importedMemberCompletions(document, position) {
     return ['ok', 'response', 'error'].map(name =>
       completionItem([name, vscode.CompletionItemKind.Property, 'Kyna non-throwing HTTP result member'])
     );
-  const declaration = source.match(new RegExp(`\\bimport\\s+"([^"]+)"\\s+as\\s+${escapedReceiver}\\s*;`));
+  const declaration = source.match(new RegExp(`\\bimport\\s+"([^"]+)"\\s+as\\s+${escapedReceiver}\\s*;`))
+    || source.match(new RegExp(`\\bimport\\s+(?:type\\s+)?\\*\\s+as\\s+${escapedReceiver}\\s+from\\s+"([^"]+)"\\s*;`));
   if (!declaration) return null;
   try {
     const uri = vscode.Uri.file(path.resolve(path.dirname(document.fileName), declaration[1]));
     const text = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
     const exports = [];
-    const expression = /\bexport\s+(?:public\s+)?(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    const expression = /\bexport\s+(?:public\s+)?(class|intf|type|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
     for (const match of text.matchAll(expression))
       exports.push(completionItem([match[2], match[1] === 'fn' || match[1] === 'func' ? vscode.CompletionItemKind.Function : vscode.CompletionItemKind.Field, `Exported ${match[1]} from ${declaration[1]}`]));
     return exports;
@@ -388,7 +203,7 @@ const completionProvider = {
 
 function declarationAt(document, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const expression = new RegExp(`\\b(?:class|intf|fn|func|var|const|let|set)\\s+${escaped}\\b`);
+  const expression = new RegExp(`\\b(?:class|intf|type|fn|func|var|const|let|set)\\s+${escaped}\\b`);
   for (let line = 0; line < document.lineCount; line += 1) {
     const match = document.lineAt(line).text.match(expression);
     if (match) {
@@ -447,7 +262,7 @@ function collectDeclarations(text) {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index].trim();
     const declaration = line.match(
-      new RegExp(`^${modifiers}(class|intf|fn|func|var|const|let|set)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(.*)$`)
+      new RegExp(`^${modifiers}(class|intf|type|fn|func|var|const|let|set)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(.*)$`)
     );
     if (declaration) {
       const [, kind, name, rest] = declaration;
@@ -528,13 +343,14 @@ const hoverProvider = {
 const symbolProvider = {
   provideDocumentSymbols(document) {
     const symbols = [];
-    const expression = /\b(class|intf|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    const expression = /\b(class|intf|type|fn|func|var|const|let|set)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
     for (let line = 0; line < document.lineCount; line += 1) {
       const text = document.lineAt(line).text;
       for (const match of text.matchAll(expression)) {
         const kinds = {
           class: vscode.SymbolKind.Class,
           intf: vscode.SymbolKind.Interface,
+          type: vscode.SymbolKind.Interface,
           fn: vscode.SymbolKind.Function,
           func: vscode.SymbolKind.Function,
           var: vscode.SymbolKind.Variable,
@@ -642,7 +458,8 @@ async function runProjectTask(command, resource) {
     name,
     'Kyna',
     new vscode.ProcessExecution(executable(projectDocument(root)),
-      [command, '--color', 'always'], { cwd: root })
+      [command, '--color', 'always'], { cwd: root }),
+    ['$kyna']
   );
   task.presentationOptions = {
     reveal: vscode.TaskRevealKind.Always,
@@ -1048,21 +865,22 @@ function activate(context) {
     vscode.languages.registerCodeLensProvider(manifestSelector, manifestCodeLensProvider),
     vscode.languages.registerDocumentFormattingEditProvider(languageSelector, formattingProvider),
     vscode.workspace.onDidOpenTextDocument(document => scheduleValidation(document, diagnostics)),
-    vscode.workspace.onDidChangeTextDocument(event => scheduleValidation(event.document, diagnostics)),
+    vscode.workspace.onDidChangeTextDocument(event => {
+      scheduleValidation(event.document, diagnostics);
+      for (const document of vscode.workspace.textDocuments)
+        if (document !== event.document) scheduleValidation(document, diagnostics);
+    }),
     vscode.workspace.onDidSaveTextDocument(document => {
       validate(document, diagnostics);
+      for (const dependent of vscode.workspace.textDocuments)
+        if (dependent !== document) scheduleValidation(dependent, diagnostics);
       if (path.basename(document.fileName) === 'kyna.toml') projectProvider.refresh();
       if (document.fileName.includes(`${path.sep}src${path.sep}routes${path.sep}`)) {
         routesProvider.refresh(); projectProvider.refresh();
       }
     }),
     vscode.workspace.onDidCloseTextDocument(document => {
-      const key = document.uri.toString();
-      clearTimeout(validationTimers.get(key));
-      validationTimers.delete(key);
-      validationProcesses.get(key)?.kill();
-      validationProcesses.delete(key);
-      diagnostics.delete(document.uri);
+      closeDocument(document, diagnostics);
     }),
     vscode.window.onDidChangeActiveTextEditor(editor => {
       updateButton(editor);
@@ -1075,15 +893,17 @@ function activate(context) {
     routesWatcher.onDidChange(() => { routesProvider.refresh(); projectProvider.refresh(); }),
     routesWatcher.onDidDelete(() => { routesProvider.refresh(); projectProvider.refresh(); })
   );
+  const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/*.{ky,kyna,kyna.d,ky.d}');
+  context.subscriptions.push(sourceWatcher,
+    sourceWatcher.onDidCreate(() => dependencyChanged(diagnostics)),
+    sourceWatcher.onDidChange(() => dependencyChanged(diagnostics)),
+    sourceWatcher.onDidDelete(() => dependencyChanged(diagnostics)));
   vscode.workspace.textDocuments.forEach(document => scheduleValidation(document, diagnostics));
   updateButton(vscode.window.activeTextEditor);
 }
 
 function deactivate() {
-  for (const timer of validationTimers.values()) clearTimeout(timer);
-  for (const process of validationProcesses.values()) process.kill();
-  validationTimers.clear();
-  validationProcesses.clear();
+  disposeValidation();
 }
 
 module.exports = { activate, deactivate };

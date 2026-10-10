@@ -58,8 +58,7 @@ int serveProject(const Options &options, std::istream &input, std::ostream &outp
   if (!options.quiet)
     errors << "Kyna server listening on http://" << host << ':' << port
            << "  (Ctrl-C to stop)\n";
-  LanguageSessionOptions sessionOptions;
-  sessionOptions.modulePaths = run.modulePaths;
+  auto sessionOptions = makeSessionOptions(run);
   LanguageSession session(std::move(sessionOptions));
   return runSourceFile(run, session, input, output, errors);
 }

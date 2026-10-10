@@ -5,6 +5,7 @@
 #include "kyna/semantics/module_analyzer.hpp"
 #include "kyna/semantics/program_analyzer.hpp"
 #include "kyna/source/source_manager.hpp"
+#include <kyna/language/native_functions.hpp>
 #include <filesystem>
 #include <string>
 
@@ -14,6 +15,8 @@ struct LanguageSessionOptions {
   std::vector<std::filesystem::path> modulePaths;
   RuntimeCapabilities capabilities{productionRuntimeCapabilities()};
   bool collectMetrics{false};
+  std::map<std::filesystem::path, std::string> sourceOverlays{};
+  std::vector<NativeFunction> nativeFunctions;
 };
 
 // PhaseMetric records elapsed monotonic nanoseconds for one completed phase.
@@ -39,6 +42,7 @@ struct InspectionResult {
 class LanguageSession {
 public:
   explicit LanguageSession(LanguageSessionOptions options = {});
+  ~LanguageSession();
   LanguageResult check(const std::filesystem::path &entry);
   LanguageResult run(const std::filesystem::path &entry);
   LanguageResult checkSource(std::string name, std::string source);

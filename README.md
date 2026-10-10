@@ -170,6 +170,8 @@ language feature.
 - [Compiler architecture](docs/architecture.md)
 - [Runtime](docs/runtime.md)
 - [Standard library](docs/stdlib.md)
+- [Libraries and native bindings](docs/libraries.md)
+- [Safety upgrade status](docs/safety-upgrade-status.md)
 - [Installation and releases](docs/distribution.md)
 - [Security](SECURITY.md)
 

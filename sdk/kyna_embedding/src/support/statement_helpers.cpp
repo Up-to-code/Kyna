@@ -18,6 +18,8 @@ std::string statementKind(const Stmt &statement) {
           return "class";
         if constexpr (std::is_same_v<T, InterfaceDecl>)
           return "interface";
+        if constexpr (std::is_same_v<T, TypeAliasDecl>)
+          return "type";
         if constexpr (std::is_same_v<T, BlockStmt>)
           return "block";
         if constexpr (std::is_same_v<T, IfStmt>)
@@ -48,7 +50,8 @@ std::string statementName(const Stmt &statement) {
         if constexpr (std::is_same_v<T, ImportDecl>)
           return node.alias;
         if constexpr (std::is_same_v<T, VarDecl> || std::is_same_v<T, FunctionDecl> ||
-                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl>)
+                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl> ||
+                      std::is_same_v<T, TypeAliasDecl>)
           return node.name;
         return {};
       },
@@ -60,7 +63,8 @@ bool statementExported(const Stmt &statement) {
       [](const auto &node) {
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, VarDecl> || std::is_same_v<T, FunctionDecl> ||
-                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl>)
+                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl> ||
+                      std::is_same_v<T, TypeAliasDecl>)
           return node.exported;
         return false;
       },

@@ -1,12 +1,24 @@
 #include "kyna/execution/tree_walk_interpreter.hpp"
 #include <algorithm>
+#include <set>
 
 namespace kyna {
 
 ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
   try {
     Value last;
+    std::set<std::filesystem::path> runtimeModules;
+    const auto visit = [&](const auto &self, const std::filesystem::path &path) -> void {
+      if (!runtimeModules.insert(path).second) return;
+      const auto &module = program.modules.modules.at(path);
+      for (const auto &dependency : module.dependencies)
+        if (!dependency.typeOnly && !program.modules.modules.at(dependency.canonicalPath).isDeclaration)
+          self(self, dependency.canonicalPath);
+    };
+    visit(visit, program.modules.entry);
     for (const auto &path : program.modules.initializationOrder) {
+      if (!runtimeModules.contains(path) || program.modules.modules.at(path).isDeclaration)
+        continue;
       if (initializedModules.contains(path))
         continue;
       const auto found = program.modules.modules.find(path);
@@ -14,6 +26,8 @@ ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
         continue;
       auto environment = interpreter.createModuleEnvironment();
       for (const auto &dependency : found->second.dependencies) {
+        if (dependency.typeOnly || program.modules.modules.at(dependency.canonicalPath).isDeclaration)
+          continue;
         const auto imported = initializedModules.find(dependency.canonicalPath);
         if (imported == initializedModules.end()) {
           Diagnostic diagnostic{"module dependency was not initialized", dependency.location,
@@ -30,6 +44,13 @@ ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
           if (!import || import->alias != dependency.alias)
             continue;
           for (const auto &specifier : import->named) {
+            const auto &declarations = program.modules.modules.at(dependency.canonicalPath).syntax.module.declarations;
+            const bool typeOnly = std::any_of(declarations.begin(), declarations.end(), [&](const auto &declaration) {
+              if (const auto *iface = std::get_if<InterfaceDecl>(&declaration->node)) return iface->name == specifier.imported;
+              if (const auto *alias = std::get_if<TypeAliasDecl>(&declaration->node)) return alias->name == specifier.imported;
+              return false;
+            });
+            if (typeOnly) { bound = true; continue; }
             // Bind the specific exported value (class, function, or value) so
             // `new User(...)`, `add(...)`, and member access work directly.
             environment->define(

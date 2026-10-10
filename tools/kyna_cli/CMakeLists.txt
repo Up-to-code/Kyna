@@ -1,5 +1,6 @@
 add_executable(kyna
   src/entry/kyna_main.cpp
+  src/loading/session_options.cpp
   src/parser/cli_argument_parser.cpp
   src/dispatcher/command_dispatcher.cpp
   src/commands/source_run_command.cpp
@@ -20,13 +21,16 @@ add_executable(kyna
   src/commands/project_generate.cpp
   src/commands/project_format.cpp
   src/commands/project_dependencies.cpp
+  src/commands/project_build.cpp
+  src/loading/native_package_installation.cpp
+  src/loading/native_archive_acquisition.cpp
   src/commands/project_doctor.cpp
   src/commands/project_serve.cpp
   src/commands/project_dev.cpp
   src/commands/project_self.cpp
   src/formatting/kyna_formatter.cpp
   src/rendering/rich_diagnostic_renderer.cpp)
-target_link_libraries(kyna PRIVATE kyna_embedding CLI11::CLI11 tomlplusplus::tomlplusplus
+target_link_libraries(kyna PRIVATE kyna_embedding kyna_standard_library CLI11::CLI11 tomlplusplus::tomlplusplus
   ftxui::component ftxui::dom ftxui::screen)
 kyna_configure_target(kyna)
 set_target_properties(kyna PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

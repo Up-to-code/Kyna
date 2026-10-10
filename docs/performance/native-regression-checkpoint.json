@@ -1,0 +1,56 @@
+{
+  "configuration": "Release",
+  "target": "macos-arm64",
+  "informational": true,
+  "samples": [
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 129125,
+      "native_ns": 1180375,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 44667,
+      "native_ns": 497917,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 46458,
+      "native_ns": 483500,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 124416,
+      "native_ns": 490709,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 51458,
+      "native_ns": 563292,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 48875,
+      "native_ns": 648125,
+      "correct": true
+    },
+    {
+      "schema": "kyna.native-benchmark/v1",
+      "iterations": 1000,
+      "cpp_ns": 61042,
+      "native_ns": 470250,
+      "correct": true
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+export type Count = int;
+export intf Named { name: str; }

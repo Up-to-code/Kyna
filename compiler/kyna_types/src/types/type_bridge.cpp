@@ -50,7 +50,12 @@ TypePtr typeFromName(std::string_view name) { return primitive(name); }
 
 TypePtr typeFromRef(const TypeRef &ref) {
   TypePtr base = nullptr;
-  if (ref.name == "array" && ref.typeArgs.size() == 1) {
+  if (ref.name == "func" && !ref.typeArgs.empty()) {
+    std::vector<TypePtr> params;
+    for (std::size_t i = 0; i + 1 < ref.typeArgs.size(); ++i)
+      params.push_back(typeFromRef(ref.typeArgs[i]));
+    base = SignatureType::make(std::move(params), typeFromRef(ref.typeArgs.back()));
+  } else if (ref.name == "array" && ref.typeArgs.size() == 1) {
     base = SliceType::make(typeFromRef(ref.typeArgs.front()));
   } else if (ref.name == "map" && ref.typeArgs.size() == 2) {
     base = MapType::make(typeFromRef(ref.typeArgs[0]), typeFromRef(ref.typeArgs[1]));
@@ -116,8 +121,14 @@ TypeRef typeToRef(TypePtr type) {
       result.typeArgs.push_back(typeToRef(member));
     return result;
   }
-  if (type->kind() == TypeKind::Signature)
-    return TypeRef{"func", false, {}, {}};
+  if (type->kind() == TypeKind::Signature) {
+    const auto *signature = static_cast<const SignatureType *>(type);
+    TypeRef result{"func", false, {}, {}};
+    for (const auto *parameter : signature->params())
+      result.typeArgs.push_back(typeToRef(parameter));
+    result.typeArgs.push_back(typeToRef(signature->returnType()));
+    return result;
+  }
   if (type->kind() == TypeKind::Slice) {
     const auto *slice = static_cast<const SliceType *>(type);
     return TypeRef{"array", false, {typeToRef(slice->element())}, {}};

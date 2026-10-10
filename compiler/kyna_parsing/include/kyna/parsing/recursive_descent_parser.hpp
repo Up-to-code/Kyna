@@ -32,6 +32,7 @@ private:
   StmtPtr functionDeclaration(std::vector<std::string> modifiers);
   StmtPtr classDeclaration(std::vector<std::string> modifiers);
   StmtPtr interfaceDeclaration();
+  StmtPtr typeAliasDeclaration();
   ExprPtr expression();
   ExprPtr assignment();
   ExprPtr logicOr();

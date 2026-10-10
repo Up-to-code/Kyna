@@ -77,7 +77,8 @@ std::string Value::typeName() const {
         else if constexpr (std::is_same_v<T, char>)
           return "char";
         else if constexpr (std::is_same_v<T, ObjectPtr>)
-          return v && v->klass ? v->klass->declaration.name
+          return v && v->nativeResource ? v->nativeResource->typeName()
+               : v && v->klass ? v->klass->declaration.name
                                : v && !v->vmClassName.empty() ? v->vmClassName : "object";
         else if constexpr (std::is_same_v<T, ArrayPtr>)
           return "array";

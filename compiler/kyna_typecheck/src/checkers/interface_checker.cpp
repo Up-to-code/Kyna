@@ -138,7 +138,7 @@ TypeRef Analyzer::substitute(const TypeRef &type, const InterfaceDecl &contract,
 }
 
 bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &contract,
-                              SourceLocation location) {
+                              const TypeRef &contractRef, SourceLocation location) {
   std::vector<std::string> stack;
   const auto effective = effectiveContract(contract, stack);
   bool conforms = true;
@@ -147,11 +147,11 @@ bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &con
                                     [&](const auto &f) { return f.name == required.name; });
     if (found == object.fields.end() && effective.optionalFields.contains(required.name))
       continue;
-    if (found == object.fields.end() || !compatible(required.type, expr(found->value))) {
+    if (found == object.fields.end() || !compatible(substitute(required.type, contract, contractRef), expr(found->value))) {
       conforms = false;
       error("object does not provide compatible field '" + required.name +
                 "' required by interface '" + contract.name + "'",
-            location);
+            location, "KSEM1506", "provide each required field with the declared type");
     }
   }
   if (!effective.methods.empty() || !effective.callSignatures.empty()) {
