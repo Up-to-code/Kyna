@@ -7,12 +7,37 @@
     "boost-asio",
     "boost-beast",
     "cli11",
-    { "name": "curl", "features": ["ssl"] },
+    {
+      "name": "curl",
+      "features": [
+        "ssl"
+      ]
+    },
     "ftxui",
     "openssl",
     "libpq",
     "pugixml",
     "tomlplusplus",
     "utf8proc"
-  ]
+  ],
+  "features": {
+    "gui": {
+      "description": "Optional Qt Quick adapter",
+      "dependencies": [
+        "qtdeclarative"
+      ]
+    },
+    "geometry": {
+      "description": "Optional CGAL adapter",
+      "dependencies": [
+        "cgal"
+      ]
+    },
+    "ml": {
+      "description": "Optional mlpack regression adapter",
+      "dependencies": [
+        "mlpack"
+      ]
+    }
+  }
 }

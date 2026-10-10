@@ -42,6 +42,8 @@ int runProjectCommand(const Options &options, std::istream &input, std::ostream 
   case Command::Remove:
   case Command::Install:
     return runDependencies(options, output, errors);
+  case Command::Build:
+    return buildProject(options, output, errors);
   case Command::Doctor:
     return doctor(options, output);
   case Command::Serve:

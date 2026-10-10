@@ -30,17 +30,20 @@ void installConsoleLibrary(Interpreter &interpreter) {
   global->define("console", std::move(consoleValue), false);
   auto colorLog = std::make_shared<Function>();
   colorLog->native = true;
-  colorLog->nativeCall = [](const std::vector<Value> &a) {
+  colorLog->nativeCall = [colorsEnabled = interpreter.runtimeCapabilities().consoleColors](const std::vector<Value> &a) {
     if (a.size() != 2 || !std::holds_alternative<std::string>(a[0].data) ||
         !std::holds_alternative<std::string>(a[1].data))
-      throw KynaError({"logColor expects a color and message", {1, 1}, false});
+      throw KynaError({"logColor expects a color and message", {1, 1}, false, "KSTD2004"});
     static const std::map<std::string, std::string> colors = {
         {"black", "30"},   {"red", "31"},  {"green", "32"}, {"yellow", "33"}, {"blue", "34"},
         {"magenta", "35"}, {"cyan", "36"}, {"white", "37"}, {"reset", "0"}};
     auto found = colors.find(std::get<std::string>(a[0].data));
     if (found == colors.end())
-      throw KynaError({"unknown log color", {1, 1}, false});
-    std::cout << "\033[" << found->second << "m" << std::get<std::string>(a[1].data) << "\033[0m\n";
+      throw KynaError({"unknown log color", {1, 1}, false, "KSTD2004"});
+    if (colorsEnabled) std::cout << "\033[" << found->second << "m";
+    std::cout << std::get<std::string>(a[1].data);
+    if (colorsEnabled) std::cout << "\033[0m";
+    std::cout << '\n';
     return Value();
   };
   global->define("logColor", Value(colorLog), false);

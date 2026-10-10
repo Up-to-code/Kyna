@@ -35,4 +35,12 @@ inline bool analyzerSameParameters(const FunctionDecl &left, const FunctionDecl 
   return true;
 }
 
+inline TypeRef analyzerSignature(const FunctionDecl &function, const TypeRef &result) {
+  TypeRef signature{"func", false, {}, {}};
+  for (const auto &parameter : function.params)
+    signature.typeArgs.push_back(parameter.type);
+  signature.typeArgs.push_back(result);
+  return signature;
+}
+
 } // namespace kyna

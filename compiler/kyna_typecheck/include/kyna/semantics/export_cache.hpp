@@ -2,6 +2,9 @@
 
 #include <filesystem>
 #include <vector>
+#include <map>
+#include <optional>
+#include <kyna/semantics/type_model.hpp>
 
 namespace kyna::export_cache {
 
@@ -18,5 +21,10 @@ void writeStamp(const std::vector<std::filesystem::path> &sources,
                 const std::filesystem::path &cacheFile);
 
 void invalidate(const std::filesystem::path &cacheFile);
+
+std::optional<std::map<std::string, TypeRef>> readBindings(const std::filesystem::path &cacheFile);
+void writeBindings(const std::vector<std::filesystem::path> &sources,
+                   const std::filesystem::path &cacheFile,
+                   const std::map<std::string, TypeRef> &bindings);
 
 } // namespace kyna::export_cache

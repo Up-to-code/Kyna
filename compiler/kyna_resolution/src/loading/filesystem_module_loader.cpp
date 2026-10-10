@@ -17,6 +17,7 @@ public:
       SourceManager &sourceManager, const ModuleLoadOptions &loadOptions,
       std::optional<std::pair<std::filesystem::path, std::string>> entryOverlay = std::nullopt)
       : sources(sourceManager), options(loadOptions), overlay(std::move(entryOverlay)) {
+    result.graph.hasSourceOverlays = overlay.has_value() || !options.sourceOverlays.empty();
     if (overlay)
       overlay->first = module_loading::canonicalize(overlay->first);
   }
@@ -71,6 +72,8 @@ private:
     std::optional<SourceId> sourceId;
     if (overlay && path == overlay->first)
       sourceId = sources.add(path.string(), overlay->second);
+    else if (auto found = options.sourceOverlays.find(path); found != options.sourceOverlays.end())
+      sourceId = sources.add(path.string(), found->second);
     else
       sourceId = sources.load(path, loadError);
     if (!sourceId) {
@@ -110,7 +113,7 @@ private:
                statement->location, "KSEM1042");
         continue;
       }
-      record.dependencies.push_back({import->alias, dependency, statement->location});
+      record.dependencies.push_back({import->alias, dependency, statement->location, import->typeOnly});
       visit(dependency, statement->location);
     }
     stack.pop_back();
@@ -167,7 +170,10 @@ private:
 
     for (const auto &file : files) {
       std::string loadError;
-      auto sourceId = sources.load(file.path, loadError);
+      std::optional<SourceId> sourceId;
+      const auto path = module_loading::canonicalize(file.path);
+      if (auto found = options.sourceOverlays.find(path); found != options.sourceOverlays.end()) sourceId = sources.add(path.string(), found->second);
+      else sourceId = sources.load(file.path, loadError);
       if (!sourceId) {
         report(loadError, {}, "K4000");
         continue;
@@ -208,7 +214,7 @@ private:
                    statement->location, "KSEM1042");
             continue;
           }
-          dependencies.push_back({import->alias, canonicalDependency, statement->location});
+          dependencies.push_back({import->alias, canonicalDependency, statement->location, import->typeOnly});
           visit(canonicalDependency, statement->location);
         }
         merged.module.declarations.push_back(std::move(statement));

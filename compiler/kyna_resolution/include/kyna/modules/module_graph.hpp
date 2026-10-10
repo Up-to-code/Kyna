@@ -12,6 +12,7 @@ struct ModuleDependency {
   std::string alias;
   std::filesystem::path canonicalPath;
   SourceSpan location;
+  bool typeOnly{false};
 };
 
 struct ModuleRecord {
@@ -29,6 +30,7 @@ struct ParsedModuleGraph {
   std::filesystem::path entry;
   std::map<std::filesystem::path, ModuleRecord> modules;
   std::vector<std::filesystem::path> initializationOrder;
+  bool hasSourceOverlays{false};
 };
 
 } // namespace kyna

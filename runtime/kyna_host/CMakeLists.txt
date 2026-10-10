@@ -1,19 +1,29 @@
+if(ANDROID)
+  set(KYNA_NETWORK_SOURCE src/capabilities/qt_network.cpp)
+  set(KYNA_NETWORK_TARGET Qt6::Network)
+else()
+  set(KYNA_NETWORK_SOURCE src/capabilities/curl_network.cpp)
+  set(KYNA_NETWORK_TARGET CURL::libcurl)
+endif()
+
 kyna_add_module(kyna_host SOURCES
   src/types/database_failure_phase_name.cpp
   src/types/network_failure_phase_name.cpp
   src/capabilities/local_file_system.cpp
   src/capabilities/local_process.cpp
+  src/process/windows_process.cpp
+  src/process/android_process.cpp
   src/capabilities/local_host_info.cpp
   src/capabilities/system_clock.cpp
   src/capabilities/beast_http_server.cpp
-  src/capabilities/curl_network.cpp
+  ${KYNA_NETWORK_SOURCE}
   src/capabilities/runtime_capabilities.cpp
   src/capabilities/file_stream.cpp
   src/capabilities/context.cpp
   src/database/unavailable_database.cpp
   src/database/postgres_database.cpp
   src/database/database_port.cpp
-  PRIVATE_DEPENDENCIES CURL::libcurl)
+  PRIVATE_DEPENDENCIES ${KYNA_NETWORK_TARGET})
 target_compile_definitions(kyna_host PRIVATE BOOST_ERROR_CODE_HEADER_ONLY=1)
 if(TARGET Boost::asio AND TARGET Boost::beast)
   target_link_libraries(kyna_host PRIVATE Boost::asio Boost::beast)

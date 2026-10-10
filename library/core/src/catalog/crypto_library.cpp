@@ -1,5 +1,5 @@
 #include "catalog_private.hpp"
-#include "crypto/sha256.hpp"
+#include <kyna/stdlib/sha256.hpp>
 #include <string>
 
 namespace kyna::detail {

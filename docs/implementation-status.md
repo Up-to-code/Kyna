@@ -28,10 +28,19 @@ execution, and full native-object/method parity still prevent a VM-only release.
 | PostgreSQL | parameterized libpq query adapter, typed scalar/null mapping, SQLSTATE diagnostics; pooling/transactions/ORM remain open |
 | Async/await and event loop | not implemented |
 | Full HIR/MIR coverage | exceptions, collection literals, indexing/mutation, core text/JSON, fetch responses, and global collection callback natives are implemented; complete class semantics, modules, native object methods, persistent sessions, and async operations remain open |
-| Incremental compilation and native backend | researched and architecturally staged; query engine, persistent cache, native backend, object emission, and linker integration are not implemented |
+| Incremental compilation and native backend | researched and architecturally staged; checked export contracts have a persistent source/dependency cache; a general query engine, native backend, object emission, and linker integration are not implemented |
 | Raw sockets, DAP, LSP | not implemented |
 | Formatter and package manager | comment/string-preserving formatter with stdin/check/recursive modes and Git/path dependency locking implemented; a documentation generator and central registry are intentionally absent |
-| VS Code extension | 1.0.12: `.kyna` plus `kyna.toml`, compact Project and method-grouped Routes views, colored route icons, homepage/static/slug route wizard, click-to-open handlers and live endpoints, safe save-before-generation behavior, clear manifest CodeLens actions, stale Run/Dev cleanup, manifest-authoritative server settings, Express-style HTTP completions/snippets, symbols, definitions, hover, live diagnostics, CLI-backed formatting, `ky`/`kyna` discovery, task-backed terminals, compiler inspection, theme-aware assets, and official VSCE packaging |
+| VS Code extension | 1.0.16: `.kyna` plus `kyna.toml`, compact Project and method-grouped Routes views, colored route icons, homepage/static/slug route wizard, click-to-open handlers and live endpoints, safe save-before-generation behavior, clear manifest CodeLens actions, stale Run/Dev cleanup, manifest-authoritative server settings, Express-style HTTP completions/snippets, symbols, definitions, hover, live diagnostics, CLI-backed formatting, `ky`/`kyna` discovery, task-backed terminals, compiler inspection, theme-aware assets, and official VSCE packaging |
 | Cross-platform distribution | zero-clone macOS/Linux/Windows archives, per-user shell/PowerShell installers, published `@kyna-language/cli` npm installer, self-management, GHCR image, Dev Container, signing/notarization gates, checksums, and provenance workflows implemented; clean hosted-runner release validation completed for `v1.0.0-preview.2`; other package-manager manifests and multi-version toolchain management are deferred |
 
 Kyna 1.0 must not be tagged until every mandatory gate in [ROADMAP.md](../ROADMAP.md) and [release-policy.md](release-policy.md) is complete.
+
+## Safety upgrade checkpoint
+
+The [safety upgrade inventory](safety-upgrade-status.md) records implemented
+contracts and remaining native package gates. The checked C++ host-function API
+and ABI 2 loader, retained roots/resources, native installation, and application
+staging are operational. Qt Quick, CGAL, and mlpack adapters pass local smoke
+tests. The Android shell is authored; APK/emulator and portable release
+deployment validation remain pending.

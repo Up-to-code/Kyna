@@ -1,0 +1,2 @@
+import type { Count } from "./t.ky";
+export fn increment(value: Count) { return value + 1; }

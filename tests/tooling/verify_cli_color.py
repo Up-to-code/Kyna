@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pathlib
+import os
 import subprocess
 import sys
 
@@ -33,6 +34,16 @@ def main() -> int:
             failures.append(f"{name}: expected exit 1, received {result.returncode}")
         if has_color != expects_color:
             failures.append(f"{name}: ANSI color present={has_color}, expected={expects_color}")
+    for arguments, expects_color in [((), False), (("--color", "always"), True), (("--no-color",), False)]:
+        result = subprocess.run([str(binary), "run", "-", *arguments],
+                                input=b'logColor("red", "hello");', capture_output=True)
+        if result.returncode != 0 or (b"\x1b[" in result.stdout) != expects_color:
+            failures.append(f"logColor {arguments}: unexpected output {result.stdout!r} {result.stderr!r}")
+    environment = {**os.environ, "NO_COLOR": "1"}
+    result = subprocess.run([str(binary), "run", "-"], input=b'logColor("red", "hello");',
+                            capture_output=True, env=environment)
+    if result.returncode != 0 or result.stdout != b"hello\n":
+        failures.append("logColor must honor NO_COLOR")
     if failures:
         print("Kyna CLI color verification failed:", file=sys.stderr)
         for failure in failures:

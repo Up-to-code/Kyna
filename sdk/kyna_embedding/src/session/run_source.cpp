@@ -20,6 +20,7 @@ LanguageResult LanguageSession::runSource(std::string name, std::string source, 
   if (detail::hasErrors(diagnostics))
     return {std::move(diagnostics), false, {}, std::move(metrics)};
   Analyzer analyzer;
+  analyzer.setExternalBindings(nativeFunctionBindings(options.nativeFunctions));
   auto semantic = interactive ? interactiveAnalyzer.analyze(parsed.tree.module.declarations)
                               : analyzer.analyze(parsed.tree.module.declarations);
   timer.finish("check");
@@ -31,7 +32,7 @@ LanguageResult LanguageSession::runSource(std::string name, std::string source, 
   // standalone program but would discard declarations and values in a REPL.
   if (!interactive) {
     auto attempt = detail::executeBytecodeSubset(name, parsed.tree, options.capabilities,
-                                                 options.collectMetrics);
+                                                 options.collectMetrics, options.nativeFunctions);
     metrics.insert(metrics.end(), attempt.metrics.begin(), attempt.metrics.end());
     if (attempt.supported) {
       diagnostics.insert(diagnostics.end(), attempt.diagnostics.begin(), attempt.diagnostics.end());

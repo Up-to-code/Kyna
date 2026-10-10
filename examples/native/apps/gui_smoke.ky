@@ -1,0 +1,10 @@
+var window = guiWindow("Kyna GUI", 640, 480);
+var layout = guiColumn(window);
+var title = guiText(layout, "Kyna native GUI");
+var input = guiInput(layout, "Hello");
+fn printInput(): void { console.log(guiRead(input)); }
+var button = guiButton(layout, "Print input", printInput);
+fn shutdown(): void { console.log("GUI callback delivered"); guiQuit(); }
+var timer = guiAfter(50, shutdown);
+collectGarbage();
+guiRun();

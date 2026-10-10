@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import pathlib
 import platform
 import re
@@ -114,6 +115,55 @@ def compile_cpp(source: pathlib.Path, compiler: str, workdir: pathlib.Path) -> p
     return binary
 
 
+def workload_fingerprint(source: pathlib.Path, cpp: pathlib.Path | None) -> str:
+    """Hash the workload, its relative source imports, and the C++ oracle."""
+    digest = hashlib.sha256()
+    pending = [source]
+    visited = set()
+    while pending:
+        path = pending.pop().resolve()
+        if path in visited:
+            continue
+        visited.add(path)
+        data = path.read_bytes()
+        digest.update(path.relative_to(source.parent.resolve()).as_posix().encode())
+        digest.update(b"\0" + data + b"\0")
+        # Benchmark modules use literal relative paths, with either import spelling.
+        for imported in re.findall(r'(?:\bimport(?:\s+type)?\s+|\bfrom\s+)"([^"\n]+)"', data.decode()):
+            if imported.startswith('.'):
+                pending.append(path.parent / imported)
+    if cpp:
+        digest.update(cpp.name.encode() + b"\0" + cpp.read_bytes())
+    return digest.hexdigest()
+
+
+def compare_baseline(report: dict, baseline: dict, limit_percent: float) -> list[dict]:
+    """Compare matching inputs/configurations, independently of the C++ ratio."""
+    if not math.isfinite(limit_percent) or limit_percent < 0:
+        raise ValueError('regression limit must be finite and nonnegative')
+    for key in ('schema', 'platform', 'architecture', 'build_configuration', 'mode'):
+        if report.get(key) != baseline.get(key) or key not in baseline:
+            raise ValueError(f"baseline {key} does not match this run")
+    previous = {item['name']: item for item in baseline['workloads']}
+    comparisons = []
+    for current in report['workloads']:
+        old = previous.get(current['name'])
+        if old is None or old.get('source_sha256') != current.get('source_sha256'):
+            raise ValueError(f"baseline input does not match {current['name']}")
+        if current.get('output_sha256') != old.get('output_sha256'):
+            raise ValueError(f"baseline result does not match {current['name']}")
+        if 'error' in current or 'error' in old:
+            raise ValueError(f"cannot compare failed workload {current['name']}")
+        original = old['kyna']['median_seconds']
+        measured = current['kyna']['median_seconds']
+        if not math.isfinite(original) or not math.isfinite(measured) or original <= 0 or measured <= 0:
+            raise ValueError(f"invalid timing for {current['name']}")
+        change = (measured / original - 1) * 100
+        comparisons.append({'name':current['name'], 'change_percent':change,
+                            'regressed':change > limit_percent})
+    return comparisons
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ky", help="path to the ky binary (default: repo build-release/bin/ky)")
@@ -122,6 +172,8 @@ def main() -> int:
     parser.add_argument("--warmups", type=int, default=2)
     parser.add_argument("--json-output", type=pathlib.Path)
     parser.add_argument("--phase-metrics", action="store_true")
+    parser.add_argument("--baseline-report", type=pathlib.Path)
+    parser.add_argument("--max-regression-percent", type=float, default=20.0)
     parser.add_argument("--check", action="store_true", help="measure repeated checking without execution")
     parser.add_argument("--threshold", type=float, default=50.0,
                         help="warn when ky/cpp ratio exceeds this value")
@@ -129,8 +181,8 @@ def main() -> int:
     parser.add_argument("--fail-on-regression", action="store_true",
                         help="return a non-zero exit code when a ratio exceeds --threshold")
     args = parser.parse_args()
-    if args.reps < 1 or args.warmups < 0:
-        parser.error("--reps must be positive and --warmups nonnegative")
+    if args.reps < 1 or args.warmups < 0 or not math.isfinite(args.max_regression_percent) or args.max_regression_percent < 0:
+        parser.error("--reps must be positive; --warmups and finite --max-regression-percent must be nonnegative")
 
     repo_root = pathlib.Path(__file__).resolve().parents[2]
     ky = (pathlib.Path(args.ky) if args.ky else repo_root / "build-release/bin/ky").resolve()
@@ -142,7 +194,7 @@ def main() -> int:
     pairs: list[tuple[pathlib.Path, pathlib.Path | None]] = []
     for kyna in sorted(programs_dir.glob("*.kyna")):
         cpp = programs_dir / (kyna.stem + ".cpp")
-        pairs.append((kyna.resolve(), cpp.resolve() if cpp.is_file() and not args.check else None))
+        pairs.append((kyna.resolve(), cpp.resolve() if cpp.is_file() else None))
     if not pairs:
         print(f"error: no .kyna workloads found under {programs_dir}", file=sys.stderr)
         return 2
@@ -154,7 +206,7 @@ def main() -> int:
     cache = ky.parent.parent / "CMakeCache.txt"
     cache_text = cache.read_text() if cache.is_file() else ""
     configuration = re.search(r"^CMAKE_BUILD_TYPE:STRING=(.*)$", cache_text, re.MULTILINE)
-    report = {"schema": "kyna.benchmark/v1", "commit": command_text(["git", "rev-parse", "HEAD"]),
+    report = {"schema": "kyna.benchmark/v1", "mode": "check" if args.check else "run", "commit": command_text(["git", "rev-parse", "HEAD"]),
               "dirty": bool(command_text(["git", "status", "--porcelain"])),
               "platform": platform.platform(), "architecture": platform.machine(),
               "python": platform.python_version(),
@@ -175,20 +227,24 @@ def main() -> int:
         regressed = False
         for kyna, cpp in pairs:
             try:
+                compile_start = time.perf_counter()
                 cpp_binary = compile_cpp(cpp, args.compiler, workdir) if cpp else None
-                kyma_out = run_once(str(ky), kyna, repo_root, args.check)
+                cpp_compile_seconds = time.perf_counter() - compile_start if cpp_binary else None
+                kyma_out = run_once(str(ky), kyna, repo_root, False)
                 cpp_out = run_once(str(cpp_binary), cpp, workdir) if cpp else kyma_out
                 if kyma_out != cpp_out:
                     print(f"{kyna.stem:<18}OUTPUT MISMATCH (ky={kyma_out!r}, cpp={cpp_out!r})")
+                    report["workloads"].append({"name": kyna.stem, "source_sha256": workload_fingerprint(kyna, cpp), "error": "output mismatch"})
                     errored = True
                     continue
 
                 kyma_times = measure(str(ky), kyna, args.reps, repo_root, args.warmups, args.phase_metrics, args.check)
-                cpp_times = measure(str(cpp_binary), cpp, args.reps, workdir, args.warmups) if cpp else None
+                cpp_times = measure(str(cpp_binary), cpp, args.reps, workdir, args.warmups) if cpp and not args.check else None
                 report["workloads"].append({"name": kyna.stem,
-                    "source_sha256": hashlib.sha256(kyna.read_bytes()).hexdigest(),
+                    "source_sha256": workload_fingerprint(kyna, cpp),
                     "output_sha256": hashlib.sha256(kyma_out.encode()).hexdigest(),
                     "kyna": kyma_times, "cpp": cpp_times,
+                    "cpp_compile_seconds": cpp_compile_seconds,
                     "cpp_binary_bytes": cpp_binary.stat().st_size if cpp_binary else None})
                 kyma_ms = kyma_times["median_seconds"] * 1e3
                 cpp_ms = cpp_times["median_seconds"] * 1e3 if cpp_times else 0
@@ -202,9 +258,19 @@ def main() -> int:
                     print(f"{kyna.stem:<18}{kyma_ms:>12.2f}{'—':>10}{'—':>10}  {verdict}")
             except RuntimeError as exc:
                 print(f"{kyna.stem:<18}ERROR: {exc}")
-                report["workloads"].append({"name": kyna.stem, "error": str(exc)})
+                report["workloads"].append({"name": kyna.stem, "source_sha256": workload_fingerprint(kyna, cpp), "error": str(exc)})
                 errored = True
         print("-" * 62)
+        if args.baseline_report:
+            try:
+                report['baseline_comparison'] = compare_baseline(
+                    report, json.loads(args.baseline_report.read_text()), args.max_regression_percent)
+                for comparison in report['baseline_comparison']:
+                    print(f"{comparison['name']}: {comparison['change_percent']:+.1f}% versus baseline")
+                regressed = regressed or any(item['regressed'] for item in report['baseline_comparison'])
+            except (ValueError, KeyError, OSError) as error:
+                print(f"baseline comparison failed: {error}", file=sys.stderr)
+                errored = True
         if args.json_output:
             args.json_output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
         if errored:

@@ -8,7 +8,8 @@ namespace kyna::cli {
 
 int runRepl(const Options &options, std::istream &input, std::ostream &output,
             std::ostream &errors) {
-  auto session = std::make_unique<LanguageSession>(LanguageSessionOptions{options.modulePaths});
+  auto sessionOptions = makeSessionOptions(options);
+  auto session = std::make_unique<LanguageSession>(sessionOptions);
   std::string pending;
   std::string line;
   std::vector<std::string> history;
@@ -75,7 +76,7 @@ int runRepl(const Options &options, std::istream &input, std::ostream &output,
       continue;
     }
     if (pending.empty() && line == ":reset") {
-      session = std::make_unique<LanguageSession>(LanguageSessionOptions{options.modulePaths});
+      session = std::make_unique<LanguageSession>(sessionOptions);
       output << "session reset\n";
       if (!options.interactiveTerminal)
         output << ">> ";

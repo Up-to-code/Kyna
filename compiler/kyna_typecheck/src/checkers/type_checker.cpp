@@ -23,12 +23,23 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
             return analyzerNamedType("char");
           }
         } else if constexpr (std::is_same_v<T, Variable>) {
+          if (const auto binding = bindingScope(n.name);
+              binding && binding->types[n.name].name.starts_with("type:")) {
+            error("type-only import '" + n.name + "' cannot be used as a value", e->location,
+                  "KSEM1504", "use the name in a type annotation");
+            return analyzerNamedType("void");
+          }
+          if (aliases.contains(n.name) || interfaces.find(n.name)) {
+            error("type '" + n.name + "' cannot be used as a value", e->location,
+                  "KSEM1504", "use the name in a type annotation");
+            return analyzerNamedType("void");
+          }
           if (!defined(n.name) && !interactive)
             error("undefined name '" + n.name + "'", e->location);
+          if (functions.contains(n.name))
+            return functionType(functions.at(n.name), e->location);
           if (auto bs = bindingScope(n.name))
             return bs->types[n.name];
-          if (functions.contains(n.name))
-            return analyzerNamedType("func");
           if (classes.contains(n.name))
             return analyzerNamedType("class:" + n.name);
           return analyzerNamedType("any");

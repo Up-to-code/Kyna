@@ -4,6 +4,7 @@
 #include <kyna/types/type_bridge.hpp>
 #include <kyna/types/signature_type.hpp>
 #include <kyna/types/basic_type.hpp>
+#include "check_helpers.hpp"
 #include <algorithm>
 #include <map>
 #include <set>
@@ -36,6 +37,8 @@ void Analyzer::bindLexical(const std::string &name, const TypeRef &type, bool mu
                                                          mutableBinding, location, exported));
 }
 bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
+  if (e.name == "func" && a.name == "func")
+    return types::isAssignable(types::typeFromRef(a), types::typeFromRef(e));
   if (const auto *contract = interfaces.find(e.name); contract && classes.contains(a.name)) {
     std::vector<std::string> stack;
     return classConforms(classes[a.name], effectiveContract(*contract, stack), e, {});
@@ -74,6 +77,9 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
     functions.clear();
     classes.clear();
     interfaces.clear();
+    aliases = externalTypes;
+    inferredReturns.clear();
+    inferringFunctions.clear();
   } else if (!lexicalRoot) {
     lexicalRoot = std::make_unique<semantics::Scope>();
     lexical = lexicalRoot.get();
@@ -92,8 +98,17 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
   for (const auto &klass : externalClasses)
     classes[klass.name] = klass;
   activeLoopLabels.clear();
+  switchDepth = 0;
+  inFunction = false;
+  returnedTypes.clear();
   std::set<std::string> declarations;
   for (auto &s : p) {
+    if (auto alias = std::get_if<TypeAliasDecl>(&s->node)) {
+      if (!declarations.insert(alias->name).second || aliases.contains(alias->name))
+        error("type '" + alias->name + "' is defined more than once", s->location, "KSEM1101");
+      else
+        aliases[alias->name] = alias->target;
+    }
     if (auto f = std::get_if<FunctionDecl>(&s->node)) {
       if (!declarations.insert(f->name).second || functions.contains(f->name) ||
           classes.contains(f->name) || scope->types.contains(f->name) ||
@@ -135,6 +150,15 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
         error("top-level declaration '" + i->name + "' is defined more than once", s->location,
               "KSEM1101", "rename or remove one of the declarations");
     }
+  }
+  for (const auto &statement : p)
+    if (const auto *alias = std::get_if<TypeAliasDecl>(&statement->node))
+      resolveType(TypeRef{alias->name, false, {}, {}}, statement->location);
+  for (auto &[name, function] : functions) {
+    for (auto &parameter : function.params)
+      parameter.type = resolveType(parameter.type);
+    if (function.hasReturnType)
+      function.returnType = resolveType(function.returnType);
   }
   for (const auto &[name, klass] : classes) {
     std::set<std::string> seen{name};

@@ -228,6 +228,7 @@ struct RuntimeCapabilities {
   std::shared_ptr<DatabasePort> database;
   std::shared_ptr<HostInfoPort> host;
   std::shared_ptr<HttpServerPort> server;
+  bool consoleColors{false};
 };
 
 RuntimeCapabilities productionRuntimeCapabilities();

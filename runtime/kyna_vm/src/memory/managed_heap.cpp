@@ -2,10 +2,35 @@
 #include <algorithm>
 #include <deque>
 #include <set>
+#include <thread>
+#include <stdexcept>
 
 namespace kyna {
 
-Heap::~Heap() = default;
+struct Heap::RetainedRoots {
+  std::thread::id thread{std::this_thread::get_id()};
+  std::vector<std::weak_ptr<Value>> values;
+};
+Heap::~Heap() { retainedRoots.reset(); }
+
+bool Heap::RetainedRoot::valid() const { return stored && !owner.expired(); }
+const Value &Heap::RetainedRoot::value() const {
+  const auto roots = owner.lock();
+  if (!roots || !stored) throw std::runtime_error("retained value belongs to a closed runtime");
+  if (roots->thread != std::this_thread::get_id())
+    throw std::runtime_error("retained values must be accessed on the runtime thread");
+  return *stored;
+}
+Heap::RetainedRoot Heap::retain(const Value &value) {
+  if (!retainedRoots) retainedRoots = std::make_shared<RetainedRoots>();
+  if (retainedRoots->thread != std::this_thread::get_id())
+    throw std::runtime_error("retained values must be created on the runtime thread");
+  RetainedRoot result;
+  result.stored = std::make_shared<Value>(value);
+  result.owner = retainedRoots;
+  retainedRoots->values.push_back(result.stored);
+  return result;
+}
 
 Heap::RootScope::RootScope(Heap &owner)
     : heap(owner), firstRoot(owner.temporaryRoots.size()) {}
@@ -92,6 +117,15 @@ void Heap::collectRoots(const HeapRoots &roots) {
   for (const auto *value : temporaryRoots)
     if (value)
       pendingValues.push_back(*value);
+
+  if (retainedRoots) {
+    std::erase_if(retainedRoots->values, [&](const auto &weak) {
+      auto value = weak.lock();
+      if (!value) return true;
+      pendingValues.push_back(*value);
+      return false;
+    });
+  }
 
   while (!pendingEnvironments.empty() || !pendingValues.empty() ||
          !pendingCaptureCells.empty()) {

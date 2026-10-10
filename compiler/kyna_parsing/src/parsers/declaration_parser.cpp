@@ -16,6 +16,12 @@ StmtPtr Parser::declaration() {
   }
   seenNonImport = true;
   if (exported) {
+    if (check(TokenKind::Type) && tokens[current + 1].kind == TokenKind::LeftBrace) {
+      ++current;
+      auto parsed = exportListDeclaration();
+      std::get<ExportDecl>(parsed->node).typeOnly = true;
+      return parsed;
+    }
     // export { a, b };  re-export list
     if (check(TokenKind::LeftBrace))
       return exportListDeclaration();
@@ -32,6 +38,8 @@ StmtPtr Parser::declaration() {
     parsed = classDeclaration(std::move(mods));
   else if (match(TokenKind::Intf))
     parsed = interfaceDeclaration();
+  else if (match(TokenKind::Type))
+    parsed = typeAliasDeclaration();
   else if (match(TokenKind::Var) || match(TokenKind::Const)) {
     --current;
     parsed = varDeclaration();
@@ -51,6 +59,7 @@ StmtPtr Parser::declaration() {
 }
 StmtPtr Parser::importDeclaration() {
   const Token start = consume(TokenKind::Import, "expected 'import'");
+  const bool typeOnly = match(TokenKind::Type);
   // Legacy form: import "path" as alias;
   if (check(TokenKind::String)) {
     const Token path = consume(TokenKind::String, "expected a quoted module path");
@@ -59,10 +68,13 @@ StmtPtr Parser::importDeclaration() {
     consume(TokenKind::Semicolon, "expected ';' after import");
     auto value =
         path.lexeme.size() >= 2 ? path.lexeme.substr(1, path.lexeme.size() - 2) : path.lexeme;
-    return make(ImportDecl{std::move(value), alias.lexeme}, start.location);
+    ImportDecl declaration{std::move(value), alias.lexeme};
+    declaration.typeOnly = typeOnly;
+    return make(std::move(declaration), start.location);
   }
   // JavaScript-style import clause.
   ImportDecl declaration;
+  declaration.typeOnly = typeOnly;
   if (check(TokenKind::LeftBrace)) {
     ++current; // '{'
     while (!check(TokenKind::RightBrace)) {
@@ -163,10 +175,18 @@ void Parser::markExported(const StmtPtr &parsed) {
       [](auto &node) {
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, VarDecl> || std::is_same_v<T, FunctionDecl> ||
-                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl>)
+                      std::is_same_v<T, ClassDecl> || std::is_same_v<T, InterfaceDecl> ||
+                      std::is_same_v<T, TypeAliasDecl>)
           node.exported = true;
       },
       parsed->node);
+}
+StmtPtr Parser::typeAliasDeclaration() {
+  const auto name = consume(TokenKind::Identifier, "expected type alias name");
+  consume(TokenKind::Equal, "expected '=' after type alias name");
+  auto target = typeRef();
+  consume(TokenKind::Semicolon, "expected ';' after type alias");
+  return make(TypeAliasDecl{name.lexeme, std::move(target)}, name.location);
 }
 StmtPtr Parser::varDeclaration() {
   bool mut;

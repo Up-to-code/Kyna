@@ -24,7 +24,7 @@ LanguageResult LanguageSession::checkSource(std::string name, std::string source
   graph.entry = name;
   graph.initializationOrder.push_back(name);
   graph.modules.emplace(name, ModuleRecord{std::move(parsed.tree), {}, false, {}});
-  auto analysis = analyzeModuleGraph(std::move(graph));
+  auto analysis = analyzeModuleGraph(std::move(graph), nativeFunctionBindings(options.nativeFunctions));
   timer.finish("resolve_check");
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
   return {std::move(diagnostics), false, {}, std::move(metrics)};
@@ -35,12 +35,12 @@ LanguageResult LanguageSession::checkSourceAtPath(const std::filesystem::path &e
   std::vector<PhaseMetric> metrics;
   detail::PhaseTimer timer(options.collectMetrics ? &metrics : nullptr);
   auto loaded = loadModuleGraphWithEntrySource(sources, entry, std::move(source),
-                                               ModuleLoadOptions{options.modulePaths});
+                                               ModuleLoadOptions{options.modulePaths, options.sourceOverlays});
   timer.finish("load_lex_parse");
   auto diagnostics = std::move(loaded.diagnostics);
   if (!loaded.ok())
     return {std::move(diagnostics), false, {}, std::move(metrics)};
-  auto analysis = analyzeModuleGraph(std::move(loaded.graph));
+  auto analysis = analyzeModuleGraph(std::move(loaded.graph), nativeFunctionBindings(options.nativeFunctions));
   timer.finish("resolve_check");
   diagnostics.insert(diagnostics.end(), analysis.diagnostics.begin(), analysis.diagnostics.end());
   return {std::move(diagnostics), false, {}, std::move(metrics)};

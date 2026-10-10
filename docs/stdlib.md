@@ -55,3 +55,16 @@ Database operations cross the injected `DatabasePort` seam. Official dependency 
 `examples/fake_api_store.kyna` uses the real `https://fakestoreapi.com/products` endpoints and writes the retrieved collection to `fake-store-output/products.json`. Fake Store API mutations are intentionally simulated by that service: responses demonstrate CRUD request/JSON behavior but do not permanently modify its database.
 
 `examples/weather_api.kyna` uses the keyless Open-Meteo forecast endpoint to smoke-test HTTPS and JSON parsing, then writes the response to `weather-output/current.json`.
+
+## Console color policy
+
+`logColor(color, message)` writes to the program output stream. CLI auto color
+requires stdout to be a terminal. `--color always` forces ANSI color;
+`--color never`, `--no-color`, or `NO_COLOR` disables it (an explicit `always`
+request overrides the environment). Plain `print`, `log`, and `console.log`
+retain their usual text formatting. Embedded sessions default to uncolored
+output; hosts can opt in with `RuntimeCapabilities::consoleColors`.
+
+Optional native GUI, geometry, and ML packages are tracked in
+[Native bindings](native-bindings.md); they are not part of the installed
+standard library.

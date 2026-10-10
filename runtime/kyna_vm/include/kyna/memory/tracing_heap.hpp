@@ -39,7 +39,20 @@ struct HeapRoots {
 // Tracing heap for runtime objects. Object fields are non-owning Value edges;
 // the heap owns object storage and collects unreachable cycles automatically.
 class Heap {
+  struct RetainedRoots;
 public:
+  // Retained values remain traced until the final token is released. Tokens can
+  // outlive the heap, but access after heap shutdown fails instead of dereferencing.
+  class RetainedRoot {
+  public:
+    const Value &value() const;
+    bool valid() const;
+  private:
+    friend class Heap;
+    std::shared_ptr<Value> stored;
+    std::weak_ptr<RetainedRoots> owner;
+  };
+  RetainedRoot retain(const Value &value);
   class RootScope {
   public:
     RootScope(const RootScope &) = delete;
@@ -99,5 +112,6 @@ private:
   std::size_t minimumThreshold{256};
   std::size_t nextThreshold{256};
   std::vector<const Value *> temporaryRoots;
+  std::shared_ptr<RetainedRoots> retainedRoots;
 };
 } // namespace kyna

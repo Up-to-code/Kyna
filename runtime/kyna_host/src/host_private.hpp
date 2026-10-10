@@ -8,6 +8,12 @@ namespace kyna::detail {
 
 std::shared_ptr<FileSystemPort> makeLocalFileSystem();
 std::shared_ptr<ProcessPort> makeLocalProcess();
+#if defined(_WIN32)
+ProcessResult spawnWindowsProcess(const ProcessConfig &);
+#endif
+#if defined(__ANDROID__)
+int spawnAndroidWithDirectory(const ProcessConfig &,int &,char *const *,char *const *,const int *,const int *);
+#endif
 std::shared_ptr<HostInfoPort> makeLocalHostInfo();
 std::shared_ptr<ClockPort> makeSystemClock();
 std::shared_ptr<HttpServerPort> makeBeastHttpServer();

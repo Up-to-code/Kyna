@@ -1,0 +1,4 @@
+var window = guiWindow("CGAL hull in Kyna", 640, 480);
+var hull = geometryHull([[20.0, 20.0], [300.0, 30.0], [200.0, 200.0], [150.0, 50.0], [40.0, 250.0]]);
+var drawing = guiDraw(window, hull, "#2368bd");
+guiRun();

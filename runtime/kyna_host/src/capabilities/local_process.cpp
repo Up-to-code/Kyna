@@ -160,12 +160,15 @@ public:
       posix_spawn_file_actions_addclose(&actions, stdoutPipe[0]);
       posix_spawn_file_actions_addclose(&actions, stderrPipe[0]);
     }
+#if !defined(__ANDROID__) || __ANDROID_API__ >= 34
     if (!config.workingDir.empty())
 #if defined(__APPLE__) && defined(__MAC_OS_X_VERSION_MAX_ALLOWED) &&                         \
     __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
       posix_spawn_file_actions_addchdir(&actions, config.workingDir.c_str());
 #else
       posix_spawn_file_actions_addchdir_np(&actions, config.workingDir.c_str());
+#endif
+
 #endif
 
     posix_spawnattr_t attributes;
@@ -175,7 +178,10 @@ public:
     const auto envp = buildEnv(config.env);
     pid_t child = -1;
     const int spawnError =
-        posix_spawn(&child, config.program.c_str(), &actions, &attributes, argv.pointers.data(),
+#if defined(__ANDROID__) && __ANDROID_API__ < 34
+        !config.workingDir.empty()?spawnAndroidWithDirectory(config,child,argv.pointers.data(),envp.pointers.data(),stdoutPipe,stderrPipe):
+#endif
+        posix_spawnp(&child, config.program.c_str(), &actions, &attributes, argv.pointers.data(),
                     envp.pointers.data());
     posix_spawnattr_destroy(&attributes);
     posix_spawn_file_actions_destroy(&actions);
@@ -207,6 +213,8 @@ public:
       return result;
     }
     result.exitCode = WIFEXITED(status) ? WEXITSTATUS(status) : 128;
+#elif defined(_WIN32)
+    return spawnWindowsProcess(config);
 #else
     (void)config;
     result.failedToStart = true;

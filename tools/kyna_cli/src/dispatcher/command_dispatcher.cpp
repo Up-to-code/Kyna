@@ -64,37 +64,49 @@ int renderResult(const LanguageResult &result, const Options &options, LanguageS
 int dispatch(const Options &options, std::istream &input, std::ostream &output,
              std::ostream &errors) {
   if (options.command == Command::Invalid) {
-    errors << "ky: " << options.error << "\nTry 'ky --help'.\n";
+    LanguageSession session;
+    LanguageResult result;
+    Diagnostic diagnostic{options.error, {}, false, "KCLI1001"};
+    diagnostic.category = "usage";
+    diagnostic.help = "Run 'ky --help' for commands and examples.";
+    result.diagnostics.push_back(std::move(diagnostic));
+    renderResult(result, options, session, errors);
     return 2;
   }
   if (options.command == Command::Help) {
-    output << "Kyna 1.0.0 developer platform\n\n"
-              "Usage:\n"
-              "  ky new [name] [--template minimal|backend]  Create a project or open the wizard\n"
-              "  ky init [path] [--template minimal|backend]\n"
-              "  ky generate route <name>    Add/register a route; supports --method and --path\n"
-              "  ky run [entry]              Run a file or project entry\n"
-              "  ky check [entry]            Check without executing\n"
-              "  ky fmt [paths...] [--check] Format files or stdin (-)\n"
-              "  ky dev | ky run dev         Watch, check, and restart on save\n"
-              "  ky serve                    Serve the backend entry point\n"
-              "  ky add | remove | install   Manage Git/path dependencies\n"
-              "  ky doctor                   Diagnose the environment\n"
-              "  ky self update|uninstall    Manage this installation\n"
-              "  ky repl|tokens|ast|hir|mir|bytecode|inspect\n"
-              "  ky <file.kyna>\n\n"
-              "Options:\n"
-              "  --module-path <dir>          Add a module search root (repeatable)\n"
-              "  --diagnostic-format <kind>  text or json\n"
-              "  --color <policy>            auto, always, or never\n"
-              "  --no-color                  Alias for --color never\n"
-              "  --progress                  Show a TTY-only progress animation\n"
-              "  --no-interactive            Disable prompts and animation\n"
-              "  --quiet                     Suppress non-essential output\n"
-              "  --json                      Emit machine-readable output\n"
-              "  --heap-stats                Print garbage-collector statistics after run\n"
-              "  --metrics-file <path>       Write phase metrics JSON separately\n\n"
-              "The legacy `kyna` executable is a supported 1.x alias.\n";
+    output << "Kyna 1.0.0\n\n"
+              "Usage: ky <command> [options]\n\n"
+              "Code\n"
+              "  run [entry]        Run a file or project (ky file.ky also works)\n"
+              "  check [entry]      Check types without executing\n"
+              "  fmt [paths...]     Format source; --check verifies formatting\n"
+              "  repl               Open an interactive session\n\n"
+              "Projects\n"
+              "  new [name]         Create a minimal/backend project or open the wizard\n"
+              "  init [path]        Initialize a project\n"
+              "  dev | run dev      Watch, check, and restart\n"
+              "  serve              Run the backend entry\n"
+              "  generate route     Add a route; supports --method and --path\n"
+              "  build [entry]      Package an app; --native builds authored CMake bindings\n"
+              "  add/remove/install Manage Git/path/native dependencies\n\n"
+              "Tools\n"
+              "  doctor             Check your installation\n"
+              "  self update/uninstall\n"
+              "  tokens/ast/hir/mir/bytecode/inspect\n\n"
+              "Common options\n"
+              "  --module-path <dir>         Add a module search root\n"
+              "  --native-library <file>     Load a trusted C ABI module\n"
+              "  --diagnostic-format text|json\n"
+              "  --color auto|always|never   --no-color disables color\n"
+              "  --metrics-file <path>       Write phase timings separately\n"
+              "  --heap-stats                Print heap statistics\n"
+              "  --progress                  Show terminal progress\n"
+              "  --no-interactive --quiet --json\n\n"
+              "Examples\n"
+              "  ky check src/main.ky\n"
+              "  ky run src/main.ky --no-color\n"
+              "  ky install --locked\n\n"
+              "The kyna executable remains a supported 1.x alias.\n";
     return 0;
   }
   if (options.command == Command::Version) {
@@ -110,7 +122,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
       options.command == Command::Format || options.command == Command::Dev ||
       options.command == Command::Serve || options.command == Command::Add ||
       options.command == Command::Remove || options.command == Command::Install ||
-      options.command == Command::Doctor || options.command == Command::SelfUpdate ||
+      options.command == Command::Build || options.command == Command::Doctor || options.command == Command::SelfUpdate ||
       options.command == Command::SelfUninstall)
     return runProjectCommand(options, input, output, errors);
   Options effective = options;
@@ -142,9 +154,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
         effective.modulePaths.push_back(root);
     }
   }
-  LanguageSessionOptions sessionOptions;
-  sessionOptions.modulePaths = effective.modulePaths;
-  sessionOptions.collectMetrics = !effective.metricsFile.empty();
+  auto sessionOptions = makeSessionOptions(effective);
   LanguageSession session(std::move(sessionOptions));
   switch (effective.command) {
   case Command::Run:

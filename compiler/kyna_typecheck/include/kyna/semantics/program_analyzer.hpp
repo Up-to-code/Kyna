@@ -26,6 +26,10 @@ public:
   void setExternalClasses(std::vector<ClassDecl> classes) {
     externalClasses = std::move(classes);
   }
+  void setExternalTypes(std::map<std::string, TypeRef> types) {
+    externalTypes = std::move(types);
+  }
+  [[nodiscard]] std::map<std::string, TypeRef> checkedBindings();
 
 private:
   std::vector<Diagnostic> errors;
@@ -41,6 +45,11 @@ private:
   std::map<std::string, std::map<std::string, TypeRef>> moduleExports;
   std::vector<InterfaceDecl> externalInterfaces;
   std::vector<ClassDecl> externalClasses;
+  std::map<std::string, TypeRef> externalTypes;
+  std::map<std::string, TypeRef> aliases;
+  std::map<std::string, TypeRef> inferredReturns;
+  std::set<std::string> inferringFunctions;
+  std::vector<TypeRef> returnedTypes;
   InterfaceCatalog interfaces;
   std::unique_ptr<semantics::Scope> lexicalRoot;
   semantics::Scope *lexical{nullptr};
@@ -54,6 +63,8 @@ private:
   void stmt(const StmtPtr &);
   void warning(const std::string &, SourceLocation);
   TypeRef expr(const ExprPtr &);
+  TypeRef resolveType(const TypeRef &, SourceLocation = {}, int depth = 0);
+  TypeRef functionType(const FunctionDecl &, SourceLocation = {});
   TypeRef checkUnary(const Unary &, SourceLocation);
   TypeRef checkBinary(const Binary &, SourceLocation);
   TypeRef checkAssign(const Assign &, SourceLocation);
@@ -88,7 +99,7 @@ private:
   const FunctionDecl *findMethod(const ClassDecl &, const std::string &) const;
   bool classConforms(const ClassDecl &, const InterfaceDecl &, const TypeRef &contractRef,
                      SourceLocation);
-  bool objectConforms(const ObjectExpr &, const InterfaceDecl &, SourceLocation);
+  bool objectConforms(const ObjectExpr &, const InterfaceDecl &, const TypeRef &, SourceLocation);
   InterfaceDecl effectiveContract(const InterfaceDecl &, std::vector<std::string> &stack) const;
   TypeRef substitute(const TypeRef &, const InterfaceDecl &, const TypeRef &contractRef) const;
 };

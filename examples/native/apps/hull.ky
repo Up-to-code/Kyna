@@ -1,0 +1,3 @@
+var hull = geometryHull([[0.0, 0.0], [100.0, 0.0], [100.0, 100.0], [50.0, 50.0], [0.0, 100.0]]);
+console.log(hull);
+console.log(geometryOrientation([0.0, 0.0], [1.0, 0.0], [1.0, 0.00000000000001]));

@@ -7,6 +7,7 @@
 namespace kyna {
 
 void Analyzer::checkVarDecl(const VarDecl &n, SourceLocation loc) {
+  const auto declaredType = n.hasType ? resolveType(n.type, loc) : n.type;
   if (scope->types.contains(n.name))
     error("binding '" + n.name + "' is already declared in this scope", loc, "KSEM1102",
           "use assignment to update a mutable binding");
@@ -21,14 +22,15 @@ void Analyzer::checkVarDecl(const VarDecl &n, SourceLocation loc) {
   if (n.initializer) {
     auto a = expr(n.initializer);
     if (n.hasType) {
-      if (const auto *contract = interfaces.find(n.type.name))
+      if (const auto *contract = interfaces.find(declaredType.name))
         if (const auto *object = std::get_if<ObjectExpr>(&n.initializer->node))
-          objectConforms(*object, *contract, n.initializer->location);
+          if (objectConforms(*object, *contract, declaredType, n.initializer->location))
+            a = declaredType;
     }
-    if (n.hasType && !compatible(n.type, a))
+    if (n.hasType && !compatible(declaredType, a))
       error("initializer of '" + n.name + "' has type " + a.str() + ", expected " + n.type.str(),
-            n.initializer->location);
-    scope->types[n.name] = n.hasType ? n.type : a;
+            n.initializer->location, "KSEM1505", "use a compatible initializer or correct the annotation");
+    scope->types[n.name] = n.hasType ? declaredType : a;
     scope->mutableBindings[n.name] = n.mutableBinding;
     bindLexical(n.name, scope->types[n.name], n.mutableBinding, loc, n.exported);
   } else {
@@ -41,6 +43,16 @@ void Analyzer::checkVarDecl(const VarDecl &n, SourceLocation loc) {
 }
 
 void Analyzer::checkFunctionDecl(const FunctionDecl &n, SourceLocation loc) {
+  if (!n.hasReturnType && inferredReturns.contains(n.name))
+    return;
+  auto oldLabels = std::move(activeLoopLabels);
+  const auto oldSwitch = switchDepth;
+  auto oldReturns = std::move(returnedTypes);
+  auto oldFunctions = functions;
+  activeLoopLabels.clear();
+  switchDepth = 0;
+  returnedTypes.clear();
+  inferringFunctions.insert(n.name);
   auto old = scope;
   auto oldReturn = currentReturn;
   bool oldIn = inFunction;
@@ -51,18 +63,31 @@ void Analyzer::checkFunctionDecl(const FunctionDecl &n, SourceLocation loc) {
     if (!parameterNames.insert(p.name).second)
       error("parameter '" + p.name + "' is declared more than once in function '" + n.name + "'",
             loc, "KSEM1104", "give every parameter a unique name");
-    scope->types[p.name] = p.type;
+    scope->types[p.name] = resolveType(p.type, loc);
     scope->mutableBindings[p.name] = false;
   }
-  currentReturn = n.hasReturnType ? n.returnType : analyzerNamedType("any");
+  currentReturn = n.hasReturnType ? resolveType(n.returnType, loc) : analyzerNamedType("any");
   inFunction = true;
   stmt(n.body);
+  if (!n.hasReturnType) {
+    auto result = returnedTypes.empty() ? analyzerNamedType("void") : returnedTypes.front();
+    for (std::size_t index = 1; index < returnedTypes.size(); ++index)
+      result = merge(result, returnedTypes[index]);
+    if (!returnedTypes.empty() && !alwaysReturns(n.body))
+      result = merge(result, analyzerNamedType("void"));
+    inferredReturns[n.name] = result;
+  }
+  inferringFunctions.erase(n.name);
   if (n.hasReturnType && n.returnType.name != "void" && !alwaysReturns(n.body))
     error("function '" + n.name + "' can reach its end without returning " + n.returnType.str(),
           SourceLocation{});
   scope = old;
   currentReturn = oldReturn;
   inFunction = oldIn;
+  activeLoopLabels = std::move(oldLabels);
+  switchDepth = oldSwitch;
+  returnedTypes = std::move(oldReturns);
+  functions = std::move(oldFunctions);
 }
 
 void Analyzer::checkClassDecl(const ClassDecl &n, SourceLocation loc) {
@@ -112,6 +137,10 @@ void Analyzer::checkClassDecl(const ClassDecl &n, SourceLocation loc) {
       error("concrete method '" + m.name + "' requires a body", loc);
     if (!m.body)
       continue;
+    auto oldLabels = std::move(activeLoopLabels);
+    const auto oldSwitch = switchDepth;
+    auto oldReturns = std::move(returnedTypes);
+    activeLoopLabels.clear(); switchDepth = 0; returnedTypes.clear();
     auto old = scope;
     auto oldReturn = currentReturn;
     bool oldIn = inFunction;
@@ -143,6 +172,9 @@ void Analyzer::checkClassDecl(const ClassDecl &n, SourceLocation loc) {
     currentReturn = oldReturn;
     inFunction = oldIn;
     currentClass = std::move(oldClass);
+    activeLoopLabels = std::move(oldLabels);
+    switchDepth = oldSwitch;
+    returnedTypes = std::move(oldReturns);
   }
   if (!abstractClass && !n.parent.empty() && classes.contains(n.parent)) {
     for (const auto &inherited : classes[n.parent].methods) {

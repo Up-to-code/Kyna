@@ -24,39 +24,11 @@ std::string shellQuote(const std::string &value) { return projectShellQuote(valu
 // Unlike std::system, no shell interprets the arguments, so values such as
 // dependency URLs or cache paths can never inject additional commands.
 int runArgv(const std::string &program, const std::vector<std::string> &args) {
-#if defined(KYNA_CLI_POSIX)
-  std::vector<std::string> storage;
-  storage.reserve(args.size() + 1);
-  storage.push_back(program);
-  for (const auto &argument : args)
-    storage.push_back(argument);
-  std::vector<char *> argv;
-  argv.reserve(storage.size() + 1);
-  for (auto &entry : storage)
-    argv.push_back(entry.data());
-  argv.push_back(nullptr);
-
-  posix_spawn_file_actions_t actions;
-  posix_spawnattr_t attributes;
-  if (posix_spawn_file_actions_init(&actions) != 0 || posix_spawnattr_init(&attributes) != 0)
-    return -1;
-  pid_t child = -1;
-  const int spawnError =
-      posix_spawn(&child, program.c_str(), &actions, &attributes, argv.data(), environ);
-  posix_spawnattr_destroy(&attributes);
-  posix_spawn_file_actions_destroy(&actions);
-  if (spawnError != 0)
-    return -1;
-  int status = 0;
-  if (waitpid(child, &status, 0) < 0)
-    return -1;
-  return WIFEXITED(status) ? WEXITSTATUS(status) : 128;
-#else
-  (void)program;
-  (void)args;
-  return -1;
-#endif
+  ProcessConfig config; config.program = program; config.args = args;
+  auto result = productionRuntimeCapabilities().processes->spawn(config);
+  return result.failedToStart ? -1 : result.exitCode;
 }
+
 } // namespace
 
 fs::path cacheRoot() {
@@ -176,6 +148,12 @@ int runDependencies(const Options &options, std::ostream &output, std::ostream &
       lock << "source = \"git+" << *git << "\"\nrevision = \"" << revision
            << "\"\nchecksum = \"git-tree:" << revision << "\"\n\n";
     }
+  }
+  installNativePackages(root, manifest, options.locked);
+  if (fs::exists(root / ".kyna/native.lock")) {
+    lock << "# Native contracts (version, target, ABI, SHA-256):\n";
+    std::istringstream native(readInput((root / ".kyna/native.lock").string(), std::cin, error));
+    std::string line; while (std::getline(native, line)) lock << "# " << line << '\n';
   }
   const auto lockPath = root / "kyna.lock";
   std::string existing;

@@ -27,6 +27,7 @@ enum class Command {
   Add,
   Remove,
   Install,
+  Build,
   Doctor,
   SelfUpdate,
   SelfUninstall,
@@ -38,9 +39,15 @@ enum class Command {
 struct Options {
   Command command{Command::Repl};
   std::string input;
+  std::filesystem::path executable;
+  std::string buildOutput{"dist"};
+  bool buildNative{false};
   std::vector<std::string> inputs;
   std::string sourceName;
+  std::filesystem::path sourceOverlay;
   std::vector<std::filesystem::path> modulePaths;
+  std::vector<std::filesystem::path> nativeLibraries;
+  bool consoleColor{false};
   bool jsonDiagnostics{false};
   bool jsonOutput{false};
   bool color{true};
@@ -72,6 +79,8 @@ struct Options {
   std::string prefix;
   std::string error;
 };
+
+LanguageSessionOptions makeSessionOptions(const Options &);
 
 Options parseArguments(int argc, char **argv);
 int dispatch(const Options &options, std::istream &input, std::ostream &output,

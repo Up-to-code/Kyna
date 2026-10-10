@@ -32,6 +32,10 @@ toml::table loadManifest(const fs::path &root, std::string &error);
 bool saveManifest(const fs::path &root, const toml::table &table, std::string &error);
 int runDependencies(const Options &options, std::ostream &output, std::ostream &errors);
 
+int buildProject(const Options &, std::ostream &, std::ostream &);
+void installNativePackages(const fs::path &, const toml::table &, bool);
+std::string nativeTarget();
+
 int doctor(const Options &options, std::ostream &output);
 
 int serveProject(const Options &options, std::istream &input, std::ostream &output,

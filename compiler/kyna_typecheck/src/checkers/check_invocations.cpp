@@ -13,6 +13,22 @@ TypeRef Analyzer::checkCall(const Call &n, SourceLocation loc) {
   argumentTypes.reserve(n.args.size());
   for (auto &a : n.args)
     argumentTypes.push_back(expr(a));
+  if (c.name == "func" && !c.typeArgs.empty()) {
+    const auto count = c.typeArgs.size() - 1;
+    if (count != n.args.size())
+      error("function expects " + std::to_string(count) + " argument(s), but " +
+            std::to_string(n.args.size()) + " were provided", loc, "KSEM1201",
+            "match the function's parameter list");
+    for (std::size_t index = 0; index < std::min(count, argumentTypes.size()); ++index)
+      if (const auto *object = std::get_if<ObjectExpr>(&n.args[index]->node);
+          object && interfaces.find(c.typeArgs[index].name))
+        objectConforms(*object, *interfaces.find(c.typeArgs[index].name), c.typeArgs[index], n.args[index]->location);
+      else if (!compatible(c.typeArgs[index], argumentTypes[index]))
+        error("argument " + std::to_string(index + 1) + " has type " + argumentTypes[index].str() +
+              ", expected " + c.typeArgs[index].str(), n.args[index]->location, "KSEM1202",
+              "pass a value compatible with the function parameter");
+    return c.typeArgs.back();
+  }
   if (auto v = std::get_if<Variable>(&n.callee->node); v && functions.contains(v->name)) {
     auto &f = functions[v->name];
     if (f.params.size() != n.args.size())
@@ -74,6 +90,12 @@ TypeRef Analyzer::checkCall(const Call &n, SourceLocation loc) {
 
 TypeRef Analyzer::checkMember(const Member &n, SourceLocation loc) {
   auto objectType = expr(n.object);
+  if (const auto *variable = std::get_if<Variable>(&n.object->node);
+      variable && variable->name == "console" && !bindingScope("console")) {
+    if (n.name == "log") return analyzerNamedType("func");
+    error("console has no member '" + n.name + "'", loc, "KSEM2404", "use console.log or logColor");
+    return analyzerNamedType("void");
+  }
   if (objectType.name == "null") {
     error("cannot read member '" + n.name + "' from null", n.object->location, "KSEM2401",
           "check the value against null before accessing the member");
@@ -87,7 +109,12 @@ TypeRef Analyzer::checkMember(const Member &n, SourceLocation loc) {
       error("module '" + alias + "' has no exported member '" + n.name + "'", loc);
       return analyzerNamedType("any");
     }
-    return module->second.at(n.name);
+    const auto &exported = module->second.at(n.name);
+    if (exported.name.starts_with("type:")) {
+      error("type export '" + n.name + "' cannot be used as a value", loc, "KSEM1504");
+      return analyzerNamedType("void");
+    }
+    return exported;
   }
   if (objectType.name == "any" || objectType.name == "object")
     return analyzerNamedType("any");
@@ -149,8 +176,9 @@ TypeRef Analyzer::checkMember(const Member &n, SourceLocation loc) {
       error("private member '" + n.name + "' is not accessible here", loc);
     if (access == 1 && (!owner || (!subclassAccess && currentClass != owner->name)))
       error("protected member '" + n.name + "' is not accessible here", loc);
-    return field ? field->type
-                 : (method->hasReturnType ? method->returnType : analyzerNamedType("any"));
+    return field ? resolveType(field->type, loc)
+                 : analyzerSignature(*method, method->hasReturnType ? resolveType(method->returnType, loc)
+                                                                    : analyzerNamedType("any"));
   }
   if (const auto *contract = interfaces.find(className)) {
     std::vector<std::string> stack;
@@ -164,8 +192,12 @@ TypeRef Analyzer::checkMember(const Member &n, SourceLocation loc) {
     const auto method =
         std::find_if(effective.methods.begin(), effective.methods.end(),
                      [&](const auto &candidate) { return candidate.name == n.name; });
-    if (method != effective.methods.end())
-      return substitute(method->returnType, *contract, contractRef);
+    if (method != effective.methods.end()) {
+      auto signature = analyzerSignature(*method, method->returnType);
+      for (auto &type : signature.typeArgs)
+        type = substitute(type, *contract, contractRef);
+      return signature;
+    }
   }
   error("member access requires a class, interface, object, or module", loc);
   return analyzerNamedType("any");

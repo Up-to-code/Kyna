@@ -1,0 +1,3 @@
+var mesh = geometryLoadMesh("examples/native/apps/tetrahedron.off");
+console.log(geometryInspectMesh(mesh));
+console.log(geometryVolume(mesh));

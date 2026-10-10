@@ -80,11 +80,14 @@ InspectionResult LanguageSession::inspectBytecode(std::string name, std::string 
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
   Analyzer analyzer;
+  analyzer.setExternalBindings(nativeFunctionBindings(options.nativeFunctions));
   auto semantic = analyzer.analyze(parsed.tree.module.declarations);
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto hir = lowerSyntaxToHir(name, parsed.tree, detail::standardLibraryHirOptions());
+  auto loweringOptions = detail::standardLibraryHirOptions();
+  for (const auto &function : options.nativeFunctions) loweringOptions.nativeFunctions.push_back(function.name);
+  auto hir = lowerSyntaxToHir(name, parsed.tree, std::move(loweringOptions));
   diagnostics.insert(diagnostics.end(), hir.diagnostics.begin(), hir.diagnostics.end());
   if (!hir.program)
     return {{}, std::move(diagnostics)};
@@ -113,11 +116,14 @@ InspectionResult LanguageSession::inspectHir(std::string name, std::string sourc
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
   Analyzer analyzer;
+  analyzer.setExternalBindings(nativeFunctionBindings(options.nativeFunctions));
   auto semantic = analyzer.analyze(parsed.tree.module.declarations);
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto lowered = lowerSyntaxToHir(name, parsed.tree, detail::standardLibraryHirOptions());
+  auto loweringOptions = detail::standardLibraryHirOptions();
+  for (const auto &function : options.nativeFunctions) loweringOptions.nativeFunctions.push_back(function.name);
+  auto lowered = lowerSyntaxToHir(name, parsed.tree, std::move(loweringOptions));
   diagnostics.insert(diagnostics.end(), lowered.diagnostics.begin(), lowered.diagnostics.end());
   if (!lowered.program)
     return {{}, std::move(diagnostics)};
@@ -138,11 +144,14 @@ InspectionResult LanguageSession::inspectMir(std::string name, std::string sourc
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
   Analyzer analyzer;
+  analyzer.setExternalBindings(nativeFunctionBindings(options.nativeFunctions));
   auto semantic = analyzer.analyze(parsed.tree.module.declarations);
   diagnostics.insert(diagnostics.end(), semantic.begin(), semantic.end());
   if (detail::hasErrors(diagnostics))
     return {{}, std::move(diagnostics)};
-  auto hir = lowerSyntaxToHir(name, parsed.tree, detail::standardLibraryHirOptions());
+  auto loweringOptions = detail::standardLibraryHirOptions();
+  for (const auto &function : options.nativeFunctions) loweringOptions.nativeFunctions.push_back(function.name);
+  auto hir = lowerSyntaxToHir(name, parsed.tree, std::move(loweringOptions));
   diagnostics.insert(diagnostics.end(), hir.diagnostics.begin(), hir.diagnostics.end());
   if (!hir.program)
     return {{}, std::move(diagnostics)};
