@@ -122,7 +122,10 @@ uses `detect_leaks=0`. Callback arity and invocation argument/result
 contracts are enforced through `any`; a live GUI child retains its native parent.
 Android native loading now resolves the adapter beside the application library
 and loader failures include their underlying platform error. The rebuilt Release
-APK passed the lifecycle smoke again. Hosted platform CI remains unexecuted.
+APK passed the lifecycle smoke again. Hosted platform CI is running through draft PR #6. Its initial Android setup
+failed because the setup action requested the retired SDK `tools` package; the
+workflow now explicitly requests `platform-tools`. Other platform results remain
+pending. All 58 CTests passed in the local optional-adapter configuration.
 
 
 Generated Android Qt/NDK and sanitizer build directories have verified local tar
